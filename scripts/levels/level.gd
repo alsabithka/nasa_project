@@ -4,7 +4,7 @@ extends Node3D
 # Configures planet gravity, player state, and UI.
 
 @export var planet_name: String = "Moon"
-@export var level_gravity: float = 3.8
+@export var level_gravity: float = 1.62
 
 func _ready() -> void:
 	var gs = get_node_or_null("/root/GameState")
