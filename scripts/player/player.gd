@@ -40,7 +40,6 @@ var last_foot_step: bool = false # false = left, true = right
 var scanner_raise_weight: float = 0.0
 var exertion_level: float = 0.0
 var prev_vertical_velocity: float = 0.0
-var landing_squash: float = 0.0
 
 # Stable interaction state (prevents rubberbanding/displacement during digging, cleaning & inspection)
 var is_interacting: bool = false
@@ -168,13 +167,10 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= gravity * delta
 		exertion_level = move_toward(exertion_level, 0.4, 0.2 * delta)
 	
-	# Landing detection: landing impact compression and bone-conducted sound
+	# Landing detection: landing impact sound and subtle contact dust
 	if was_in_air and is_on_floor():
 		_handle_landing(prev_vertical_velocity)
 	prev_vertical_velocity = velocity.y
-	
-	# Smoothly recover landing knee squash
-	landing_squash = move_toward(landing_squash, 0.0, 4.0 * delta)
 	
 	# If locked in interaction (digging, cleaning, sample inspection), hold position stably
 	if is_interacting:
@@ -195,7 +191,7 @@ func _physics_process(delta: float) -> void:
 				var target_angle = atan2(to_target.x, to_target.z)
 				visuals.rotation.y = lerp_angle(visuals.rotation.y, target_angle, 8.0 * delta)
 		
-		_animate_minion(delta, false, false)
+		_animate_astronaut(delta, false, false)
 		move_and_slide()
 		return
 	
@@ -237,17 +233,17 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, move_direction.x * current_max_speed, accel_rate * delta * current_max_speed)
 		velocity.z = move_toward(velocity.z, move_direction.z * current_max_speed, accel_rate * delta * current_max_speed)
 		
-		# Rotate Minion smoothly towards movement direction
+		# Rotate astronaut smoothly towards movement direction
 		var target_angle = atan2(move_direction.x, move_direction.z)
 		visuals.rotation.y = lerp_angle(visuals.rotation.y, target_angle, 8.5 * delta)
 		
 		# Advance gait step cycle
-		var stride_rate = 5.4 if active_loping else 4.2
+		var stride_rate = 5.0 if active_loping else 3.8
 		walk_cycle += delta * stride_rate
 		step_cycle_tracker += delta * stride_rate
 		
 		if is_on_floor():
-			exertion_level = move_toward(exertion_level, 0.6 if active_loping else 0.22, 0.1 * delta)
+			exertion_level = move_toward(exertion_level, 0.55 if active_loping else 0.20, 0.1 * delta)
 		
 		# Detect footstep touchdown
 		if step_cycle_tracker >= PI:
@@ -259,7 +255,7 @@ func _physics_process(delta: float) -> void:
 		velocity.z = move_toward(velocity.z, 0.0, decel_rate * delta * current_max_speed)
 		exertion_level = move_toward(exertion_level, 0.0, 0.15 * delta)
 	
-	_animate_minion(delta, is_moving, active_loping)
+	_animate_astronaut(delta, is_moving, active_loping)
 	move_and_slide()
 
 func jump() -> void:
@@ -267,23 +263,22 @@ func jump() -> void:
 		velocity.y = jump_velocity
 		exertion_level = clampf(exertion_level + 0.35, 0.0, 1.0)
 		if dust_system and dust_system.has_method("emit_impact_dust"):
-			dust_system.emit_impact_dust(global_position, 0.6)
+			dust_system.emit_impact_dust(global_position, 0.4)
 		if audio_system and audio_system.has_method("play_footstep"):
 			audio_system.play_footstep(true)
 
 func _handle_landing(impact_vel: float) -> void:
-	landing_squash = clampf(abs(impact_vel) * 0.05, 0.05, 0.18)
 	if audio_system and audio_system.has_method("play_landing_thud"):
 		audio_system.play_landing_thud(impact_vel)
 	
-	var impact_strength = clampf(abs(impact_vel) / 3.4, 0.4, 1.4)
+	var impact_strength = clampf(abs(impact_vel) / 3.4, 0.3, 1.2)
 	if dust_system and dust_system.has_method("emit_impact_dust"):
 		dust_system.emit_impact_dust(global_position, impact_strength)
 	
 	if footprint_system and footprint_system.has_method("place_footprint"):
 		var norm = get_floor_normal() if is_on_floor() else Vector3.UP
-		footprint_system.place_footprint(global_position, norm, visuals.rotation.y, false, impact_strength * 1.1)
-		footprint_system.place_footprint(global_position, norm, visuals.rotation.y, true, impact_strength * 1.1)
+		footprint_system.place_footprint(global_position, norm, visuals.rotation.y, false, impact_strength * 1.0)
+		footprint_system.place_footprint(global_position, norm, visuals.rotation.y, true, impact_strength * 1.0)
 
 func _trigger_footstep(move_dir: Vector3, is_loping: bool) -> void:
 	if not is_on_floor():
@@ -292,14 +287,15 @@ func _trigger_footstep(move_dir: Vector3, is_loping: bool) -> void:
 	if audio_system and audio_system.has_method("play_footstep"):
 		audio_system.play_footstep(is_loping)
 	
+	# Subtle, small disturbance of lunar dust around the boot sole
 	if dust_system and dust_system.has_method("emit_footstep_dust"):
 		dust_system.emit_footstep_dust(global_position, move_dir, is_loping)
 	
 	if footprint_system and footprint_system.has_method("place_footprint"):
 		var norm = get_floor_normal()
-		footprint_system.place_footprint(global_position, norm, visuals.rotation.y, last_foot_step, 1.0 if is_loping else 0.75)
+		footprint_system.place_footprint(global_position, norm, visuals.rotation.y, last_foot_step, 0.9 if is_loping else 0.7)
 
-func _animate_minion(delta: float, is_moving: bool, is_loping: bool) -> void:
+func _animate_astronaut(delta: float, is_moving: bool, is_loping: bool) -> void:
 	# Read signal strength from attached scanner
 	var signal_strength: float = 0.0
 	var scanner = get_node_or_null("Scanner")
@@ -311,48 +307,43 @@ func _animate_minion(delta: float, is_moving: bool, is_loping: bool) -> void:
 	var target_raise = 1.0 if signal_strength > 0.08 else 0.0
 	scanner_raise_weight = lerp(scanner_raise_weight, target_raise, 4.0 * delta)
 	
-	var stride_angle = sin(walk_cycle) * (0.50 if is_loping else 0.32) if is_moving else 0.0
+	# Natural astronaut stride angle
+	var stride_angle = sin(walk_cycle) * (0.42 if is_loping else 0.26) if is_moving else 0.0
 	
-	# Torso height positioning with landing compression
-	torso.position.y = 0.65 - landing_squash
-	
-	# Iconic Minion Spacesuit Waddle: Side-to-side roll synchronized with stride
-	if is_moving and is_on_floor():
-		var waddle_tilt = sin(walk_cycle) * (0.07 if is_loping else 0.045)
-		visuals.rotation.z = lerp(visuals.rotation.z, waddle_tilt, 10.0 * delta)
-	else:
-		visuals.rotation.z = lerp(visuals.rotation.z, 0.0, 8.0 * delta)
+	# Keep astronaut torso stable and upright in EVA spacesuit (no cartoon waddling or squashing)
+	torso.position.y = 0.65
+	visuals.rotation.z = 0.0
 	
 	# Excavation / interaction pose when digging, cleaning, or inspecting samples
 	if is_interacting:
 		if left_arm and right_arm:
-			left_arm.rotation.x = lerp(left_arm.rotation.x, -1.0, 8.0 * delta)
-			left_arm.rotation.y = lerp(left_arm.rotation.y, 0.20, 8.0 * delta)
-			right_arm.rotation.x = lerp(right_arm.rotation.x, -1.0, 8.0 * delta)
-			right_arm.rotation.y = lerp(right_arm.rotation.y, -0.20, 8.0 * delta)
+			left_arm.rotation.x = lerp(left_arm.rotation.x, -0.95, 8.0 * delta)
+			left_arm.rotation.y = lerp(left_arm.rotation.y, 0.18, 8.0 * delta)
+			right_arm.rotation.x = lerp(right_arm.rotation.x, -0.95, 8.0 * delta)
+			right_arm.rotation.y = lerp(right_arm.rotation.y, -0.18, 8.0 * delta)
 		if left_leg and right_leg:
 			left_leg.rotation.x = lerp(left_leg.rotation.x, 0.0, 10.0 * delta)
 			right_leg.rotation.x = lerp(right_leg.rotation.x, 0.0, 10.0 * delta)
 		return
 	
-	# Minion Leg strides
+	# Realistic spacesuit leg strides
 	if left_leg and right_leg:
 		left_leg.rotation.x = lerp(left_leg.rotation.x, -stride_angle, 12.0 * delta)
 		right_leg.rotation.x = lerp(right_leg.rotation.x, stride_angle, 12.0 * delta)
 	
-	# Left arm swings with gait
+	# Natural arm counter-swing
 	if left_arm:
-		left_arm.rotation.x = lerp(left_arm.rotation.x, stride_angle * 0.7, 10.0 * delta)
+		left_arm.rotation.x = lerp(left_arm.rotation.x, stride_angle * 0.6, 10.0 * delta)
 	
-	# Right arm: holds handheld scanner or swings
+	# Right arm: holds handheld scanner or counter-swings
 	if right_arm:
 		if scanner_raise_weight > 0.05:
 			var scan_angle = -0.90 - (signal_strength * 0.25)
-			var sweep = sin(Time.get_ticks_msec() * 0.003) * 0.10 * (1.0 - signal_strength)
+			var sweep = sin(Time.get_ticks_msec() * 0.003) * 0.08 * (1.0 - signal_strength)
 			right_arm.rotation.x = lerp(right_arm.rotation.x, scan_angle, 6.0 * delta)
-			right_arm.rotation.y = lerp(right_arm.rotation.y, -0.22 + sweep, 6.0 * delta)
+			right_arm.rotation.y = lerp(right_arm.rotation.y, -0.20 + sweep, 6.0 * delta)
 		else:
-			right_arm.rotation.x = lerp(right_arm.rotation.x, -stride_angle * 0.4, 8.0 * delta)
+			right_arm.rotation.x = lerp(right_arm.rotation.x, -stride_angle * 0.35, 8.0 * delta)
 			right_arm.rotation.y = lerp(right_arm.rotation.y, 0.0, 8.0 * delta)
 	
 	# Scanner screen emission pulse
