@@ -29,7 +29,6 @@ func setup_default_inputs() -> void:
 	_add_key_action("inspect_geology", [KEY_F])
 	_add_key_action("toggle_camera_view", [KEY_V])
 	_add_key_action("toggle_gait", [KEY_C])
-	_add_key_action("toggle_map", [KEY_M])
 
 func _add_key_action(action_name: String, keys: Array) -> void:
 	if not InputMap.has_action(action_name):

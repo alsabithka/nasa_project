@@ -18,7 +18,6 @@ var gravity_label: Label
 var compass_label: Label
 var view_mode_label: Label
 var mission_clock_label: Label
-var coords_label: Label
 var visor_overlay: Control
 
 var _player_ref: CharacterBody3D
@@ -87,16 +86,6 @@ func _build_hud_elements() -> void:
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bottom_hbox.add_child(spacer)
-
-	coords_label = Label.new()
-	coords_label.text = "NAV: 18.38°N, 077.58°E | Elev: -2.4 km | [M] Planetary Map"
-	coords_label.modulate = Color(0.85, 0.9, 1.0, 0.9)
-	bottom_hbox.add_child(coords_label)
-
-	var spacer2 = Control.new()
-	spacer2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	spacer2.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bottom_hbox.add_child(spacer2)
 	
 	mission_clock_label = Label.new()
 	mission_clock_label.text = "MET: 114:24:00"
@@ -178,20 +167,7 @@ func _process(delta: float) -> void:
 	var is_first_person = false
 	if "is_first_person" in _player_ref:
 		is_first_person = _player_ref.is_first_person
+	view_mode_label.text = "VIEW: 1ST-PERSON VISOR [V]" if is_first_person else "VIEW: 3RD-PERSON MINION EVA [Mouse Wheel Zoom]"
+	if "is_first_person" in _player_ref:
+		is_first_person = _player_ref.is_first_person
 	view_mode_label.text = "VIEW: 1ST-PERSON EVA VISOR [V]" if is_first_person else "VIEW: 3RD-PERSON CHASE [V]"
-
-	# Update planetary coordinates & elevation telemetry if on spherical Mars
-	var planet = get_tree().get_first_node_in_group("spherical_planet")
-	if planet and planet.has_method("get_planetary_coords") and coords_label:
-		var p_data = planet.get_planetary_coords(_player_ref.global_position)
-		var lat: float = p_data.get("lat", 0.0)
-		var lon: float = p_data.get("lon", 0.0)
-		var elev: float = p_data.get("elevation_km", 0.0)
-		var dist_km = 0.0
-		if _player_ref.has_method("get_distance_travelled_km"):
-			dist_km = _player_ref.get_distance_travelled_km()
-		var lat_str = "%05.2f°%s" % [abs(lat), ("N" if lat >= 0 else "S")]
-		var lon_str = "%06.2f°E" % lon
-		coords_label.text = "NAV: %s, %s | Elev: %+.1f km | Dist: %.1f km | [M] Planetary Map" % [lat_str, lon_str, elev, dist_km]
-	elif coords_label:
-		coords_label.text = "TAURUS-LITTROW (20.19°N, 30.77°E) | Apollo 17 Station"
