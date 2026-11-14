@@ -52,6 +52,7 @@ var _active_chunks: Dictionary = {}
 var _player_ref: CharacterBody3D = null
 var _last_chunk_check_pos: Vector3 = Vector3.ZERO
 var _basis_jezero_rotation: Basis = Basis.IDENTITY
+var _spawned_historical_spacecraft: Dictionary = {}
 
 # Known NASA planetary landmarks & biomes
 var known_landmarks: Array[Dictionary] = [
@@ -129,6 +130,82 @@ var known_landmarks: Array[Dictionary] = [
 	}
 ]
 
+# Historical Mars Surface Exploration Hardware catalog (authentic NASA landing coordinates)
+var historical_spacecraft_catalog: Array[Dictionary] = [
+	{
+		"id": "pathfinder",
+		"name": "Mars Pathfinder Lander",
+		"lat": 19.33,
+		"lon": 326.45,
+		"site": "Ares Vallis",
+		"dust_level": 0.50
+	},
+	{
+		"id": "sojourner",
+		"name": "Sojourner Rover",
+		"lat": 19.3302,
+		"lon": 326.4503,
+		"site": "Ares Vallis (Adjacent to Pathfinder)",
+		"dust_level": 0.45
+	},
+	{
+		"id": "spirit",
+		"name": "Spirit Rover (MER-A)",
+		"lat": -14.57,
+		"lon": 175.47,
+		"site": "Gusev Crater / Columbia Hills - Troy",
+		"dust_level": 0.70
+	},
+	{
+		"id": "opportunity",
+		"name": "Opportunity Rover (MER-B)",
+		"lat": -1.95,
+		"lon": 354.47,
+		"site": "Meridiani Planum / Perseverance Valley",
+		"dust_level": 0.65
+	},
+	{
+		"id": "viking_1",
+		"name": "Viking 1 Lander",
+		"lat": 22.27,
+		"lon": 312.05,
+		"site": "Chryse Planitia",
+		"dust_level": 0.55
+	},
+	{
+		"id": "viking_2",
+		"name": "Viking 2 Lander",
+		"lat": 47.97,
+		"lon": 134.29,
+		"site": "Utopia Planitia",
+		"dust_level": 0.55
+	},
+	{
+		"id": "phoenix",
+		"name": "Phoenix Mars Lander",
+		"lat": 68.22,
+		"lon": 234.25,
+		"site": "Vastitas Borealis",
+		"dust_level": 0.40
+	},
+	{
+		"id": "insight",
+		"name": "InSight Mars Lander",
+		"lat": 4.50,
+		"lon": 135.62,
+		"site": "Elysium Planitia",
+		"dust_level": 0.70
+	},
+	{
+		"id": "ingenuity",
+		"name": "Ingenuity Mars Helicopter",
+		"lat": 18.44,
+		"lon": 77.45,
+		"site": "Jezero Crater / Valinor Hills",
+		"dust_level": 0.30
+	}
+]
+
 # Real NASA Jezero Crater feature catalog
 var craters: Array = [
 	# Belva Crater: Major delta-penetrating impact crater exposing deep layered strata
@@ -168,6 +245,7 @@ func _process(_delta: float) -> void:
 	_update_spherical_chunks(false)
 	var unit_p = (_player_ref.global_position - planet_center).normalized()
 	_check_landmark_discovery(unit_p)
+	_update_historical_spacecraft_proximity(unit_p)
 
 func _find_player_and_initialize() -> void:
 	if not _player_ref:
@@ -1105,4 +1183,71 @@ func _do_align() -> void:
 			var ax = node.global_position.x
 			var az = node.global_position.z
 			var surf_pos = get_surface_point(ax, az)
+			var surf_norm = get_surface_normal(surf_pos)
 			node.global_position = surf_pos
+			var cur_up = node.global_transform.basis.y
+			if cur_up.cross(surf_norm).length_squared() > 0.0001:
+				var axis = cur_up.cross(surf_norm).normalized()
+				var angle = cur_up.angle_to(surf_norm)
+				node.global_transform.basis = Basis(axis, angle) * node.global_transform.basis
+
+# Proximity streaming and geographical spawning for historical Mars exploration hardware
+func _update_historical_spacecraft_proximity(unit_p: Vector3) -> void:
+	for sc in historical_spacecraft_catalog:
+		var sc_id: String = sc["id"]
+		var sc_dir = get_unit_vector_from_lat_lon(sc["lat"], sc["lon"])
+		var ang_dist = unit_p.angle_to(sc_dir)
+		# Within ~0.08 rad (~96 meters on sphere), dynamically stream in the spacecraft
+		if ang_dist < 0.08:
+			if not _spawned_historical_spacecraft.has(sc_id) or not is_instance_valid(_spawned_historical_spacecraft[sc_id]):
+				spawn_historical_spacecraft(sc_id)
+
+func spawn_historical_spacecraft(sc_id: String) -> Node3D:
+	if _spawned_historical_spacecraft.has(sc_id) and is_instance_valid(_spawned_historical_spacecraft[sc_id]):
+		return _spawned_historical_spacecraft[sc_id]
+
+	var sc_info: Dictionary = {}
+	for item in historical_spacecraft_catalog:
+		if item["id"] == sc_id:
+			sc_info = item
+			break
+	if sc_info.is_empty():
+		return null
+
+	var art_scene = load("res://scenes/artifact/artifact.tscn")
+	if not art_scene:
+		return null
+
+	var art = art_scene.instantiate()
+	art.name = "HistoricalSpacecraft_" + sc_id.capitalize()
+	art.artifact_id = sc_id
+
+	var unit_dir = get_unit_vector_from_lat_lon(sc_info["lat"], sc_info["lon"])
+	var surf_pos = get_surface_position(unit_dir)
+	var surf_norm = get_surface_normal(surf_pos)
+
+	var parent_node = get_parent()
+	if parent_node:
+		parent_node.add_child(art)
+	else:
+		add_child(art)
+
+	art.global_position = surf_pos
+	var cur_up = art.global_transform.basis.y
+	if cur_up.cross(surf_norm).length_squared() > 0.0001:
+		var axis = cur_up.cross(surf_norm).normalized()
+		var angle = cur_up.angle_to(surf_norm)
+		art.global_transform.basis = Basis(axis, angle) * art.global_transform.basis
+
+	if art.has_method("set_recovered_visuals"):
+		art.set_recovered_visuals()
+
+	_spawned_historical_spacecraft[sc_id] = art
+	return art
+
+func get_spacecraft_world_position(sc_id: String) -> Vector3:
+	for item in historical_spacecraft_catalog:
+		if item["id"] == sc_id:
+			var unit_dir = get_unit_vector_from_lat_lon(item["lat"], item["lon"])
+			return get_surface_position(unit_dir)
+	return Vector3.ZERO

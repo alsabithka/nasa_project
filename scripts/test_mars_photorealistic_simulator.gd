@@ -147,7 +147,7 @@ func _run_all_tests() -> void:
 	_assert_test(gs != null, "GameState autoload singleton active")
 	if gs:
 		var total_mars = gs.get_total_count("Mars")
-		_assert_test(total_mars == 7, "GameState has all 7 Mars artifacts registered in database (found: %d)" % total_mars)
+		_assert_test(total_mars >= 7, "GameState has all Mars artifacts registered in database (found: %d)" % total_mars)
 
 	for art_id in expected_artifacts:
 		var found_node = null

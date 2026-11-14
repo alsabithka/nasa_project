@@ -4,6 +4,7 @@ extends Control
 
 @onready var play_moon_btn: Button = $CenterContainer/MainCard/VBoxContainer/PlayMoonBtn
 @onready var play_mars_btn: Button = $CenterContainer/MainCard/VBoxContainer/PlayMarsBtn
+@onready var gallery_btn: Button = $CenterContainer/MainCard/VBoxContainer/SpacecraftGalleryBtn
 @onready var controls_btn: Button = $CenterContainer/MainCard/VBoxContainer/ControlsBtn
 @onready var quit_btn: Button = $CenterContainer/MainCard/VBoxContainer/QuitBtn
 
@@ -16,6 +17,7 @@ func _ready() -> void:
 	
 	play_moon_btn.pressed.connect(_on_play_moon_pressed)
 	play_mars_btn.pressed.connect(_on_play_mars_pressed)
+	gallery_btn.pressed.connect(_on_gallery_pressed)
 	controls_btn.pressed.connect(func(): controls_modal.visible = true)
 	close_controls_btn.pressed.connect(func(): controls_modal.visible = false)
 	quit_btn.pressed.connect(func(): get_tree().quit())
@@ -37,6 +39,9 @@ func _update_mars_button() -> void:
 
 func _on_play_moon_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/levels/moon.tscn")
+
+func _on_gallery_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/spacecraft/spacecraft_gallery.tscn")
 
 func _on_play_mars_pressed() -> void:
 	var gs = get_node_or_null("/root/GameState")

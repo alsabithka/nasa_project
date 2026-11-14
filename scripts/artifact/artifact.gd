@@ -1,5 +1,7 @@
 extends Area3D
 
+const HistoricalSpacecraftModels = preload("res://scripts/spacecraft/historical_spacecraft_models.gd")
+
 # Echoes Beyond Earth - Artifact with full dig/clean discovery sequence
 
 # ---- Existing signals (kept for compatibility) ----
@@ -53,6 +55,7 @@ var _interacting_player: CharacterBody3D = null
 var _excavation_pit: Node3D = null
 var _glint_effect: Node3D = null
 var _excavation_menu: CanvasLayer = null
+var _inspector_hud: CanvasLayer = null
 var is_anomaly_confirmed: bool = false
 
 func _get_player() -> CharacterBody3D:
@@ -268,7 +271,7 @@ func _update_state_visuals() -> void:
 			visual_model.visible = true
 			visual_model.scale = Vector3.ONE
 			if prompt_label:
-				prompt_label.text = "[IDENTIFIED] " + artifact_name
+				prompt_label.text = "[E] INSPECT HARDWARE - " + artifact_name
 				prompt_label.modulate = Color(0.4, 1.0, 0.5, 0.8)
 				prompt_label.visible = true
 			if dig_progress_label:
@@ -367,6 +370,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_start_digging()
 			ArtifactState.EXPOSED:
 				_start_cleaning()
+			ArtifactState.IDENTIFIED:
+				_open_component_inspector()
 	elif event.is_action_released("interact"):
 		is_player_holding_e = false
 		if current_state == ArtifactState.DIGGING:
@@ -547,6 +552,30 @@ func _identify_artifact() -> void:
 	cleaning_completed.emit(artifact_id)
 	artifact_interacted.emit(artifact_id)
 
+func _open_component_inspector() -> void:
+	if _inspector_hud:
+		return
+	var hud_script = load("res://scripts/ui/spacecraft_inspector_hud.gd")
+	if not hud_script:
+		return
+	_inspector_hud = CanvasLayer.new()
+	_inspector_hud.set_script(hud_script)
+	_inspector_hud.inspection_closed.connect(_on_inspector_closed)
+	add_child(_inspector_hud)
+	_inspector_hud.open_inspector(visual_model, artifact_id)
+	
+	var player = _get_player()
+	if player and player.has_method("release_mouse"):
+		player.release_mouse()
+
+func _on_inspector_closed() -> void:
+	if _inspector_hud:
+		_inspector_hud.queue_free()
+		_inspector_hud = null
+	var player = _get_player()
+	if player and player.has_method("capture_mouse"):
+		player.capture_mouse()
+
 # ---- Visual representation (all existing mesh builders kept intact) ----
 func set_recovered_visuals() -> void:
 	is_recovered = true
@@ -571,10 +600,32 @@ func _update_visual_representation() -> void:
 			_build_alsep_mesh()
 		"sojourner":
 			_build_sojourner_mesh()
+		"pathfinder":
+			_build_pathfinder_mesh()
+		"spirit":
+			_build_spirit_mesh()
 		"opportunity":
 			_build_opportunity_mesh()
+		"viking_1":
+			_build_viking_1_mesh()
+		"viking_2":
+			_build_viking_2_mesh()
+		"phoenix":
+			_build_phoenix_mesh()
+		"insight":
+			_build_insight_mesh()
 		"ingenuity":
 			_build_ingenuity_mesh()
+		"dawn":
+			_build_dawn_mesh()
+		"near_shoemaker":
+			_build_near_shoemaker_mesh()
+		"pioneer_10":
+			_build_pioneer_10_mesh()
+		"pioneer_11":
+			_build_pioneer_11_mesh()
+		"kepler":
+			_build_kepler_mesh()
 		"lunar_ferroan_anorthosite":
 			_build_anorthosite_mesh()
 		"lunar_iron_meteorite":
@@ -739,142 +790,60 @@ func _build_alsep_mesh() -> void:
 	visual_model.add_child(antenna)
 
 func _build_sojourner_mesh() -> void:
-	# Compact 6-wheel rover body
-	var body = MeshInstance3D.new()
-	var b_box = BoxMesh.new()
-	b_box.size = Vector3(0.65, 0.28, 0.45)
-	body.mesh = b_box
-	body.position = Vector3(0, 0.3, 0)
-	var solar_mat = StandardMaterial3D.new()
-	solar_mat.albedo_color = Color(0.1, 0.15, 0.35)
-	solar_mat.metallic = 0.6
-	solar_mat.roughness = 0.2
-	body.set_surface_override_material(0, solar_mat)
-	visual_model.add_child(body)
-	
-	# 6 small metal wheels
-	var wheel_mat = StandardMaterial3D.new()
-	wheel_mat.albedo_color = Color(0.75, 0.75, 0.8)
-	wheel_mat.metallic = 0.8
-	var x_coords = [-0.25, 0.0, 0.25]
-	for x in x_coords:
-		for z in [-0.28, 0.28]:
-			var w = MeshInstance3D.new()
-			var c = CylinderMesh.new()
-			c.top_radius = 0.1
-			c.bottom_radius = 0.1
-			c.height = 0.08
-			w.mesh = c
-			w.rotation_degrees = Vector3(90, 0, 0)
-			w.position = Vector3(x, 0.12, z)
-			w.set_surface_override_material(0, wheel_mat)
-			visual_model.add_child(w)
+	var model = HistoricalSpacecraftModels.build_sojourner_rover(0.45)
+	visual_model.add_child(model)
+
+func _build_pathfinder_mesh() -> void:
+	var model = HistoricalSpacecraftModels.build_pathfinder_lander(0.50)
+	visual_model.add_child(model)
 
 func _build_opportunity_mesh() -> void:
-	# MER Opportunity Body & Solar Panels
-	var body = MeshInstance3D.new()
-	var b_box = BoxMesh.new()
-	b_box.size = Vector3(1.2, 0.4, 0.9)
-	body.mesh = b_box
-	body.position = Vector3(0, 0.5, 0)
-	var solar_mat = StandardMaterial3D.new()
-	solar_mat.albedo_color = Color(0.08, 0.12, 0.32)
-	body.set_surface_override_material(0, solar_mat)
-	visual_model.add_child(body)
-	
-	# Pancam Mast
-	var mast = MeshInstance3D.new()
-	var m_cyl = CylinderMesh.new()
-	m_cyl.top_radius = 0.04
-	m_cyl.bottom_radius = 0.04
-	m_cyl.height = 0.9
-	mast.mesh = m_cyl
-	mast.position = Vector3(0.4, 1.1, 0)
-	visual_model.add_child(mast)
-	
-	# Camera Head
-	var head = MeshInstance3D.new()
-	var h_box = BoxMesh.new()
-	h_box.size = Vector3(0.2, 0.12, 0.3)
-	head.mesh = h_box
-	head.position = Vector3(0.4, 1.55, 0)
-	var gold_mat = StandardMaterial3D.new()
-	gold_mat.albedo_color = Color(0.9, 0.7, 0.2)
-	head.set_surface_override_material(0, gold_mat)
-	visual_model.add_child(head)
-	
-	# 6 Wheels
-	var wheel_mat = StandardMaterial3D.new()
-	wheel_mat.albedo_color = Color(0.3, 0.3, 0.35)
-	for x in [-0.5, 0.0, 0.5]:
-		for z in [-0.55, 0.55]:
-			var w = MeshInstance3D.new()
-			var c = CylinderMesh.new()
-			c.top_radius = 0.18
-			c.bottom_radius = 0.18
-			c.height = 0.12
-			w.mesh = c
-			w.rotation_degrees = Vector3(90, 0, 0)
-			w.position = Vector3(x, 0.2, z)
-			w.set_surface_override_material(0, wheel_mat)
-			visual_model.add_child(w)
+	var model = HistoricalSpacecraftModels.build_mer_rover("opportunity", 0.65)
+	visual_model.add_child(model)
+
+func _build_spirit_mesh() -> void:
+	var model = HistoricalSpacecraftModels.build_mer_rover("spirit", 0.70)
+	visual_model.add_child(model)
+
+func _build_viking_1_mesh() -> void:
+	var model = HistoricalSpacecraftModels.build_viking_lander(1, 0.55)
+	visual_model.add_child(model)
+
+func _build_viking_2_mesh() -> void:
+	var model = HistoricalSpacecraftModels.build_viking_lander(2, 0.55)
+	visual_model.add_child(model)
+
+func _build_phoenix_mesh() -> void:
+	var model = HistoricalSpacecraftModels.build_phoenix_lander(0.40)
+	visual_model.add_child(model)
+
+func _build_insight_mesh() -> void:
+	var model = HistoricalSpacecraftModels.build_insight_lander(0.70)
+	visual_model.add_child(model)
 
 func _build_ingenuity_mesh() -> void:
-	# Fuselage body
-	var body = MeshInstance3D.new()
-	var b_box = BoxMesh.new()
-	b_box.size = Vector3(0.3, 0.3, 0.3)
-	body.mesh = b_box
-	body.position = Vector3(0, 0.45, 0)
-	var gold_mat = StandardMaterial3D.new()
-	gold_mat.albedo_color = Color(0.9, 0.75, 0.2)
-	gold_mat.metallic = 0.8
-	body.set_surface_override_material(0, gold_mat)
-	visual_model.add_child(body)
-	
-	# Rotor Mast
-	var mast = MeshInstance3D.new()
-	var m_cyl = CylinderMesh.new()
-	m_cyl.top_radius = 0.02
-	m_cyl.bottom_radius = 0.02
-	m_cyl.height = 0.6
-	mast.mesh = m_cyl
-	mast.position = Vector3(0, 0.75, 0)
-	visual_model.add_child(mast)
-	
-	# 2 Counter-rotating carbon fiber rotor blades
-	var rotor_mat = StandardMaterial3D.new()
-	rotor_mat.albedo_color = Color(0.12, 0.12, 0.14)
-	
-	var rotor1 = MeshInstance3D.new()
-	var r_box1 = BoxMesh.new()
-	r_box1.size = Vector3(1.2, 0.02, 0.08)
-	rotor1.mesh = r_box1
-	rotor1.position = Vector3(0, 0.85, 0)
-	rotor1.set_surface_override_material(0, rotor_mat)
-	visual_model.add_child(rotor1)
-	
-	var rotor2 = MeshInstance3D.new()
-	var r_box2 = BoxMesh.new()
-	r_box2.size = Vector3(1.2, 0.02, 0.08)
-	rotor2.mesh = r_box2
-	rotor2.position = Vector3(0, 0.95, 0)
-	rotor2.rotation_degrees = Vector3(0, 90, 0)
-	rotor2.set_surface_override_material(0, rotor_mat)
-	visual_model.add_child(rotor2)
-	
-	# 4 Spindly Carbon Legs
-	for a in [45, 135, 225, 315]:
-		var rad = deg_to_rad(a)
-		var leg = MeshInstance3D.new()
-		var l_box = BoxMesh.new()
-		l_box.size = Vector3(0.04, 0.04, 0.6)
-		leg.mesh = l_box
-		leg.position = Vector3(sin(rad) * 0.25, 0.2, cos(rad) * 0.25)
-		leg.rotation.y = rad
-		leg.rotation.x = deg_to_rad(40)
-		leg.set_surface_override_material(0, rotor_mat)
-		visual_model.add_child(leg)
+	var model = HistoricalSpacecraftModels.build_ingenuity_helicopter(true, 0.30)
+	visual_model.add_child(model)
+
+func _build_dawn_mesh() -> void:
+	var model = HistoricalSpacecraftModels.build_dawn_spacecraft()
+	visual_model.add_child(model)
+
+func _build_near_shoemaker_mesh() -> void:
+	var model = HistoricalSpacecraftModels.build_near_shoemaker()
+	visual_model.add_child(model)
+
+func _build_pioneer_10_mesh() -> void:
+	var model = HistoricalSpacecraftModels.build_pioneer_probe(10)
+	visual_model.add_child(model)
+
+func _build_pioneer_11_mesh() -> void:
+	var model = HistoricalSpacecraftModels.build_pioneer_probe(11)
+	visual_model.add_child(model)
+
+func _build_kepler_mesh() -> void:
+	var model = HistoricalSpacecraftModels.build_kepler_telescope()
+	visual_model.add_child(model)
 
 func _build_default_mesh() -> void:
 	var box = MeshInstance3D.new()
