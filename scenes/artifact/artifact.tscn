@@ -1,0 +1,88 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/artifact/artifact.gd" id="1_artifact"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_1"]
+height = 2.5
+radius = 3.5
+
+[sub_resource type="StandardMaterial3D" id="Mat_Beacon"]
+transparency = 1
+albedo_color = Color(1, 0.85, 0.2, 0.7)
+emission_enabled = true
+emission = Color(1, 0.85, 0.2, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="TorusMesh" id="TorusMesh_Beacon"]
+material = SubResource("Mat_Beacon")
+inner_radius = 1.6
+outer_radius = 1.85
+rings = 24
+ring_segments = 16
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleMat_Dust"]
+direction = Vector3(0, 1, 0)
+spread = 180.0
+initial_velocity_min = 0.5
+initial_velocity_max = 1.2
+gravity = Vector3(0, -1.5, 0)
+scale_min = 0.04
+scale_max = 0.08
+color = Color(0.65, 0.65, 0.68, 0.8)
+
+[sub_resource type="StandardMaterial3D" id="Mat_DustParticle"]
+transparency = 1
+albedo_color = Color(0.65, 0.65, 0.68, 0.7)
+roughness = 0.9
+
+[sub_resource type="SphereMesh" id="Mesh_Dust"]
+material = SubResource("Mat_DustParticle")
+radius = 0.06
+height = 0.12
+radial_segments = 8
+rings = 4
+
+[node name="Artifact" type="Area3D" groups=["artifacts"]]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("1_artifact")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 0)
+shape = SubResource("CylinderShape3D_1")
+
+[node name="VisualModel" type="Node3D" parent="."]
+
+[node name="BeaconRing" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+mesh = SubResource("TorusMesh_Beacon")
+
+[node name="PromptLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.3, 0)
+visible = false
+billboard = 1
+double_sided = false
+no_depth_test = true
+modulate = Color(1, 0.9, 0.3, 1)
+text = "[E] Investigate"
+font_size = 32
+outline_size = 10
+
+[node name="DigProgressLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
+visible = false
+billboard = 1
+double_sided = false
+no_depth_test = true
+modulate = Color(0.3, 0.9, 1, 1)
+text = "Excavating... 0%"
+font_size = 30
+outline_size = 8
+
+[node name="DustParticles" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
+emitting = false
+amount = 24
+lifetime = 1.0
+process_material = SubResource("ParticleMat_Dust")
+draw_pass_1 = SubResource("Mesh_Dust")

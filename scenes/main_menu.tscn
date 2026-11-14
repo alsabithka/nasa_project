@@ -1,0 +1,164 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/main_menu.gd" id="1_main_menu"]
+
+[sub_resource type="StyleBoxFlat" id="Style_MenuCard"]
+bg_color = Color(0.09, 0.11, 0.16, 0.94)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.2, 0.55, 0.95, 0.8)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+content_margin_left = 40.0
+content_margin_top = 36.0
+content_margin_right = 40.0
+content_margin_bottom = 36.0
+
+[sub_resource type="StyleBoxFlat" id="Style_ControlsCard"]
+bg_color = Color(0.08, 0.1, 0.14, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.95, 0.75, 0.2, 0.9)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+content_margin_left = 32.0
+content_margin_top = 24.0
+content_margin_right = 32.0
+content_margin_bottom = 24.0
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main_menu")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05, 0.07, 0.1, 1)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MainCard" type="PanelContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("Style_MenuCard")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/MainCard"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="CenterContainer/MainCard/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.78, 0.2, 1)
+theme_override_font_sizes/font_size = 38
+text = "ECHOES BEYOND EARTH"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="CenterContainer/MainCard/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.8, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+text = "A NASA Archaeological Exploration Adventure"
+horizontal_alignment = 1
+
+[node name="Separator" type="HSeparator" parent="CenterContainer/MainCard/VBoxContainer"]
+layout_mode = 2
+
+[node name="PlayMoonBtn" type="Button" parent="CenterContainer/MainCard/VBoxContainer"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Start Exploration (Moon)"
+
+[node name="PlayMarsBtn" type="Button" parent="CenterContainer/MainCard/VBoxContainer"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Explore Mars"
+
+[node name="ControlsBtn" type="Button" parent="CenterContainer/MainCard/VBoxContainer"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Mission Briefing & Controls"
+
+[node name="QuitBtn" type="Button" parent="CenterContainer/MainCard/VBoxContainer"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Quit"
+
+[node name="ControlsModal" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -320.0
+offset_top = -220.0
+offset_right = 320.0
+offset_bottom = 220.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("Style_ControlsCard")
+
+[node name="MarginContainer" type="MarginContainer" parent="ControlsModal"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ControlsModal/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="ControlsModal/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
+theme_override_font_sizes/font_size = 24
+text = "CONTROLS & MISSION GUIDE"
+horizontal_alignment = 1
+
+[node name="GuideText" type="RichTextLabel" parent="ControlsModal/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 260)
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "[b]Movement (Roblox Style):[/b]
+• [b]W / A / S / D[/b] or Arrow Keys — Walk
+• [b]Space[/b] — Jump (enjoy low lunar gravity!)
+• [b]Left Click[/b] — Lock mouse to orbit camera
+• [b]Mouse Scroll[/b] — Zoom camera in/out
+• [b]ESC[/b] — Release mouse / Open menu
+
+[b]Archaeological Exploration:[/b]
+• [b]Proximity Scanner[/b] — Tracks distance and direction to nearest unrecovered artifact. Audio beep cadence speeds up as you get closer.
+• [b][E][/b] — Investigate & recover artifact when within range.
+• [b][J][/b] — Open your archaeological journal to view verified NASA history records."
+
+[node name="CloseControlsBtn" type="Button" parent="ControlsModal/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(140, 42)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Close"
