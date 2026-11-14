@@ -1,25 +1,21 @@
 extends CharacterBody3D
 
-# Echoes Beyond Earth - Photorealistic First-Person EVA Astronaut Simulator
-# Scientifically accurate lunar mechanics:
-# 1. Exact lunar gravitational acceleration: 1.62 m/s² (0.166 g)
-# 2. Spacesuit mass & inertia: 157 kg total system (astronaut + Apollo A7LB EMU + PLSS)
-# 3. Locomotion modes:
-#    - Deliberate Suit Walk (1.5 m/s, pressurized joint stiffness)
-#    - Apollo Low-Gravity "Loping" stride (3.4 m/s, bouncy kangaroo lope with high vertical lift)
-#    - Toggle gait with [C] or hold [Shift]
-# 4. Long-airtime low-gravity jump & realistic landing momentum absorption
-# 5. True First-Person perspective (eye-height 1.72m inside helmet visor) with [V] view toggle
-# 6. Integrated ballistic dust emission, footprint deposition, and vacuum audio
+# Echoes Beyond Earth - Photorealistic Third-Person Astronaut Minion Simulator
+# Controls a recognizable Minion astronaut wearing an authentic NASA EVA spacesuit:
+# 1. Third-Person Camera with smooth orbit, terrain collision, and zoom (1.8m - 6.5m)
+# 2. Authentic Minion locomotion & spacesuit waddle under exact 1.62 m/s² lunar gravity
+# 3. Apollo low-gravity loping and high-airtime jumping
+# 4. Footprints with corrugated overboot tread, vacuum ballistic dust, and vacuum acoustics
+# 5. Full compatibility with equipment excavation, cleaning, and scientific sample inspection
 
 # Physics Exports
-@export var walk_speed: float = 1.5
-@export var lope_speed: float = 3.4
-@export var jump_velocity: float = 3.6 # Under 1.62 m/s², yields ~4.4s airtime and ~4m peak
+@export var walk_speed: float = 1.6
+@export var lope_speed: float = 3.2
+@export var jump_velocity: float = 3.4 # Under 1.62 m/s², gives ~4.2s airtime
 @export var gravity: float = 1.62 # Exact lunar gravitational constant
 @export var mouse_sensitivity: float = 0.0028
-@export var min_pitch: float = deg_to_rad(-82.0) # Allows looking directly down at boots
-@export var max_pitch: float = deg_to_rad(75.0)
+@export var min_pitch: float = deg_to_rad(-62.0)
+@export var max_pitch: float = deg_to_rad(65.0)
 
 # Nodes
 @onready var camera_pivot: Node3D = $CameraPivot
@@ -31,12 +27,11 @@ extends CharacterBody3D
 @onready var right_arm: Node3D = $Visuals/Torso/RightArm
 @onready var left_leg: Node3D = $Visuals/Torso/LeftLeg
 @onready var right_leg: Node3D = $Visuals/Torso/RightLeg
-@onready var helmet: MeshInstance3D = $Visuals/Torso/Helmet
 @onready var scanner_device: Node3D = $Visuals/Torso/RightArm/ScannerDevice
 @onready var scanner_screen: MeshInstance3D = $Visuals/Torso/RightArm/ScannerDevice/Screen
 
-# Locomotion & View States
-var is_first_person: bool = true
+# Locomotion & Camera States
+var is_first_person: bool = false # Third-person exploration default
 var is_loping_mode: bool = true # Apollo low-gravity kangaroo lope default
 var is_mouse_captured: bool = false
 var walk_cycle: float = 0.0
@@ -45,6 +40,7 @@ var last_foot_step: bool = false # false = left, true = right
 var scanner_raise_weight: float = 0.0
 var exertion_level: float = 0.0
 var prev_vertical_velocity: float = 0.0
+var landing_squash: float = 0.0
 
 # Stable interaction state (prevents rubberbanding/displacement during digging, cleaning & inspection)
 var is_interacting: bool = false
@@ -79,8 +75,13 @@ func is_in_interaction() -> bool:
 
 func _ready() -> void:
 	capture_mouse()
-	_apply_view_mode()
+	_setup_third_person_camera()
 	call_deferred("_connect_subsystems")
+
+func _setup_third_person_camera() -> void:
+	camera_pivot.position = Vector3(0, 0.85, 0)
+	spring_arm.spring_length = 3.2
+	spring_arm.collision_mask = 1 # Prevent camera clipping into lunar terrain or boulders
 
 func _connect_subsystems() -> void:
 	# Vacuum audio
@@ -114,28 +115,21 @@ func _connect_subsystems() -> void:
 			get_parent().add_child(footprint_system)
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Mouse Orbit & Zoom Controls
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			if not is_interacting and Input.mouse_mode != Input.MOUSE_MODE_VISIBLE:
 				capture_mouse()
+		# Smooth camera zoom in/out with mouse wheel
 		elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			if not is_first_person:
-				spring_arm.spring_length = clamp(spring_arm.spring_length - 0.5, 1.8, 8.0)
+			spring_arm.spring_length = clamp(spring_arm.spring_length - 0.35, 1.8, 6.5)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			if not is_first_person:
-				spring_arm.spring_length = clamp(spring_arm.spring_length + 0.5, 1.8, 8.0)
+			spring_arm.spring_length = clamp(spring_arm.spring_length + 0.35, 1.8, 6.5)
 	
 	elif event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		camera_pivot.rotate_y(-event.relative.x * mouse_sensitivity)
 		spring_arm.rotate_x(-event.relative.y * mouse_sensitivity)
 		spring_arm.rotation.x = clamp(spring_arm.rotation.x, min_pitch, max_pitch)
-	
-	# Toggle 1st / 3rd Person View with [V]
-	if event is InputEventKey and event.pressed and event.physical_keycode == KEY_V:
-		is_first_person = not is_first_person
-		_apply_view_mode()
-		if audio_system and audio_system.has_method("play_comm_click"):
-			audio_system.play_comm_click()
 	
 	# Toggle Gait mode (Walk vs Loping) with [C]
 	if event is InputEventKey and event.pressed and event.physical_keycode == KEY_C:
@@ -143,23 +137,20 @@ func _unhandled_input(event: InputEvent) -> void:
 		if audio_system and audio_system.has_method("play_comm_click"):
 			audio_system.play_comm_click()
 	
+	# View mode toggle [V]
+	if event is InputEventKey and event.pressed and event.physical_keycode == KEY_V:
+		is_first_person = not is_first_person
+		if is_first_person:
+			spring_arm.spring_length = 0.0
+			camera_pivot.position = Vector3(0, 1.05, 0)
+		else:
+			spring_arm.spring_length = 3.2
+			camera_pivot.position = Vector3(0, 0.85, 0)
+		if audio_system and audio_system.has_method("play_comm_click"):
+			audio_system.play_comm_click()
+	
 	if event.is_action_pressed("ui_cancel"):
 		release_mouse()
-
-func _apply_view_mode() -> void:
-	if is_first_person:
-		# Exact astronaut eye height inside the helmet visor
-		camera_pivot.position = Vector3(0, 1.70, 0)
-		spring_arm.spring_length = 0.0
-		# Visor bubble is made slightly transparent or offsets when looking forward
-		if helmet:
-			helmet.visible = true # Boots and suit visible looking down
-	else:
-		# Chase camera
-		camera_pivot.position = Vector3(0, 1.45, 0)
-		spring_arm.spring_length = 4.2
-		if helmet:
-			helmet.visible = true
 
 func capture_mouse() -> void:
 	if not is_interacting:
@@ -177,10 +168,13 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= gravity * delta
 		exertion_level = move_toward(exertion_level, 0.4, 0.2 * delta)
 	
-	# Landing detection: absorb impact momentum and play bone-conducted thud
+	# Landing detection: landing impact compression and bone-conducted sound
 	if was_in_air and is_on_floor():
 		_handle_landing(prev_vertical_velocity)
 	prev_vertical_velocity = velocity.y
+	
+	# Smoothly recover landing knee squash
+	landing_squash = move_toward(landing_squash, 0.0, 4.0 * delta)
 	
 	# If locked in interaction (digging, cleaning, sample inspection), hold position stably
 	if is_interacting:
@@ -201,7 +195,7 @@ func _physics_process(delta: float) -> void:
 				var target_angle = atan2(to_target.x, to_target.z)
 				visuals.rotation.y = lerp_angle(visuals.rotation.y, target_angle, 8.0 * delta)
 		
-		_animate_astronaut(delta, false, false)
+		_animate_minion(delta, false, false)
 		move_and_slide()
 		return
 	
@@ -209,7 +203,7 @@ func _physics_process(delta: float) -> void:
 	var active_loping = is_loping_mode or Input.is_key_pressed(KEY_SHIFT)
 	var current_max_speed = lope_speed if active_loping else walk_speed
 	
-	# Handle Low-Gravity Jump: Long, graceful ballistic arc
+	# Handle Low-Gravity Jump
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		jump()
 	
@@ -236,27 +230,26 @@ func _physics_process(delta: float) -> void:
 	var move_direction = (forward * -input_dir.y + right * input_dir.x).normalized()
 	var is_moving = move_direction.length() > 0.01
 	
-	# Realistic spacesuit inertia and acceleration
 	var accel_rate = 3.2 if is_on_floor() else 0.8
-	var decel_rate = 4.2 if is_on_floor() else 0.4
+	var decel_rate = 4.4 if is_on_floor() else 0.4
 	
 	if is_moving:
 		velocity.x = move_toward(velocity.x, move_direction.x * current_max_speed, accel_rate * delta * current_max_speed)
 		velocity.z = move_toward(velocity.z, move_direction.z * current_max_speed, accel_rate * delta * current_max_speed)
 		
-		# Rotate body to movement direction in 3rd person, or align with camera in 1st person
-		var target_angle = atan2(move_direction.x, move_direction.z) if not is_first_person else camera_pivot.rotation.y
-		visuals.rotation.y = lerp_angle(visuals.rotation.y, target_angle, 8.0 * delta)
+		# Rotate Minion smoothly towards movement direction
+		var target_angle = atan2(move_direction.x, move_direction.z)
+		visuals.rotation.y = lerp_angle(visuals.rotation.y, target_angle, 8.5 * delta)
 		
 		# Advance gait step cycle
-		var stride_rate = 5.2 if active_loping else 4.0
+		var stride_rate = 5.4 if active_loping else 4.2
 		walk_cycle += delta * stride_rate
 		step_cycle_tracker += delta * stride_rate
 		
 		if is_on_floor():
-			exertion_level = move_toward(exertion_level, 0.65 if active_loping else 0.25, 0.1 * delta)
+			exertion_level = move_toward(exertion_level, 0.6 if active_loping else 0.22, 0.1 * delta)
 		
-		# Detect footstep touchdown points (at peak of sine wave)
+		# Detect footstep touchdown
 		if step_cycle_tracker >= PI:
 			step_cycle_tracker -= PI
 			last_foot_step = not last_foot_step
@@ -266,7 +259,7 @@ func _physics_process(delta: float) -> void:
 		velocity.z = move_toward(velocity.z, 0.0, decel_rate * delta * current_max_speed)
 		exertion_level = move_toward(exertion_level, 0.0, 0.15 * delta)
 	
-	_animate_astronaut(delta, is_moving, active_loping)
+	_animate_minion(delta, is_moving, active_loping)
 	move_and_slide()
 
 func jump() -> void:
@@ -278,40 +271,35 @@ func jump() -> void:
 		if audio_system and audio_system.has_method("play_footstep"):
 			audio_system.play_footstep(true)
 
-# Called when touchdown occurs after a jump or drop
 func _handle_landing(impact_vel: float) -> void:
+	landing_squash = clampf(abs(impact_vel) * 0.05, 0.05, 0.18)
 	if audio_system and audio_system.has_method("play_landing_thud"):
 		audio_system.play_landing_thud(impact_vel)
 	
-	var impact_strength = clampf(abs(impact_vel) / 3.5, 0.4, 1.4)
+	var impact_strength = clampf(abs(impact_vel) / 3.4, 0.4, 1.4)
 	if dust_system and dust_system.has_method("emit_impact_dust"):
 		dust_system.emit_impact_dust(global_position, impact_strength)
 	
-	# Deposit both left and right bootprints upon landing impact
 	if footprint_system and footprint_system.has_method("place_footprint"):
 		var norm = get_floor_normal() if is_on_floor() else Vector3.UP
-		footprint_system.place_footprint(global_position, norm, camera_pivot.rotation.y, false, impact_strength * 1.2)
-		footprint_system.place_footprint(global_position, norm, camera_pivot.rotation.y, true, impact_strength * 1.2)
+		footprint_system.place_footprint(global_position, norm, visuals.rotation.y, false, impact_strength * 1.1)
+		footprint_system.place_footprint(global_position, norm, visuals.rotation.y, true, impact_strength * 1.1)
 
-# Triggers realistic footstep interactions (ballistic dust, corrugated bootprint, and bone-conducted audio)
 func _trigger_footstep(move_dir: Vector3, is_loping: bool) -> void:
 	if not is_on_floor():
 		return
 	
-	# Audio
 	if audio_system and audio_system.has_method("play_footstep"):
 		audio_system.play_footstep(is_loping)
 	
-	# Ballistic dust spray kicked behind the boot sole
 	if dust_system and dust_system.has_method("emit_footstep_dust"):
 		dust_system.emit_footstep_dust(global_position, move_dir, is_loping)
 	
-	# Dynamic footprint on regolith
 	if footprint_system and footprint_system.has_method("place_footprint"):
 		var norm = get_floor_normal()
-		footprint_system.place_footprint(global_position, norm, camera_pivot.rotation.y, last_foot_step, 1.1 if is_loping else 0.8)
+		footprint_system.place_footprint(global_position, norm, visuals.rotation.y, last_foot_step, 1.0 if is_loping else 0.75)
 
-func _animate_astronaut(delta: float, is_moving: bool, is_loping: bool) -> void:
+func _animate_minion(delta: float, is_moving: bool, is_loping: bool) -> void:
 	# Read signal strength from attached scanner
 	var signal_strength: float = 0.0
 	var scanner = get_node_or_null("Scanner")
@@ -323,28 +311,31 @@ func _animate_astronaut(delta: float, is_moving: bool, is_loping: bool) -> void:
 	var target_raise = 1.0 if signal_strength > 0.08 else 0.0
 	scanner_raise_weight = lerp(scanner_raise_weight, target_raise, 4.0 * delta)
 	
-	var stride_angle = sin(walk_cycle) * (0.55 if is_loping else 0.35) if is_moving else 0.0
+	var stride_angle = sin(walk_cycle) * (0.50 if is_loping else 0.32) if is_moving else 0.0
 	
-	# Excavation / interaction pose when digging, cleaning, or sample inspection
+	# Torso height positioning with landing compression
+	torso.position.y = 0.65 - landing_squash
+	
+	# Iconic Minion Spacesuit Waddle: Side-to-side roll synchronized with stride
+	if is_moving and is_on_floor():
+		var waddle_tilt = sin(walk_cycle) * (0.07 if is_loping else 0.045)
+		visuals.rotation.z = lerp(visuals.rotation.z, waddle_tilt, 10.0 * delta)
+	else:
+		visuals.rotation.z = lerp(visuals.rotation.z, 0.0, 8.0 * delta)
+	
+	# Excavation / interaction pose when digging, cleaning, or inspecting samples
 	if is_interacting:
 		if left_arm and right_arm:
-			left_arm.rotation.x = lerp(left_arm.rotation.x, -1.05, 8.0 * delta)
-			left_arm.rotation.y = lerp(left_arm.rotation.y, 0.22, 8.0 * delta)
-			right_arm.rotation.x = lerp(right_arm.rotation.x, -1.05, 8.0 * delta)
-			right_arm.rotation.y = lerp(right_arm.rotation.y, -0.22, 8.0 * delta)
+			left_arm.rotation.x = lerp(left_arm.rotation.x, -1.0, 8.0 * delta)
+			left_arm.rotation.y = lerp(left_arm.rotation.y, 0.20, 8.0 * delta)
+			right_arm.rotation.x = lerp(right_arm.rotation.x, -1.0, 8.0 * delta)
+			right_arm.rotation.y = lerp(right_arm.rotation.y, -0.20, 8.0 * delta)
 		if left_leg and right_leg:
 			left_leg.rotation.x = lerp(left_leg.rotation.x, 0.0, 10.0 * delta)
 			right_leg.rotation.x = lerp(right_leg.rotation.x, 0.0, 10.0 * delta)
 		return
 	
-	# First-person helmet bobbing
-	if is_first_person and is_moving and is_on_floor():
-		var bob = sin(walk_cycle * 2.0) * (0.04 if is_loping else 0.02)
-		camera_pivot.position.y = 1.70 + bob
-	else:
-		camera_pivot.position.y = lerp(camera_pivot.position.y, 1.70 if is_first_person else 1.45, 6.0 * delta)
-	
-	# Leg strides
+	# Minion Leg strides
 	if left_leg and right_leg:
 		left_leg.rotation.x = lerp(left_leg.rotation.x, -stride_angle, 12.0 * delta)
 		right_leg.rotation.x = lerp(right_leg.rotation.x, stride_angle, 12.0 * delta)
@@ -353,13 +344,13 @@ func _animate_astronaut(delta: float, is_moving: bool, is_loping: bool) -> void:
 	if left_arm:
 		left_arm.rotation.x = lerp(left_arm.rotation.x, stride_angle * 0.7, 10.0 * delta)
 	
-	# Right arm: holds handheld scanner or points during survey
+	# Right arm: holds handheld scanner or swings
 	if right_arm:
 		if scanner_raise_weight > 0.05:
-			var scan_angle = -0.95 - (signal_strength * 0.3)
-			var sweep = sin(Time.get_ticks_msec() * 0.003) * 0.12 * (1.0 - signal_strength)
+			var scan_angle = -0.90 - (signal_strength * 0.25)
+			var sweep = sin(Time.get_ticks_msec() * 0.003) * 0.10 * (1.0 - signal_strength)
 			right_arm.rotation.x = lerp(right_arm.rotation.x, scan_angle, 6.0 * delta)
-			right_arm.rotation.y = lerp(right_arm.rotation.y, -0.25 + sweep, 6.0 * delta)
+			right_arm.rotation.y = lerp(right_arm.rotation.y, -0.22 + sweep, 6.0 * delta)
 		else:
 			right_arm.rotation.x = lerp(right_arm.rotation.x, -stride_angle * 0.4, 8.0 * delta)
 			right_arm.rotation.y = lerp(right_arm.rotation.y, 0.0, 8.0 * delta)

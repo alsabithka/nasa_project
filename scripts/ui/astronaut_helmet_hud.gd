@@ -78,7 +78,7 @@ func _build_hud_elements() -> void:
 	root.add_child(bottom_hbox)
 	
 	view_mode_label = Label.new()
-	view_mode_label.text = "VIEW: 1ST-PERSON EVA VISOR [V to toggle]"
+	view_mode_label.text = "VIEW: 3RD-PERSON MINION EVA [Mouse Wheel to Zoom]"
 	view_mode_label.modulate = Color(0.7, 0.8, 0.9, 0.8)
 	bottom_hbox.add_child(view_mode_label)
 	
@@ -142,7 +142,10 @@ func _process(delta: float) -> void:
 		compass_label.text = "%03d°" % yaw_deg
 	
 	# Update view mode label
-	var is_first_person = true
+	var is_first_person = false
+	if "is_first_person" in _player_ref:
+		is_first_person = _player_ref.is_first_person
+	view_mode_label.text = "VIEW: 1ST-PERSON VISOR [V]" if is_first_person else "VIEW: 3RD-PERSON MINION EVA [Mouse Wheel Zoom]"
 	if "is_first_person" in _player_ref:
 		is_first_person = _player_ref.is_first_person
 	view_mode_label.text = "VIEW: 1ST-PERSON EVA VISOR [V]" if is_first_person else "VIEW: 3RD-PERSON CHASE [V]"
