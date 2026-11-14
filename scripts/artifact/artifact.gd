@@ -1,22 +1,55 @@
 extends Area3D
 
-# Echoes Beyond Earth - Reusable Artifact Scene
-# Implements agreed Artifact interface & Roblox-style Proximity Prompt.
+# Echoes Beyond Earth - Artifact with full dig/clean discovery sequence
 
+# ---- Existing signals (kept for compatibility) ----
 signal artifact_interacted(artifact_id: String)
 
+# ---- New discovery-sequence signals ----
+signal dig_started()
+signal dig_completed()
+signal cleaning_started()
+signal cleaning_completed(artifact_id: String)
+signal state_changed(new_state: int)
+
+# ---- State machine ----
+enum ArtifactState {
+	BURIED,       # Only scanner can detect; no visual
+	DIG_SITE,     # Player is here; show dig prompt
+	DIGGING,      # E held; digging in progress
+	EXPOSED,      # Fully dug; show recover prompt
+	CLEANING,     # Cleaning UI active
+	IDENTIFIED    # Fully recovered and identified
+}
+
+# ---- Exports ----
 @export var artifact_id: String = "apollo_lrv"
 @export var interaction_range: float = 3.5
+@export var dig_duration: float = 4.0
+@export var clean_duration: float = 7.0
 
+# ---- Onready nodes (must match artifact.tscn) ----
 @onready var prompt_label: Label3D = $PromptLabel
 @onready var beacon_ring: MeshInstance3D = $BeaconRing
 @onready var visual_model: Node3D = $VisualModel
+@onready var dust_particles: GPUParticles3D = $DustParticles
+@onready var dig_progress_label: Label3D = $DigProgressLabel
 
-var is_player_in_range: bool = false
+# ---- State variables ----
+var current_state: ArtifactState = ArtifactState.BURIED
+var dig_progress: float = 0.0
+var clean_progress: float = 0.0
+var is_player_holding_e: bool = false
+var dig_particles_active: bool = false
+
+# ---- Internal ----
 var is_recovered: bool = false
 var artifact_name: String = ""
+var _beacon_phase: float = 0.0
+var _clean_ui: CanvasLayer = null
+var _scanner_ref: Node = null
 
-# Agreed public interface for Scanner & GameState
+# ---- Public interface (kept for scanner & game_state compatibility) ----
 func get_artifact_id() -> String:
 	return artifact_id
 
@@ -31,11 +64,44 @@ func _ready() -> void:
 	_load_artifact_metadata()
 	_update_visual_representation()
 	_update_state_from_gamestate()
+	_update_state_visuals()
 	
-	# Listen for future recovery signals
+	# Configure dust particles
+	_setup_dust_particles()
+	
+	# Listen for future recovery signals from game_state
 	var game_state = get_node_or_null("/root/GameState")
 	if game_state:
 		game_state.artifact_recovered.connect(_on_artifact_recovered_globally)
+	
+	# Connect to scanner's locked_on_location signal
+	call_deferred("_connect_to_scanner")
+
+func _connect_to_scanner() -> void:
+	var scanner = get_tree().get_first_node_in_group("scanner")
+	if scanner:
+		_scanner_ref = scanner
+		if scanner.has_signal("locked_on_location"):
+			scanner.locked_on_location.connect(_on_scanner_locked_on)
+		if scanner.has_signal("left_location"):
+			scanner.left_location.connect(_on_scanner_left)
+
+func _setup_dust_particles() -> void:
+	if not dust_particles:
+		return
+	var pm = ParticleProcessMaterial.new()
+	pm.direction = Vector3(0, 1, 0)
+	pm.spread = 180.0
+	pm.gravity = Vector3(0, -1.5, 0)
+	pm.initial_velocity_min = 0.3
+	pm.initial_velocity_max = 0.5
+	pm.scale_min = 0.03
+	pm.scale_max = 0.06
+	pm.color = Color(0.65, 0.6, 0.5, 0.8)
+	dust_particles.process_material = pm
+	dust_particles.amount = 24
+	dust_particles.lifetime = 1.2
+	dust_particles.emitting = false
 
 func _load_artifact_metadata() -> void:
 	var game_state = get_node_or_null("/root/GameState")
@@ -47,70 +113,221 @@ func _load_artifact_metadata() -> void:
 			artifact_name = artifact_id.capitalize()
 	else:
 		artifact_name = artifact_id.capitalize()
-	
-	_update_prompt_display()
 
 func _update_state_from_gamestate() -> void:
 	var game_state = get_node_or_null("/root/GameState")
 	if game_state and game_state.is_artifact_recovered(artifact_id):
-		set_recovered_visuals()
+		current_state = ArtifactState.IDENTIFIED
+		is_recovered = true
 
 func _on_artifact_recovered_globally(recovered_id: String) -> void:
-	if recovered_id == artifact_id:
-		set_recovered_visuals()
+	if recovered_id == artifact_id and current_state != ArtifactState.IDENTIFIED:
+		current_state = ArtifactState.IDENTIFIED
+		is_recovered = true
+		_update_state_visuals()
 
-func set_recovered_visuals() -> void:
-	is_recovered = true
-	if beacon_ring:
-		var mat = beacon_ring.get_active_material(0)
-		if mat is StandardMaterial3D:
-			mat = mat.duplicate()
-			mat.albedo_color = Color(0.2, 0.9, 0.4, 0.6)
-			mat.emission = Color(0.2, 0.9, 0.4)
-			beacon_ring.set_surface_override_material(0, mat)
-	_update_prompt_display()
-
-func _update_prompt_display() -> void:
-	if not prompt_label:
+# ---- Scanner event handlers ----
+func _on_scanner_locked_on() -> void:
+	# Only respond if buried and scanner's current closest is this artifact
+	if current_state != ArtifactState.BURIED:
 		return
-	if is_recovered:
-		prompt_label.text = "[RECOVERED]\n" + artifact_name
-		prompt_label.modulate = Color(0.4, 1.0, 0.5, 0.9)
-		prompt_label.visible = is_player_in_range
-	else:
-		prompt_label.text = "[E] Investigate\n" + artifact_name
-		prompt_label.modulate = Color(1.0, 0.9, 0.3, 1.0)
-		prompt_label.visible = is_player_in_range
+	if not _scanner_ref:
+		return
+	# Check that the scanner is targeting us (the scanner's target matches our id)
+	if _scanner_ref.get_current_target() == artifact_id:
+		_set_state(ArtifactState.DIG_SITE)
 
+func _on_scanner_left() -> void:
+	# If we were in DIG_SITE but player moved away (via scanner leaving)
+	if current_state == ArtifactState.DIG_SITE:
+		_set_state(ArtifactState.BURIED)
+
+# ---- Body enter/exit ----
 func _on_body_entered(body: Node3D) -> void:
-	if body.is_in_group("player"):
-		is_player_in_range = true
-		_update_prompt_display()
+	pass # state transitions handled by scanner signals and input
 
 func _on_body_exited(body: Node3D) -> void:
-	if body.is_in_group("player"):
-		is_player_in_range = false
-		if prompt_label:
+	pass
+
+# ---- State machine ----
+func _set_state(new_state: ArtifactState) -> void:
+	current_state = new_state
+	state_changed.emit(new_state)
+	_update_state_visuals()
+
+func _update_state_visuals() -> void:
+	if not prompt_label or not beacon_ring or not visual_model:
+		return
+	
+	match current_state:
+		ArtifactState.BURIED:
+			visual_model.visible = false
 			prompt_label.visible = false
+			if dig_progress_label:
+				dig_progress_label.visible = false
+			_set_beacon_color(Color(1.0, 0.65, 0.0, 0.7), Color(1.0, 0.5, 0.0))
+		
+		ArtifactState.DIG_SITE:
+			visual_model.visible = false
+			prompt_label.text = "[E] DIG HERE - Unidentified Signal Source"
+			prompt_label.modulate = Color(1.0, 0.85, 0.2, 1.0)
+			prompt_label.visible = true
+			if dig_progress_label:
+				dig_progress_label.visible = false
+			_set_beacon_color(Color(1.0, 0.65, 0.0, 0.9), Color(1.0, 0.6, 0.0))
+		
+		ArtifactState.DIGGING:
+			visual_model.visible = false
+			prompt_label.visible = false
+			if dig_progress_label:
+				dig_progress_label.visible = true
+				dig_progress_label.text = "Excavating... 0%"
+			_set_beacon_color(Color(1.0, 0.65, 0.0, 0.9), Color(1.0, 0.6, 0.0))
+		
+		ArtifactState.EXPOSED:
+			visual_model.visible = true
+			visual_model.scale = Vector3.ONE
+			prompt_label.text = "[E] RECOVER OBJECT"
+			prompt_label.modulate = Color(0.3, 1.0, 0.5, 1.0)
+			prompt_label.visible = true
+			if dig_progress_label:
+				dig_progress_label.visible = false
+			_set_beacon_color(Color(0.2, 0.9, 0.4, 0.7), Color(0.2, 0.9, 0.4))
+		
+		ArtifactState.CLEANING:
+			visual_model.visible = true
+			prompt_label.visible = false
+			if dig_progress_label:
+				dig_progress_label.visible = false
+		
+		ArtifactState.IDENTIFIED:
+			visual_model.visible = true
+			visual_model.scale = Vector3.ONE
+			prompt_label.text = "[IDENTIFIED] " + artifact_name
+			prompt_label.modulate = Color(0.4, 1.0, 0.5, 0.9)
+			prompt_label.visible = true
+			if dig_progress_label:
+				dig_progress_label.visible = false
+			_set_beacon_color(Color(0.2, 0.9, 0.4, 0.6), Color(0.2, 0.9, 0.4))
+			is_recovered = true
 
+func _set_beacon_color(albedo: Color, emission: Color) -> void:
+	if not beacon_ring:
+		return
+	var mat = beacon_ring.get_active_material(0)
+	if mat is StandardMaterial3D:
+		mat = mat.duplicate()
+		mat.albedo_color = albedo
+		mat.emission = emission
+		beacon_ring.set_surface_override_material(0, mat)
+
+# ---- Process ----
+func _process(delta: float) -> void:
+	_beacon_phase += delta
+	
+	# Beacon ring animation
+	if beacon_ring:
+		beacon_ring.rotate_y(delta * (2.5 if current_state == ArtifactState.DIG_SITE else 0.8))
+		match current_state:
+			ArtifactState.BURIED, ArtifactState.DIG_SITE:
+				var pulse = (sin(_beacon_phase * 3.0) + 1.0) * 0.5
+				var spd = 4.0 if current_state == ArtifactState.DIG_SITE else 1.5
+				pulse = (sin(_beacon_phase * spd) + 1.0) * 0.5
+				beacon_ring.scale = Vector3(1.0 + pulse * 0.2, 1.0, 1.0 + pulse * 0.2)
+			ArtifactState.EXPOSED, ArtifactState.IDENTIFIED:
+				var pulse = (sin(_beacon_phase * 2.0) + 1.0) * 0.5
+				beacon_ring.scale = Vector3(1.0 + pulse * 0.1, 1.0, 1.0 + pulse * 0.1)
+			_:
+				beacon_ring.scale = Vector3.ONE
+	
+	# Digging progress
+	if current_state == ArtifactState.DIGGING:
+		if is_player_holding_e:
+			dig_progress += delta / dig_duration
+			dig_progress = clamp(dig_progress, 0.0, 1.0)
+			
+			# Update progress label
+			if dig_progress_label:
+				dig_progress_label.text = "Excavating... %d%%" % int(dig_progress * 100.0)
+			
+			# Progressively reveal visual model
+			if dig_progress >= 0.3 and not visual_model.visible:
+				visual_model.visible = true
+			if visual_model.visible:
+				var reveal_scale = clamp(remap(dig_progress, 0.3, 1.0, 0.3, 1.0), 0.3, 1.0)
+				if dig_progress < 0.3:
+					reveal_scale = 0.0
+					visual_model.visible = false
+				visual_model.scale = Vector3.ONE * reveal_scale
+			
+			# Activate dust
+			if dust_particles and not dust_particles.emitting:
+				dust_particles.emitting = true
+			
+			if dig_progress >= 1.0:
+				_complete_digging()
+		else:
+			# Pause digging: stop particles
+			if dust_particles and dust_particles.emitting:
+				dust_particles.emitting = false
+
+# ---- Input ----
 func _unhandled_input(event: InputEvent) -> void:
-	if is_player_in_range and event.is_action_pressed("interact"):
-		interact()
+	if event.is_action_pressed("interact"):
+		is_player_holding_e = true
+		match current_state:
+			ArtifactState.DIG_SITE:
+				dig_started.emit()
+				_set_state(ArtifactState.DIGGING)
+			ArtifactState.EXPOSED:
+				cleaning_started.emit()
+				_set_state(ArtifactState.CLEANING)
+				_start_cleaning_ui()
+	elif event.is_action_released("interact"):
+		is_player_holding_e = false
 
-func interact() -> void:
+# ---- Dig completion ----
+func _complete_digging() -> void:
+	dig_progress = 1.0
+	if dust_particles:
+		dust_particles.emitting = false
+	dig_completed.emit()
+	_set_state(ArtifactState.EXPOSED)
+
+# ---- Cleaning UI ----
+func _start_cleaning_ui() -> void:
+	# Load and instantiate the cleaning UI
+	var ui_scene = load("res://scenes/ui/dig_clean_ui.tscn")
+	if not ui_scene:
+		# Fallback: auto-complete cleaning if scene not found
+		call_deferred("on_cleaning_done", artifact_id)
+		return
+	_clean_ui = ui_scene.instantiate()
+	_clean_ui.artifact_id = artifact_id
+	_clean_ui.clean_duration = clean_duration
+	if _clean_ui.has_signal("cleaning_done"):
+		_clean_ui.cleaning_done.connect(on_cleaning_done)
+	add_child(_clean_ui)
+
+func on_cleaning_done(done_artifact_id: String) -> void:
+	if _clean_ui:
+		_clean_ui.queue_free()
+		_clean_ui = null
+	_identify_artifact()
+
+func _identify_artifact() -> void:
+	_set_state(ArtifactState.IDENTIFIED)
 	var game_state = get_node_or_null("/root/GameState")
 	if game_state:
 		game_state.register_artifact(artifact_id)
-	set_recovered_visuals()
+	cleaning_completed.emit(artifact_id)
 	artifact_interacted.emit(artifact_id)
 
-func _process(delta: float) -> void:
-	# Subtle floating beacon animation (Roblox visual polish)
-	if beacon_ring:
-		beacon_ring.rotate_y(delta * 0.8)
-		if not is_recovered:
-			var pulse = (sin(Time.get_ticks_msec() * 0.004) + 1.0) * 0.5
-			beacon_ring.scale = Vector3(1.0 + pulse * 0.15, 1.0, 1.0 + pulse * 0.15)
+# ---- Visual representation (all existing mesh builders kept intact) ----
+func set_recovered_visuals() -> void:
+	is_recovered = true
+	current_state = ArtifactState.IDENTIFIED
+	_update_state_visuals()
 
 func _update_visual_representation() -> void:
 	if not visual_model:
@@ -289,7 +506,7 @@ func _build_sojourner_mesh() -> void:
 	body.mesh = b_box
 	body.position = Vector3(0, 0.3, 0)
 	var solar_mat = StandardMaterial3D.new()
-	solar_mat.albedo_color = Color(0.1, 0.15, 0.35) # Dark blue solar cells
+	solar_mat.albedo_color = Color(0.1, 0.15, 0.35)
 	solar_mat.metallic = 0.6
 	solar_mat.roughness = 0.2
 	body.set_surface_override_material(0, solar_mat)
