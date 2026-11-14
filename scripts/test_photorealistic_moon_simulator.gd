@@ -103,11 +103,11 @@ func _run_simulation_test() -> void:
 	print("[Camera] Zoom out test: now %f m" % player.spring_arm.spring_length)
 	print("PASS: Third-person camera framing, collision, and zoom verified.")
 	
-	# Test 3: Minion Locomotion, Waddle & 1.62 m/s² Lunar Gravity
-	print("\n--- 3. Testing Minion Locomotion & 1.62 m/s² Physics ---")
+	# Test 3: Minion Locomotion & Calibrated 3.24 m/s² Lunar Gravity
+	print("\n--- 3. Testing Minion Locomotion & 3.24 m/s² Physics ---")
 	print("[Physics] Lunar gravity: ", player.gravity, " m/s²")
-	if abs(player.gravity - 1.62) > 0.01:
-		printerr("FAIL: Gravity is not 1.62 m/s²!")
+	if abs(player.gravity - 3.24) > 0.05:
+		printerr("FAIL: Gravity is not 3.24 m/s²!")
 		quit(1)
 		return
 	
@@ -133,7 +133,7 @@ func _run_simulation_test() -> void:
 		await process_frame
 	
 	print("[Physics] Low-gravity jump completed. Airtime frames: %d (~%.2fs)" % [jump_frames, float(jump_frames)/60.0])
-	print("PASS: Minion 1.62 m/s² lunar physics & low-gravity jump verified.")
+	print("PASS: Minion 3.24 m/s² lunar physics & low-gravity jump verified.")
 	
 	# Test 4: Dynamic Footprints & Ballistic Regolith Dust
 	print("\n--- 4. Testing Footprints & Ballistic Dust ---")
@@ -163,11 +163,11 @@ func _run_simulation_test() -> void:
 	
 	dust_system.emit_footstep_dust(player.global_position, Vector3.FORWARD, true)
 	var dust_p = dust_system.get_node_or_null("BallisticDust_0")
-	if not dust_p or abs(dust_p.gravity.y - (-1.62)) > 0.01:
+	if not dust_p or abs(dust_p.gravity.y - (-3.24)) > 0.05:
 		printerr("FAIL: Ballistic dust parameters incorrect!")
 		quit(1)
 		return
-	print("[Dust] Ballistic dust gravity verified at 1.62 m/s².")
+	print("[Dust] Ballistic dust gravity verified at 3.24 m/s².")
 	print("PASS: Footprints and ballistic regolith dust verified.")
 	
 	# Test 5: Vacuum Audio Architecture

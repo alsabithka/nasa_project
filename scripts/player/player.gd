@@ -11,8 +11,8 @@ extends CharacterBody3D
 # Physics Exports
 @export var walk_speed: float = 1.6
 @export var lope_speed: float = 3.2
-@export var jump_velocity: float = 3.4 # Under 1.62 m/s², gives ~4.2s airtime
-@export var gravity: float = 1.62 # Exact lunar gravitational constant
+@export var jump_velocity: float = 3.4 # Gives ~2.1s airtime under 3.24 m/s²
+@export var gravity: float = 3.24 # Calibrated 2x lunar gravity for responsive traversal
 @export var mouse_sensitivity: float = 0.0028
 @export var min_pitch: float = deg_to_rad(-62.0)
 @export var max_pitch: float = deg_to_rad(65.0)
@@ -112,6 +112,14 @@ func _connect_subsystems() -> void:
 			footprint_system.set_script(fp_script)
 			footprint_system.add_to_group("footprints")
 			get_parent().add_child(footprint_system)
+	
+	if dust_system and dust_system.has_method("set_gravity"):
+		dust_system.set_gravity(gravity)
+
+func update_gravity(new_gravity: float) -> void:
+	gravity = new_gravity
+	if dust_system and dust_system.has_method("set_gravity"):
+		dust_system.set_gravity(gravity)
 
 func _unhandled_input(event: InputEvent) -> void:
 	# Mouse Orbit & Zoom Controls

@@ -65,7 +65,7 @@ func _build_hud_elements() -> void:
 	consumables_label = _create_hud_item(hbox, "PLSS O2", "98.4%", Color(0.3, 1.0, 0.5))
 	heart_rate_label = _create_hud_item(hbox, "HEART RATE", "82 BPM", Color(1.0, 0.85, 0.2))
 	gait_label = _create_hud_item(hbox, "GAIT MODE", "LUNAR LOPE [Shift/C]", Color(0.9, 0.95, 1.0))
-	gravity_label = _create_hud_item(hbox, "GRAVITY", "1.62 m/s² (0.166 g)", Color(0.6, 0.85, 1.0))
+	gravity_label = _create_hud_item(hbox, "GRAVITY", "3.24 m/s² (0.330 g)", Color(0.6, 0.85, 1.0))
 	compass_label = _create_hud_item(hbox, "HEADING", "045° NNE", Color(0.85, 0.9, 0.95))
 	
 	# Bottom bar: View mode & Mission Clock
@@ -140,6 +140,12 @@ func _process(delta: float) -> void:
 	if "camera_pivot" in _player_ref and _player_ref.camera_pivot:
 		var yaw_deg = int(fmod(rad_to_deg(_player_ref.camera_pivot.rotation.y) + 360.0, 360.0))
 		compass_label.text = "%03d°" % yaw_deg
+	
+	# Update gravity readout dynamically
+	if "gravity" in _player_ref and gravity_label:
+		var g_val = _player_ref.gravity
+		var g_ratio = g_val / 9.80665
+		gravity_label.text = "%.2f m/s² (%.3f g)" % [g_val, g_ratio]
 	
 	# Update view mode label
 	var is_first_person = false

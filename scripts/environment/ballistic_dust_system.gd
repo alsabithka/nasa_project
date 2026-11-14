@@ -42,8 +42,8 @@ func _init_dust_pool() -> void:
 		p.explosiveness = 0.95
 		p.randomness = 0.35
 		
-		# Exact lunar gravitational acceleration
-		p.gravity = Vector3(0, -1.62, 0)
+		# Lunar gravitational acceleration (calibrated to 3.24 m/s² for responsiveness)
+		p.gravity = Vector3(0, -3.24, 0)
 		p.damping_min = 0.0
 		p.damping_max = 0.0 # Strict vacuum: ZERO air drag/floating
 		
@@ -54,6 +54,12 @@ func _init_dust_pool() -> void:
 		
 		add_child(p)
 		_dust_pool.append(p)
+
+func set_gravity(g: float) -> void:
+	var g_vec = Vector3(0, -abs(g), 0)
+	for p in _dust_pool:
+		if is_instance_valid(p):
+			p.gravity = g_vec
 
 # Spawns a small, subtle disturbance of lunar dust around the boot sole during walking/hopping
 func emit_footstep_dust(pos: Vector3, move_direction: Vector3, is_loping: bool) -> void:
