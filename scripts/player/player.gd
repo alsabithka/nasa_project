@@ -23,18 +23,24 @@ extends CharacterBody3D
 @onready var camera: Camera3D = $CameraPivot/SpringArm3D/Camera3D
 @onready var visuals: Node3D = $Visuals
 @onready var torso: Node3D = $Visuals/Torso
+@onready var head: Node3D = $Visuals/Torso/Head
 @onready var left_arm: Node3D = $Visuals/Torso/LeftArm
 @onready var right_arm: Node3D = $Visuals/Torso/RightArm
 @onready var left_leg: Node3D = $Visuals/Torso/LeftLeg
 @onready var right_leg: Node3D = $Visuals/Torso/RightLeg
 @onready var scanner_device: Node3D = $Visuals/Torso/RightArm/ScannerDevice
 @onready var scanner_screen: MeshInstance3D = $Visuals/Torso/RightArm/ScannerDevice/Screen
+@onready var anim_player: AnimationPlayer = get_node_or_null("AnimationPlayer")
 
-# Locomotion & Camera States
+# Locomotion, Animation & Camera States
 var is_first_person: bool = false # Third-person exploration default
 var is_loping_mode: bool = true # Apollo low-gravity kangaroo lope default
 var is_mouse_captured: bool = false
 var walk_cycle: float = 0.0
+var idle_time: float = 0.0
+var jump_anim_weight: float = 0.0
+var landing_squash: float = 0.0
+var current_anim_state: String = "idle"
 var step_cycle_tracker: float = 0.0
 var last_foot_step: bool = false # false = left, true = right
 var scanner_raise_weight: float = 0.0
@@ -181,7 +187,9 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= gravity * delta
 		velocity.y = maxf(velocity.y, -24.0)
 		exertion_level = move_toward(exertion_level, 0.4, 0.2 * delta)
+		landing_squash = move_toward(landing_squash, 0.0, 1.2 * delta)
 	else:
+		landing_squash = move_toward(landing_squash, 0.0, 6.0 * delta)
 		if velocity.y < 0.0:
 			velocity.y = -0.6 # Maintain solid ground adhesion over craters and slopes
 	
@@ -281,6 +289,7 @@ func jump() -> void:
 	if is_on_floor() and not is_interacting:
 		velocity.y = jump_velocity
 		floor_snap_length = 0.0 # Clean lift-off for low-gravity jump
+		jump_anim_weight = 1.0
 		exertion_level = clampf(exertion_level + 0.35, 0.0, 1.0)
 		if dust_system and dust_system.has_method("emit_impact_dust"):
 			dust_system.emit_impact_dust(global_position, 0.4)
@@ -288,6 +297,7 @@ func jump() -> void:
 			audio_system.play_footstep(true)
 
 func _handle_landing(impact_vel: float) -> void:
+	landing_squash = clampf(abs(impact_vel) * 0.045, 0.04, 0.16)
 	if audio_system and audio_system.has_method("play_landing_thud"):
 		audio_system.play_landing_thud(impact_vel)
 	
@@ -327,46 +337,193 @@ func _animate_astronaut(delta: float, is_moving: bool, is_loping: bool) -> void:
 	var target_raise = 1.0 if signal_strength > 0.08 else 0.0
 	scanner_raise_weight = lerp(scanner_raise_weight, target_raise, 4.0 * delta)
 	
-	# Natural astronaut stride angle
-	var stride_angle = sin(walk_cycle) * (0.42 if is_loping else 0.26) if is_moving else 0.0
-	
-	# Keep astronaut torso stable and upright in EVA spacesuit (no cartoon waddling or squashing)
-	torso.position.y = 0.65
-	visuals.rotation.z = 0.0
-	
 	# Excavation / interaction pose when digging, cleaning, or inspecting samples
 	if is_interacting:
+		current_anim_state = "interacting"
+		torso.position.y = lerp(torso.position.y, 0.62, 8.0 * delta)
+		visuals.rotation.x = lerp(visuals.rotation.x, 0.12, 8.0 * delta)
+		visuals.rotation.z = lerp(visuals.rotation.z, 0.0, 8.0 * delta)
 		if left_arm and right_arm:
 			left_arm.rotation.x = lerp(left_arm.rotation.x, -0.95, 8.0 * delta)
 			left_arm.rotation.y = lerp(left_arm.rotation.y, 0.18, 8.0 * delta)
+			left_arm.rotation.z = lerp(left_arm.rotation.z, -0.15, 8.0 * delta)
 			right_arm.rotation.x = lerp(right_arm.rotation.x, -0.95, 8.0 * delta)
 			right_arm.rotation.y = lerp(right_arm.rotation.y, -0.18, 8.0 * delta)
+			right_arm.rotation.z = lerp(right_arm.rotation.z, 0.15, 8.0 * delta)
 		if left_leg and right_leg:
 			left_leg.rotation.x = lerp(left_leg.rotation.x, 0.0, 10.0 * delta)
 			right_leg.rotation.x = lerp(right_leg.rotation.x, 0.0, 10.0 * delta)
+			left_leg.position.y = lerp(left_leg.position.y, -0.28, 10.0 * delta)
+			right_leg.position.y = lerp(right_leg.position.y, -0.28, 10.0 * delta)
+		_update_scanner_screen(signal_strength)
 		return
 	
-	# Realistic spacesuit leg strides
-	if left_leg and right_leg:
-		left_leg.rotation.x = lerp(left_leg.rotation.x, -stride_angle, 12.0 * delta)
-		right_leg.rotation.x = lerp(right_leg.rotation.x, stride_angle, 12.0 * delta)
+	# Animation Branch: Airborne vs Walking vs Idle
+	if not is_on_floor():
+		# 1. JUMPING & FLOATING IN LUNAR VACUUM (1.62 m/s²)
+		jump_anim_weight = move_toward(jump_anim_weight, 1.0, 8.0 * delta)
+		var is_rising = velocity.y > 0.05
+		current_anim_state = "jump" if is_rising else "fall"
+		
+		# Torso airtime posture: slight tilt back when soaring up, level/forward when descending
+		var target_torso_y = 0.66
+		var target_rot_x = -0.14 if is_rising else 0.06
+		torso.position.y = lerp(torso.position.y, target_torso_y, 6.0 * delta)
+		visuals.rotation.x = lerp(visuals.rotation.x, target_rot_x, 6.0 * delta)
+		visuals.rotation.z = lerp(visuals.rotation.z, 0.0, 6.0 * delta)
+		
+		# Legs: trailing gracefully during low-g jump, extending to meet ground during descent
+		var leg_target_x = -0.36 if is_rising else 0.16
+		if left_leg and right_leg:
+			left_leg.rotation.x = lerp(left_leg.rotation.x, leg_target_x, 8.0 * delta)
+			right_leg.rotation.x = lerp(right_leg.rotation.x, leg_target_x * 0.9, 8.0 * delta)
+			left_leg.position.y = lerp(left_leg.position.y, -0.27, 8.0 * delta)
+			right_leg.position.y = lerp(right_leg.position.y, -0.27, 8.0 * delta)
+			left_leg.rotation.z = lerp(left_leg.rotation.z, -0.06, 6.0 * delta)
+			right_leg.rotation.z = lerp(right_leg.rotation.z, 0.06, 6.0 * delta)
+		
+		# Arms: flare out wide for low-gravity stabilization
+		if left_arm:
+			var arm_x = -0.68 if is_rising else -0.32
+			var arm_z = -0.42 if is_rising else -0.35
+			left_arm.rotation.x = lerp(left_arm.rotation.x, arm_x, 7.0 * delta)
+			left_arm.rotation.y = lerp(left_arm.rotation.y, 0.1, 7.0 * delta)
+			left_arm.rotation.z = lerp(left_arm.rotation.z, arm_z, 7.0 * delta)
+		
+		if right_arm:
+			if scanner_raise_weight > 0.05:
+				var scan_angle = -0.90 - (signal_strength * 0.25)
+				right_arm.rotation.x = lerp(right_arm.rotation.x, scan_angle, 6.0 * delta)
+				right_arm.rotation.y = lerp(right_arm.rotation.y, -0.20, 6.0 * delta)
+				right_arm.rotation.z = lerp(right_arm.rotation.z, 0.08, 6.0 * delta)
+			else:
+				var arm_x = -0.68 if is_rising else -0.32
+				var arm_z = 0.42 if is_rising else 0.35
+				right_arm.rotation.x = lerp(right_arm.rotation.x, arm_x, 7.0 * delta)
+				right_arm.rotation.y = lerp(right_arm.rotation.y, -0.1, 7.0 * delta)
+				right_arm.rotation.z = lerp(right_arm.rotation.z, arm_z, 7.0 * delta)
+		
+		# Head tilts toward apex
+		if head:
+			var head_target_x = -0.16 if is_rising else 0.04
+			head.rotation.x = lerp(head.rotation.x, head_target_x, 6.0 * delta)
+			head.rotation.y = lerp(head.rotation.y, 0.0, 6.0 * delta)
+			head.rotation.z = lerp(head.rotation.z, 0.0, 6.0 * delta)
+			
+	elif is_moving:
+		# 2. WALKING & LOPING ON LUNAR REGOLITH
+		jump_anim_weight = move_toward(jump_anim_weight, 0.0, 10.0 * delta)
+		current_anim_state = "walk"
+		
+		var stride_mult = 0.55 if is_loping else 0.36
+		var stride_angle = sin(walk_cycle) * stride_mult
+		
+		# Vertical step bounce & landing squash absorption
+		var bob_height = 0.065 if is_loping else 0.040
+		var target_y = 0.65 + abs(sin(walk_cycle)) * bob_height - landing_squash
+		torso.position.y = lerp(torso.position.y, target_y, 14.0 * delta)
+		
+		# Minion astronaut waddle roll & forward lean
+		var waddle_roll = sin(walk_cycle) * (0.085 if is_loping else 0.055)
+		var forward_lean = 0.11 if is_loping else 0.06
+		visuals.rotation.z = lerp(visuals.rotation.z, waddle_roll, 10.0 * delta)
+		visuals.rotation.x = lerp(visuals.rotation.x, forward_lean, 8.0 * delta)
+		
+		# Leg strides with foot ground clearance lift
+		if left_leg and right_leg:
+			left_leg.rotation.x = lerp(left_leg.rotation.x, -stride_angle * 1.15, 14.0 * delta)
+			right_leg.rotation.x = lerp(right_leg.rotation.x, stride_angle * 1.15, 14.0 * delta)
+			
+			var left_lift = max(0.0, -sin(walk_cycle)) * (0.04 if is_loping else 0.025)
+			var right_lift = max(0.0, sin(walk_cycle)) * (0.04 if is_loping else 0.025)
+			left_leg.position.y = lerp(left_leg.position.y, -0.28 + left_lift, 14.0 * delta)
+			right_leg.position.y = lerp(right_leg.position.y, -0.28 + right_lift, 14.0 * delta)
+			
+			left_leg.rotation.z = lerp(left_leg.rotation.z, 0.0, 8.0 * delta)
+			right_leg.rotation.z = lerp(right_leg.rotation.z, 0.0, 8.0 * delta)
+		
+		# Arm counter-swings
+		if left_arm:
+			left_arm.rotation.x = lerp(left_arm.rotation.x, stride_angle * 0.95, 12.0 * delta)
+			left_arm.rotation.y = lerp(left_arm.rotation.y, 0.0, 8.0 * delta)
+			left_arm.rotation.z = lerp(left_arm.rotation.z, -0.22 - abs(sin(walk_cycle)) * 0.06, 10.0 * delta)
+		
+		if right_arm:
+			if scanner_raise_weight > 0.05:
+				var scan_angle = -0.90 - (signal_strength * 0.25)
+				var sweep = sin(Time.get_ticks_msec() * 0.003) * 0.08 * (1.0 - signal_strength)
+				right_arm.rotation.x = lerp(right_arm.rotation.x, scan_angle, 6.0 * delta)
+				right_arm.rotation.y = lerp(right_arm.rotation.y, -0.20 + sweep, 6.0 * delta)
+				right_arm.rotation.z = lerp(right_arm.rotation.z, 0.10, 6.0 * delta)
+			else:
+				right_arm.rotation.x = lerp(right_arm.rotation.x, -stride_angle * 0.85, 12.0 * delta)
+				right_arm.rotation.y = lerp(right_arm.rotation.y, 0.0, 8.0 * delta)
+				right_arm.rotation.z = lerp(right_arm.rotation.z, 0.22 + abs(sin(walk_cycle)) * 0.06, 10.0 * delta)
+		
+		# Head bobs subtly with walk
+		if head:
+			head.rotation.x = lerp(head.rotation.x, -0.04, 6.0 * delta)
+			head.rotation.y = lerp(head.rotation.y, sin(walk_cycle) * 0.04, 8.0 * delta)
+			head.rotation.z = lerp(head.rotation.z, -waddle_roll * 0.5, 8.0 * delta)
+			
+	else:
+		# 3. ASTRONAUT LOW-GRAVITY IDLE
+		jump_anim_weight = move_toward(jump_anim_weight, 0.0, 8.0 * delta)
+		current_anim_state = "idle"
+		idle_time += delta * 2.2
+		
+		# Gentle floating breathing bob & landing squash absorption
+		var idle_bob = sin(idle_time) * 0.016 - landing_squash
+		torso.position.y = lerp(torso.position.y, 0.65 + idle_bob, 8.0 * delta)
+		
+		# Subtle breathing sway & balance
+		var idle_sway_z = sin(idle_time * 0.5) * 0.016
+		var idle_pitch_x = cos(idle_time * 0.7) * 0.012
+		visuals.rotation.z = lerp(visuals.rotation.z, idle_sway_z, 6.0 * delta)
+		visuals.rotation.x = lerp(visuals.rotation.x, idle_pitch_x, 6.0 * delta)
+		
+		# Legs: planted and stable
+		if left_leg and right_leg:
+			left_leg.rotation.x = lerp(left_leg.rotation.x, 0.0, 8.0 * delta)
+			right_leg.rotation.x = lerp(right_leg.rotation.x, 0.0, 8.0 * delta)
+			left_leg.position.y = lerp(left_leg.position.y, -0.28, 8.0 * delta)
+			right_leg.position.y = lerp(right_leg.position.y, -0.28, 8.0 * delta)
+			left_leg.rotation.z = lerp(left_leg.rotation.z, 0.0, 6.0 * delta)
+			right_leg.rotation.z = lerp(right_leg.rotation.z, 0.0, 6.0 * delta)
+		
+		# Arms: buoyant pressurized spacesuit float
+		if left_arm:
+			var idle_arm_x = sin(idle_time) * 0.035
+			var idle_arm_z = -0.16 + cos(idle_time * 0.5) * 0.02
+			left_arm.rotation.x = lerp(left_arm.rotation.x, idle_arm_x, 6.0 * delta)
+			left_arm.rotation.y = lerp(left_arm.rotation.y, 0.0, 6.0 * delta)
+			left_arm.rotation.z = lerp(left_arm.rotation.z, idle_arm_z, 6.0 * delta)
+			
+		if right_arm:
+			if scanner_raise_weight > 0.05:
+				var scan_angle = -0.90 - (signal_strength * 0.25)
+				var sweep = sin(Time.get_ticks_msec() * 0.003) * 0.08 * (1.0 - signal_strength)
+				right_arm.rotation.x = lerp(right_arm.rotation.x, scan_angle, 6.0 * delta)
+				right_arm.rotation.y = lerp(right_arm.rotation.y, -0.20 + sweep, 6.0 * delta)
+				right_arm.rotation.z = lerp(right_arm.rotation.z, 0.10, 6.0 * delta)
+			else:
+				var idle_arm_x = sin(idle_time + 0.4) * 0.035
+				var idle_arm_z = 0.16 - cos(idle_time * 0.5) * 0.02
+				right_arm.rotation.x = lerp(right_arm.rotation.x, idle_arm_x, 6.0 * delta)
+				right_arm.rotation.y = lerp(right_arm.rotation.y, 0.0, 6.0 * delta)
+				right_arm.rotation.z = lerp(right_arm.rotation.z, idle_arm_z, 6.0 * delta)
+		
+		# Head: subtle curious scan of lunar horizon
+		if head:
+			var head_yaw = sin(idle_time * 0.35) * 0.05
+			var head_pitch = cos(idle_time * 0.6) * 0.015
+			head.rotation.x = lerp(head.rotation.x, head_pitch, 5.0 * delta)
+			head.rotation.y = lerp(head.rotation.y, head_yaw, 5.0 * delta)
+			head.rotation.z = lerp(head.rotation.z, 0.0, 5.0 * delta)
 	
-	# Natural arm counter-swing
-	if left_arm:
-		left_arm.rotation.x = lerp(left_arm.rotation.x, stride_angle * 0.6, 10.0 * delta)
-	
-	# Right arm: holds handheld scanner or counter-swings
-	if right_arm:
-		if scanner_raise_weight > 0.05:
-			var scan_angle = -0.90 - (signal_strength * 0.25)
-			var sweep = sin(Time.get_ticks_msec() * 0.003) * 0.08 * (1.0 - signal_strength)
-			right_arm.rotation.x = lerp(right_arm.rotation.x, scan_angle, 6.0 * delta)
-			right_arm.rotation.y = lerp(right_arm.rotation.y, -0.20 + sweep, 6.0 * delta)
-		else:
-			right_arm.rotation.x = lerp(right_arm.rotation.x, -stride_angle * 0.35, 8.0 * delta)
-			right_arm.rotation.y = lerp(right_arm.rotation.y, 0.0, 8.0 * delta)
-	
-	# Scanner screen emission pulse
+	_update_scanner_screen(signal_strength)
+
+func _update_scanner_screen(signal_strength: float) -> void:
 	if scanner_screen and signal_strength > 0.05:
 		var pulse = (sin(Time.get_ticks_msec() * (0.005 + signal_strength * 0.02)) + 1.0) * 0.5
 		var mat = scanner_screen.get_active_material(0)
