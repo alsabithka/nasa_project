@@ -30,6 +30,18 @@ extends CharacterBody3D
 @onready var scanner_device: Node3D = $Visuals/Torso/RightArm/ScannerDevice
 @onready var scanner_screen: MeshInstance3D = $Visuals/Torso/RightArm/ScannerDevice/Screen
 
+func align_to_normal(normal: Vector3) -> void:
+	current_up_vector = normal.normalized()
+	up_direction = current_up_vector
+	var cur_up = global_transform.basis.y
+	if cur_up.cross(current_up_vector).length() > 0.001:
+		var align_axis = cur_up.cross(current_up_vector).normalized()
+		var align_angle = cur_up.angle_to(current_up_vector)
+		global_rotate(align_axis, align_angle)
+
+func get_distance_travelled_km() -> float:
+	return total_distance_travelled_km
+
 # Locomotion & Camera States
 var is_first_person: bool = false # Third-person exploration default
 var is_loping_mode: bool = true # Apollo low-gravity kangaroo lope default
@@ -40,6 +52,9 @@ var last_foot_step: bool = false # false = left, true = right
 var scanner_raise_weight: float = 0.0
 var exertion_level: float = 0.0
 var prev_vertical_velocity: float = 0.0
+var current_up_vector: Vector3 = Vector3.UP
+var total_distance_travelled_km: float = 0.0
+var _prev_planet_pos: Vector3 = Vector3.ZERO
 
 # Stable interaction state (prevents rubberbanding/displacement during digging, cleaning & inspection)
 var is_interacting: bool = false
@@ -227,54 +242,67 @@ func release_mouse() -> void:
 	is_mouse_captured = false
 
 func _physics_process(delta: float) -> void:
-	# Apply exact real Moon gravitation (1.62 m/s²) with consistent downward pull
+	# 1. Determine local planetary up vector and gravity direction
+	var up_vector = Vector3.UP
+	var planet_node = get_tree().get_first_node_in_group("spherical_planet")
+	if planet_node:
+		var diff = global_position - planet_node.global_position
+		if diff.length_squared() > 1.0:
+			up_vector = diff.normalized()
+	
+	current_up_vector = up_vector
+	up_direction = up_vector
+	
+	# Align astronaut orientation smoothly to planetary normal
+	var cur_up = global_transform.basis.y
+	if cur_up.cross(up_vector).length() > 0.001:
+		var align_axis = cur_up.cross(up_vector).normalized()
+		var align_angle = cur_up.angle_to(up_vector)
+		global_rotate(align_axis, align_angle)
+	
+	# Track distance travelled around the planet
+	if _prev_planet_pos != Vector3.ZERO:
+		var step_dist = (global_position - _prev_planet_pos).length()
+		if step_dist > 0.001 and step_dist < 15.0:
+			total_distance_travelled_km += (step_dist / 1000.0) * (3389.5 / 1200.0)
+	_prev_planet_pos = global_position
+	
+	# 2. Decompose velocity into normal (vertical) and tangential (horizontal) components
+	var v_norm = velocity.dot(up_vector)
+	var v_tangent = velocity - up_vector * v_norm
+	
 	var was_in_air = not is_on_floor()
 	if was_in_air:
-		velocity.y -= gravity * delta
-		velocity.y = maxf(velocity.y, -24.0)
+		v_norm -= gravity * delta
+		v_norm = maxf(v_norm, -24.0)
 		exertion_level = move_toward(exertion_level, 0.4, 0.2 * delta)
 	else:
-		if velocity.y < 0.0:
-			velocity.y = -0.6 # Maintain solid ground adhesion over craters and slopes
+		if v_norm < 0.0:
+			v_norm = -0.6 # Firm adhesion to curved spherical surface
 	
 	# Landing detection: landing impact sound, footprint imprint and subtle contact dust
 	if was_in_air and is_on_floor():
 		floor_snap_length = 0.45
 		_handle_landing(prev_vertical_velocity)
-	prev_vertical_velocity = velocity.y
+	prev_vertical_velocity = v_norm
 	
 	# If locked in interaction (digging, cleaning, sample inspection), hold position stably
 	if is_interacting:
-		if interaction_anchor != Vector3.ZERO:
-			var curr_h = Vector2(global_position.x, global_position.z)
-			var target_h = Vector2(interaction_anchor.x, interaction_anchor.z)
-			var next_h = curr_h.move_toward(target_h, 3.5 * delta)
-			global_position.x = next_h.x
-			global_position.z = next_h.y
-		
-		velocity.x = 0.0
-		velocity.z = 0.0
-		
-		if interaction_target != Vector3.ZERO:
-			var to_target = interaction_target - global_position
-			to_target.y = 0.0
-			if to_target.length_squared() > 0.01:
-				var target_angle = atan2(to_target.x, to_target.z)
-				visuals.rotation.y = lerp_angle(visuals.rotation.y, target_angle, 8.0 * delta)
-		
+		velocity = up_vector * v_norm
 		_animate_astronaut(delta, false, false)
 		move_and_slide()
 		return
 	
-	# Check gait modifier (Shift key activates loping)
+	# Check gait modifier (Shift key activates loping/running)
 	var active_loping = is_loping_mode or Input.is_key_pressed(KEY_SHIFT)
 	var current_max_speed = lope_speed if active_loping else walk_speed
 	
 	# Handle Low-Gravity Jump
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		jump()
+		v_norm = jump_velocity
 	
-	# Camera-relative movement calculation
+	# Camera-relative movement calculation in local tangent plane
 	var input_dir = Vector2.ZERO
 	if Input.is_action_pressed("move_forward"):
 		input_dir.y -= 1.0
@@ -287,12 +315,13 @@ func _physics_process(delta: float) -> void:
 	input_dir = input_dir.normalized()
 	
 	var cam_basis = camera_pivot.global_transform.basis
-	var forward = -cam_basis.z
-	forward.y = 0.0
-	forward = forward.normalized()
-	var right = cam_basis.x
-	right.y = 0.0
-	right = right.normalized()
+	var cam_forward = -cam_basis.z
+	var forward = (cam_forward - cam_forward.dot(up_vector) * up_vector).normalized()
+	if forward.is_zero_approx():
+		forward = -global_transform.basis.z
+	var right = (cam_basis.x - cam_basis.x.dot(up_vector) * up_vector).normalized()
+	if right.is_zero_approx():
+		right = global_transform.basis.x
 	
 	var move_direction = (forward * -input_dir.y + right * input_dir.x).normalized()
 	var is_moving = move_direction.length() > 0.01
@@ -301,11 +330,11 @@ func _physics_process(delta: float) -> void:
 	var decel_rate = 4.4 if is_on_floor() else 0.4
 	
 	if is_moving:
-		velocity.x = move_toward(velocity.x, move_direction.x * current_max_speed, accel_rate * delta * current_max_speed)
-		velocity.z = move_toward(velocity.z, move_direction.z * current_max_speed, accel_rate * delta * current_max_speed)
+		v_tangent = v_tangent.move_toward(move_direction * current_max_speed, accel_rate * delta * current_max_speed)
 		
-		# Rotate astronaut smoothly towards movement direction
-		var target_angle = atan2(move_direction.x, move_direction.z)
+		# Rotate astronaut smoothly towards movement direction relative to player body
+		var local_move = global_transform.basis.inverse() * move_direction
+		var target_angle = atan2(local_move.x, local_move.z)
 		visuals.rotation.y = lerp_angle(visuals.rotation.y, target_angle, 8.5 * delta)
 		
 		# Advance gait step cycle
@@ -322,16 +351,17 @@ func _physics_process(delta: float) -> void:
 			last_foot_step = not last_foot_step
 			_trigger_footstep(move_direction, active_loping)
 	else:
-		velocity.x = move_toward(velocity.x, 0.0, decel_rate * delta * current_max_speed)
-		velocity.z = move_toward(velocity.z, 0.0, decel_rate * delta * current_max_speed)
+		v_tangent = v_tangent.move_toward(Vector3.ZERO, decel_rate * delta * current_max_speed)
 		exertion_level = move_toward(exertion_level, 0.0, 0.15 * delta)
 	
+	velocity = v_tangent + up_vector * v_norm
 	_animate_astronaut(delta, is_moving, active_loping)
 	move_and_slide()
 
 func jump() -> void:
 	if is_on_floor() and not is_interacting:
-		velocity.y = jump_velocity
+		var v_tangent = velocity - current_up_vector * velocity.dot(current_up_vector)
+		velocity = v_tangent + current_up_vector * jump_velocity
 		floor_snap_length = 0.0 # Clean lift-off for low-gravity jump
 		exertion_level = clampf(exertion_level + 0.35, 0.0, 1.0)
 		if dust_system and dust_system.has_method("emit_impact_dust"):
@@ -348,7 +378,7 @@ func _handle_landing(impact_vel: float) -> void:
 		dust_system.emit_impact_dust(global_position, impact_strength)
 	
 	if footprint_system and footprint_system.has_method("place_footprint"):
-		var norm = get_floor_normal() if is_on_floor() else Vector3.UP
+		var norm = get_floor_normal() if is_on_floor() else current_up_vector
 		footprint_system.place_footprint(global_position, norm, visuals.rotation.y, false, impact_strength * 1.0)
 		footprint_system.place_footprint(global_position, norm, visuals.rotation.y, true, impact_strength * 1.0)
 
@@ -359,7 +389,7 @@ func _trigger_footstep(move_dir: Vector3, is_loping: bool) -> void:
 	if audio_system and audio_system.has_method("play_footstep"):
 		audio_system.play_footstep(is_loping)
 	
-	# Subtle, small disturbance of lunar dust around the boot sole
+	# Subtle, small disturbance of regolith dust around the boot sole
 	if dust_system and dust_system.has_method("emit_footstep_dust"):
 		dust_system.emit_footstep_dust(global_position, move_dir, is_loping)
 	
