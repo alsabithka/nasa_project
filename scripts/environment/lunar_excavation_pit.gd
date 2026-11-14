@@ -28,23 +28,48 @@ func _ready() -> void:
 
 # Builds the layered subsurface crater pit
 func _create_stratified_pit() -> void:
-	# Layer materials matching Apollo lunar soil profiles
+	var is_mars = false
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.current_planet == "Mars":
+		is_mars = true
+	elif get_tree() and get_tree().current_scene and "Mars" in get_tree().current_scene.name:
+		is_mars = true
+
 	var mat_regolith = StandardMaterial3D.new()
-	mat_regolith.albedo_color = Color(0.44, 0.45, 0.48)
-	mat_regolith.roughness = 0.98
-
 	var mat_agglutinate = StandardMaterial3D.new()
-	mat_agglutinate.albedo_color = Color(0.33, 0.34, 0.37)
-	mat_agglutinate.roughness = 0.95
-	mat_agglutinate.metallic = 0.05
-
 	var mat_breccia = StandardMaterial3D.new()
-	mat_breccia.albedo_color = Color(0.28, 0.29, 0.31)
-	mat_breccia.roughness = 0.90
-
 	var mat_bedrock = StandardMaterial3D.new()
-	mat_bedrock.albedo_color = Color(0.22, 0.23, 0.25)
-	mat_bedrock.roughness = 0.85
+
+	if is_mars:
+		# Layer 1: Loose oxidized ferric dust (0-5 cm)
+		mat_regolith.albedo_color = Color(0.72, 0.32, 0.18)
+		mat_regolith.roughness = 0.98
+
+		# Layer 2: Compacted sulfate duricrust hardpan (5-15 cm)
+		mat_agglutinate.albedo_color = Color(0.62, 0.42, 0.28)
+		mat_agglutinate.roughness = 0.94
+
+		# Layer 3: Stratified deltaic smectite clay / siltstone (15-35 cm)
+		mat_breccia.albedo_color = Color(0.50, 0.44, 0.36)
+		mat_breccia.roughness = 0.90
+
+		# Layer 4: Dense fractured olivine basalt bedrock (35+ cm)
+		mat_bedrock.albedo_color = Color(0.22, 0.20, 0.18)
+		mat_bedrock.roughness = 0.85
+	else:
+		# Layer materials matching Apollo lunar soil profiles
+		mat_regolith.albedo_color = Color(0.44, 0.45, 0.48)
+		mat_regolith.roughness = 0.98
+
+		mat_agglutinate.albedo_color = Color(0.33, 0.34, 0.37)
+		mat_agglutinate.roughness = 0.95
+		mat_agglutinate.metallic = 0.05
+
+		mat_breccia.albedo_color = Color(0.28, 0.29, 0.31)
+		mat_breccia.roughness = 0.90
+
+		mat_bedrock.albedo_color = Color(0.22, 0.23, 0.25)
+		mat_bedrock.roughness = 0.85
 
 	# Subsurface excavation container
 	var pit_container = Node3D.new()
@@ -83,7 +108,7 @@ func _create_stratified_pit() -> void:
 		pit_container.add_child(ring)
 		_strat_layers.append(ring)
 
-# Spoil pile: Excavated lunar soil displaced outside the pit
+# Spoil pile: Excavated soil displaced outside the pit
 func _create_spoil_pile() -> void:
 	_spoil_pile = MeshInstance3D.new()
 	_spoil_pile.name = "RegolithSpoilPile"
@@ -93,8 +118,18 @@ func _create_spoil_pile() -> void:
 	mound.radial_segments = 16
 	mound.rings = 8
 
+	var is_mars = false
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.current_planet == "Mars":
+		is_mars = true
+	elif get_tree() and get_tree().current_scene and "Mars" in get_tree().current_scene.name:
+		is_mars = true
+
 	var spoil_mat = StandardMaterial3D.new()
-	spoil_mat.albedo_color = Color(0.38, 0.39, 0.42)
+	if is_mars:
+		spoil_mat.albedo_color = Color(0.68, 0.33, 0.20)
+	else:
+		spoil_mat.albedo_color = Color(0.38, 0.39, 0.42)
 	spoil_mat.roughness = 0.98
 	mound.material = spoil_mat
 

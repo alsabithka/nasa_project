@@ -100,7 +100,8 @@ func _ready() -> void:
 	var game_state = get_node_or_null("/root/GameState")
 	if game_state:
 		var data = game_state.get_artifact_data(artifact_id)
-		if data.get("category", "") == "Natural Lunar Material" and artifact_id != "lunar_iron_meteorite":
+		var cat = data.get("category", "")
+		if (cat == "Natural Lunar Material" or cat == "Natural Martian Material" or cat == "Scientific Discoveries") and artifact_id != "lunar_iron_meteorite":
 			is_metal = false
 	
 	var glint_script = load("res://scripts/environment/lunar_glint_effect.gd")
@@ -582,6 +583,14 @@ func _update_visual_representation() -> void:
 			_build_orange_glass_mesh()
 		"apollo_cable_bracket":
 			_build_bracket_mesh()
+		"jezero_delta_clay":
+			_build_jezero_clay_mesh()
+		"seitah_olivine_basalt":
+			_build_seitah_basalt_mesh()
+		"perseverance_heatshield_remnant":
+			_build_heatshield_remnant_mesh()
+		"martian_meteorite_shergottite":
+			_build_martian_meteorite_mesh()
 		_:
 			_build_default_mesh()
 
@@ -987,3 +996,144 @@ func _build_bracket_mesh() -> void:
 	clamp_bar.mesh = c_mesh
 	clamp_bar.position = Vector3(0, 0.18, 0)
 	visual_model.add_child(clamp_bar)
+
+func _build_jezero_clay_mesh() -> void:
+	# Stratified sedimentary delta mudstone sample with distinct fine bedding laminations
+	var base_rock = MeshInstance3D.new()
+	var b_box = BoxMesh.new()
+	b_box.size = Vector3(0.38, 0.16, 0.28)
+	var mat_clay = StandardMaterial3D.new()
+	mat_clay.albedo_color = Color(0.60, 0.52, 0.42) # Tan/beige smectite-bearing mudstone
+	mat_clay.roughness = 0.94
+	b_box.material = mat_clay
+	base_rock.mesh = b_box
+	base_rock.position = Vector3(0, 0.10, 0)
+	visual_model.add_child(base_rock)
+
+	# Laminated sedimentary bedding layers
+	var layer1 = MeshInstance3D.new()
+	var l_box1 = BoxMesh.new()
+	l_box1.size = Vector3(0.39, 0.03, 0.29)
+	var mat_silt = StandardMaterial3D.new()
+	mat_silt.albedo_color = Color(0.72, 0.60, 0.48)
+	mat_silt.roughness = 0.96
+	l_box1.material = mat_silt
+	layer1.mesh = l_box1
+	layer1.position = Vector3(0, 0.14, 0)
+	visual_model.add_child(layer1)
+
+	# Light calcium sulfate evaporite vein
+	var vein = MeshInstance3D.new()
+	var v_box = BoxMesh.new()
+	v_box.size = Vector3(0.36, 0.015, 0.05)
+	var mat_vein = StandardMaterial3D.new()
+	mat_vein.albedo_color = Color(0.92, 0.90, 0.88) # White gypsum/sulfate mineral filling
+	mat_vein.roughness = 0.70
+	v_box.material = mat_vein
+	vein.mesh = v_box
+	vein.position = Vector3(0, 0.18, 0.04)
+	visual_model.add_child(vein)
+
+func _build_seitah_basalt_mesh() -> void:
+	# Igneous olivine cumulate rock from the Jezero crater floor
+	var rock = MeshInstance3D.new()
+	var cyl = CylinderMesh.new()
+	cyl.radial_segments = 7
+	cyl.top_radius = 0.22
+	cyl.bottom_radius = 0.25
+	cyl.height = 0.24
+	var mat_basalt = StandardMaterial3D.new()
+	mat_basalt.albedo_color = Color(0.24, 0.23, 0.21) # Dark basaltic groundmass
+	mat_basalt.roughness = 0.88
+	cyl.material = mat_basalt
+	rock.mesh = cyl
+	rock.position = Vector3(0, 0.12, 0)
+	rock.rotation_degrees = Vector3(15, 30, -10)
+	visual_model.add_child(rock)
+
+	# Distinct green-tinted olivine crystal phenocrysts
+	var mat_olivine = StandardMaterial3D.new()
+	mat_olivine.albedo_color = Color(0.36, 0.44, 0.26) # Characteristic forsterite/olivine green
+	mat_olivine.roughness = 0.45
+	mat_olivine.metallic = 0.1
+	for i in range(5):
+		var crystal = MeshInstance3D.new()
+		var c_mesh = BoxMesh.new()
+		c_mesh.size = Vector3(0.06, 0.05, 0.06)
+		c_mesh.material = mat_olivine
+		crystal.mesh = c_mesh
+		var a = i * 1.25
+		crystal.position = Vector3(cos(a) * 0.16, 0.14 + sin(a) * 0.06, sin(a) * 0.16)
+		crystal.rotation_degrees = Vector3(a * 20, a * 45, a * 15)
+		visual_model.add_child(crystal)
+
+func _build_heatshield_remnant_mesh() -> void:
+	# Curvilinear thermal protection tile with titanium bracket
+	var tile = MeshInstance3D.new()
+	var t_box = BoxMesh.new()
+	t_box.size = Vector3(0.48, 0.08, 0.36)
+	var mat_tile = StandardMaterial3D.new()
+	mat_tile.albedo_color = Color(0.18, 0.16, 0.16) # Charred PICA ablator surface
+	mat_tile.roughness = 0.95
+	t_box.material = mat_tile
+	tile.mesh = t_box
+	tile.position = Vector3(0, 0.08, 0)
+	tile.rotation_degrees = Vector3(8, -15, 6)
+	visual_model.add_child(tile)
+
+	# Lightweight reflective aerospace alloy backing
+	var backing = MeshInstance3D.new()
+	var b_box = BoxMesh.new()
+	b_box.size = Vector3(0.46, 0.02, 0.34)
+	var mat_back = StandardMaterial3D.new()
+	mat_back.albedo_color = Color(0.85, 0.85, 0.88)
+	mat_back.metallic = 0.92
+	mat_back.roughness = 0.25
+	b_box.material = mat_back
+	backing.mesh = b_box
+	backing.position = Vector3(0, 0.04, 0)
+	tile.add_child(backing)
+
+	# Inconel fastener and serial tag
+	var tag = MeshInstance3D.new()
+	var tag_mesh = BoxMesh.new()
+	tag_mesh.size = Vector3(0.12, 0.01, 0.06)
+	var mat_tag = StandardMaterial3D.new()
+	mat_tag.albedo_color = Color(0.95, 0.90, 0.40) # Brass/anodized ID plate
+	mat_tag.metallic = 0.80
+	tag_mesh.material = mat_tag
+	tag.mesh = tag_mesh
+	tag.position = Vector3(0.12, 0.05, 0.08)
+	tile.add_child(tag)
+
+func _build_martian_meteorite_mesh() -> void:
+	# Shergottite basaltic meteorite with black fusion crust and shock melt veins
+	var rock = MeshInstance3D.new()
+	var sphere = SphereMesh.new()
+	sphere.radius = 0.18
+	sphere.height = 0.28
+	sphere.radial_segments = 12
+	sphere.rings = 6
+	var mat_shergottite = StandardMaterial3D.new()
+	mat_shergottite.albedo_color = Color(0.28, 0.26, 0.24) # Dark interior pyroxene
+	mat_shergottite.roughness = 0.82
+	sphere.material = mat_shergottite
+	rock.mesh = sphere
+	rock.position = Vector3(0, 0.10, 0)
+	visual_model.add_child(rock)
+
+	# Glassy shock melt vein
+	var vein = MeshInstance3D.new()
+	var v_cyl = CylinderMesh.new()
+	v_cyl.top_radius = 0.015
+	v_cyl.bottom_radius = 0.015
+	v_cyl.height = 0.22
+	var mat_glass = StandardMaterial3D.new()
+	mat_glass.albedo_color = Color(0.08, 0.08, 0.09) # Black impact glass / maskelynite
+	mat_glass.roughness = 0.20
+	mat_glass.metallic = 0.15
+	v_cyl.material = mat_glass
+	vein.mesh = v_cyl
+	vein.position = Vector3(0.05, 0.10, 0)
+	vein.rotation_degrees = Vector3(35, 20, 45)
+	visual_model.add_child(vein)

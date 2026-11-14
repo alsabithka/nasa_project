@@ -122,10 +122,26 @@ func _process(delta: float) -> void:
 		return
 	
 	# Update gait mode
+	var is_mars = false
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.current_planet == "Mars":
+		is_mars = true
+	elif _player_ref and "gravity" in _player_ref and _player_ref.gravity > 2.5:
+		is_mars = true
+
 	var is_loping = false
 	if "is_loping_mode" in _player_ref:
 		is_loping = _player_ref.is_loping_mode
-	gait_label.text = "LUNAR LOPE [Shift/C]" if is_loping else "SUIT WALK [Shift/C]"
+	
+	if is_mars:
+		gait_label.text = "MARTIAN STRIDE [Shift/C]" if is_loping else "SUIT WALK [Shift/C]"
+		if suit_pressure_label and suit_pressure_label.get_parent():
+			var title_lbl = suit_pressure_label.get_parent().get_child(0) as Label
+			if title_lbl:
+				title_lbl.text = "ATMOSPHERE"
+			suit_pressure_label.text = "6.1 hPa (95.3% CO₂)"
+	else:
+		gait_label.text = "LUNAR LOPE [Shift/C]" if is_loping else "SUIT WALK [Shift/C]"
 	gait_label.modulate = Color(0.3, 1.0, 0.6) if is_loping else Color(0.9, 0.95, 1.0)
 	
 	# Update heart rate from exertion

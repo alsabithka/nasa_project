@@ -168,6 +168,14 @@ func emit_dig_dust(target_pos: Vector3) -> void:
 
 func update_gravity(new_gravity: float) -> void:
 	gravity = new_gravity
+	if gravity > 2.5: # Mars gravity ~3.71 m/s²
+		jump_velocity = 3.0 # Calibrated ~1.21m apex under 3.71 m/s² Martian gravity
+		walk_speed = 1.8
+		lope_speed = 3.6
+	else: # Moon gravity ~1.62 m/s²
+		jump_velocity = 2.4 # Calibrated ~1.77m apex under 1.62 m/s² lunar gravity
+		walk_speed = 1.6
+		lope_speed = 3.2
 	if dust_system and dust_system.has_method("set_gravity"):
 		dust_system.set_gravity(gravity)
 

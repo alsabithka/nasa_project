@@ -57,9 +57,20 @@ func _init_dust_pool() -> void:
 
 func set_gravity(g: float) -> void:
 	var g_vec = Vector3(0, -abs(g), 0)
+	var is_mars = abs(g) > 2.5
 	for p in _dust_pool:
 		if is_instance_valid(p):
 			p.gravity = g_vec
+			if is_mars:
+				p.damping_min = 0.12
+				p.damping_max = 0.18 # Thin Martian CO2 atmospheric drag
+				if p.mesh and p.mesh.material:
+					p.mesh.material.albedo_color = Color(0.72, 0.35, 0.20, 0.8) # Oxidized red Martian dust
+			else:
+				p.damping_min = 0.0
+				p.damping_max = 0.0 # Vacuum
+				if p.mesh and p.mesh.material:
+					p.mesh.material.albedo_color = Color(0.44, 0.45, 0.47, 0.75) # Grey lunar regolith
 
 # Spawns a small, subtle disturbance of lunar dust around the boot sole during walking/hopping
 func emit_footstep_dust(pos: Vector3, move_direction: Vector3, is_loping: bool) -> void:
