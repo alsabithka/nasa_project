@@ -120,8 +120,8 @@ func _calc_height(x: float, z: float) -> float:
 # - Orange pyroclastic volcanic glass halo at Shorty Crater
 # - High-albedo anorthositic pulverized rock on fresh crater rims
 func _calc_vertex_color(x: float, z: float) -> Color:
-	# Base mature ash-grey regolith
-	var base_col = Color(0.41, 0.43, 0.45)
+	# Base neutral tint to modulate with photographic Google Moon / LROC albedo map
+	var base_col = Color(1.0, 1.0, 1.0)
 	
 	for c in craters:
 		var center: Vector2 = c["pos"]
@@ -131,23 +131,34 @@ func _calc_vertex_color(x: float, z: float) -> Color:
 			var u = dist / R
 			var stype: String = c.get("soil_type", "regolith")
 			
-			if stype == "orange_glass" and u >= 0.6 and u <= 1.4:
-				# Harrison Schmitt's orange soil band at Shorty Crater rim
-				var t = 1.0 - absf(u - 1.0) / 0.4
-				return base_col.lerp(Color(0.64, 0.42, 0.22), t * 0.85)
+			if stype == "orange_glass" and u >= 0.55 and u <= 1.45:
+				# Harrison Schmitt's orange soil band at Shorty Crater rim (Apollo 74220)
+				var t = 1.0 - absf(u - 1.0) / 0.45
+				return base_col.lerp(Color(1.55, 0.85, 0.42), t * 0.92)
 			
 			if u < 0.85:
 				# Dark basaltic crater floor
 				var t = clampf(1.0 - u, 0.0, 1.0)
-				return base_col.lerp(Color(0.24, 0.25, 0.27), t * 0.78)
-			elif u >= 0.85 and u <= 1.25:
+				return base_col.lerp(Color(0.48, 0.49, 0.52), t * 0.85)
+			elif u >= 0.85 and u <= 1.30:
 				# Bright pulverized impact ejecta
 				var t = 1.0 - absf(u - 1.05) / 0.25
-				return base_col.lerp(Color(0.53, 0.55, 0.57), t * 0.65)
+				return base_col.lerp(Color(1.35, 1.38, 1.42), t * 0.75)
 	
 	# Subtle natural surface micro-variation
-	var var_tone = sin(x * 0.14) * cos(z * 0.16) * 0.025
+	var var_tone = sin(x * 0.14) * cos(z * 0.16) * 0.035
 	return Color(base_col.r + var_tone, base_col.g + var_tone, base_col.b + var_tone)
+
+func _load_texture(path: String) -> Texture2D:
+	if ResourceLoader.exists(path):
+		var res = load(path)
+		if res is Texture2D:
+			return res
+	if FileAccess.file_exists(path):
+		var img = Image.load_from_file(path)
+		if img and not img.is_empty():
+			return ImageTexture.create_from_image(img)
+	return null
 
 # Generates the continuous subdivided terrain mesh with exact trimesh collision
 func _generate_lunar_terrain_mesh_and_collision() -> void:
@@ -174,7 +185,7 @@ func _generate_lunar_terrain_mesh_and_collision() -> void:
 			var z = -half_size + float(j) * step
 			var y = _calc_height(x, z)
 			var col = _calc_vertex_color(x, z)
-			var uv = Vector2(float(i) / float(grid_subdivisions) * 20.0, float(j) / float(grid_subdivisions) * 20.0)
+			var uv = Vector2(float(i) / float(grid_subdivisions) * 18.0, float(j) / float(grid_subdivisions) * 18.0)
 			row[j] = {"pos": Vector3(x, y, z), "col": col, "uv": uv}
 		grid_pts[i] = row
 	
@@ -212,12 +223,31 @@ func _generate_lunar_terrain_mesh_and_collision() -> void:
 	st.generate_normals()
 	var mesh = st.commit()
 	
-	# Physically based lunar regolith material
+	# Photorealistic Google Moon / NASA LROC PBR Regolith Material
 	var regolith_mat = StandardMaterial3D.new()
 	regolith_mat.vertex_color_use_as_albedo = true
 	regolith_mat.albedo_color = Color(1.0, 1.0, 1.0)
-	regolith_mat.roughness = 0.97 # Diffuse, velvety lunar soil
+	
+	var albedo_tex = _load_texture("res://textures/moon/lunar_regolith_albedo.png")
+	if albedo_tex:
+		regolith_mat.albedo_texture = albedo_tex
+		regolith_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	
+	var normal_tex = _load_texture("res://textures/moon/lunar_regolith_normal.png")
+	if normal_tex:
+		regolith_mat.normal_enabled = true
+		regolith_mat.normal_texture = normal_tex
+		regolith_mat.normal_scale = 1.6
+	
+	var rough_tex = _load_texture("res://textures/moon/lunar_regolith_roughness.png")
+	if rough_tex:
+		regolith_mat.roughness_texture = rough_tex
+		regolith_mat.roughness = 1.0
+	else:
+		regolith_mat.roughness = 0.97
+	
 	regolith_mat.metallic = 0.02
+	regolith_mat.diffuse_mode = BaseMaterial3D.DIFFUSE_BURLEY # Authentic roughness-dependent retroreflective scattering
 	regolith_mat.specular_mode = BaseMaterial3D.SPECULAR_SCHLICK_GGX
 	mesh.surface_set_material(0, regolith_mat)
 	
@@ -234,13 +264,30 @@ func _generate_lunar_terrain_mesh_and_collision() -> void:
 
 # Creates verified Apollo 17 boulders including Station 6 split boulder (Tracy's Rock)
 func _create_scientific_boulders_and_debris() -> void:
+	var boulder_albedo = _load_texture("res://textures/moon/lunar_boulder_albedo.png")
+	var boulder_normal = _load_texture("res://textures/moon/lunar_boulder_normal.png")
+	
 	var dark_mat = StandardMaterial3D.new()
-	dark_mat.albedo_color = Color(0.26, 0.28, 0.30)
-	dark_mat.roughness = 0.95
+	dark_mat.albedo_color = Color(0.38, 0.40, 0.42)
+	if boulder_albedo:
+		dark_mat.albedo_texture = boulder_albedo
+	if boulder_normal:
+		dark_mat.normal_enabled = true
+		dark_mat.normal_texture = boulder_normal
+		dark_mat.normal_scale = 1.6
+	dark_mat.roughness = 0.92
+	dark_mat.diffuse_mode = BaseMaterial3D.DIFFUSE_BURLEY
 	
 	var light_mat = StandardMaterial3D.new()
-	light_mat.albedo_color = Color(0.48, 0.50, 0.52)
-	light_mat.roughness = 0.93
+	light_mat.albedo_color = Color(0.68, 0.70, 0.73)
+	if boulder_albedo:
+		light_mat.albedo_texture = boulder_albedo
+	if boulder_normal:
+		light_mat.normal_enabled = true
+		light_mat.normal_texture = boulder_normal
+		light_mat.normal_scale = 1.6
+	light_mat.roughness = 0.88
+	light_mat.diffuse_mode = BaseMaterial3D.DIFFUSE_BURLEY
 	
 	# Verified Apollo 17 landmark boulders
 	var landmark_boulders = [
@@ -310,7 +357,7 @@ func _create_scientific_boulders_and_debris() -> void:
 # Conforms historic Apollo bootprints and LRV tire trails to the topography
 func _create_corrugated_trails() -> void:
 	var track_mat = StandardMaterial3D.new()
-	track_mat.albedo_color = Color(0.28, 0.30, 0.32)
+	track_mat.albedo_color = Color(0.24, 0.25, 0.27)
 	track_mat.roughness = 0.99
 	
 	# Trail from LM (0,0) to Camelot / LRV (18, 12)
@@ -358,9 +405,19 @@ func _build_trail(start_2d: Vector2, end_2d: Vector2, steps: int, mat: Material,
 
 # Taurus-Littrow mountain massif ridges framing the horizon
 func _create_taurus_littrow_massifs() -> void:
+	var massif_albedo = _load_texture("res://textures/moon/lunar_regolith_albedo.png")
+	var massif_normal = _load_texture("res://textures/moon/lunar_regolith_normal.png")
+	
 	var horizon_mat = StandardMaterial3D.new()
-	horizon_mat.albedo_color = Color(0.20, 0.22, 0.24)
+	horizon_mat.albedo_color = Color(0.35, 0.37, 0.40)
+	if massif_albedo:
+		horizon_mat.albedo_texture = massif_albedo
+	if massif_normal:
+		horizon_mat.normal_enabled = true
+		horizon_mat.normal_texture = massif_normal
+		horizon_mat.normal_scale = 1.8
 	horizon_mat.roughness = 0.98
+	horizon_mat.diffuse_mode = BaseMaterial3D.DIFFUSE_BURLEY
 	
 	var angles = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]
 	var dist = 120.0
@@ -394,11 +451,19 @@ func _create_earth_in_sky() -> void:
 	sphere.rings = 16
 	
 	var earth_mat = StandardMaterial3D.new()
-	earth_mat.albedo_color = Color(0.18, 0.45, 0.85)
+	var earth_tex = _load_texture("res://textures/moon/earth_albedo.png")
+	if earth_tex:
+		earth_mat.albedo_texture = earth_tex
+		earth_mat.albedo_color = Color(1.0, 1.0, 1.0)
+		earth_mat.emission_enabled = true
+		earth_mat.emission_texture = earth_tex
+		earth_mat.emission_energy_multiplier = 0.75
+	else:
+		earth_mat.albedo_color = Color(0.18, 0.45, 0.85)
+		earth_mat.emission_enabled = true
+		earth_mat.emission = Color(0.12, 0.35, 0.70)
+		earth_mat.emission_energy_multiplier = 0.45
 	earth_mat.roughness = 0.35
-	earth_mat.emission_enabled = true
-	earth_mat.emission = Color(0.12, 0.35, 0.70)
-	earth_mat.emission_energy_multiplier = 0.45
 	sphere.material = earth_mat
 	earth_mesh.mesh = sphere
 	earth_mesh.rotation_degrees = Vector3(23.5, -40, 15)
@@ -413,9 +478,9 @@ func _create_earth_in_sky() -> void:
 	
 	var glow_mat = StandardMaterial3D.new()
 	glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	glow_mat.albedo_color = Color(0.5, 0.8, 1.0, 0.20)
+	glow_mat.albedo_color = Color(0.4, 0.75, 1.0, 0.22)
 	glow_mat.emission_enabled = true
-	glow_mat.emission = Color(0.4, 0.75, 1.0)
+	glow_mat.emission = Color(0.35, 0.70, 1.0)
 	glow_mat.emission_energy_multiplier = 0.6
 	glow_sphere.material = glow_mat
 	glow_mesh.mesh = glow_sphere
