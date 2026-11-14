@@ -26,6 +26,10 @@ window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[gui]
+
+theme/custom="res://scenes/ui/sci_fi_theme.tres"
+
 [physics]
 
 3d/default_gravity=1.62

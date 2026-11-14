@@ -1,69 +1,79 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="1_hud"]
+[ext_resource type="Script" path="res://scripts/ui/tactical_minimap.gd" id="2_minimap"]
+[ext_resource type="Texture2D" path="res://textures/ui/sci_fi_glass_panel.png" id="3_glass_panel"]
+[ext_resource type="Texture2D" path="res://textures/ui/sci_fi_orange_panel.png" id="4_orange_panel"]
 
-[sub_resource type="StyleBoxFlat" id="Style_TopBar"]
-bg_color = Color(0.08, 0.1, 0.14, 0.85)
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
+[sub_resource type="StyleBoxTexture" id="Style_TopBar"]
 content_margin_left = 16.0
 content_margin_top = 8.0
 content_margin_right = 16.0
 content_margin_bottom = 8.0
+texture = ExtResource("3_glass_panel")
+texture_margin_left = 14.0
+texture_margin_top = 14.0
+texture_margin_right = 14.0
+texture_margin_bottom = 14.0
 
-[sub_resource type="StyleBoxFlat" id="Style_Badge"]
-bg_color = Color(0.18, 0.52, 0.92, 0.9)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-content_margin_left = 14.0
-content_margin_top = 6.0
-content_margin_right = 14.0
-content_margin_bottom = 6.0
+[sub_resource type="StyleBoxFlat" id="Style_Badge_Cyan"]
+content_margin_left = 12.0
+content_margin_top = 4.0
+content_margin_right = 12.0
+content_margin_bottom = 4.0
+bg_color = Color(0.02, 0.07, 0.12, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0.95, 1, 0.85)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 
-[sub_resource type="StyleBoxFlat" id="Style_Radar"]
-bg_color = Color(0.06, 0.08, 0.12, 0.88)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.2, 0.6, 1, 0.7)
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
-content_margin_left = 16.0
-content_margin_top = 12.0
-content_margin_right = 16.0
-content_margin_bottom = 12.0
+[sub_resource type="StyleBoxFlat" id="Style_Badge_Orange"]
+content_margin_left = 12.0
+content_margin_top = 4.0
+content_margin_right = 12.0
+content_margin_bottom = 4.0
+bg_color = Color(0.1, 0.05, 0.02, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 0.6, 0.08, 0.85)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 
-[sub_resource type="StyleBoxFlat" id="Style_Modal"]
-bg_color = Color(0.1, 0.12, 0.16, 0.95)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.95, 0.75, 0.2, 0.9)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-content_margin_left = 24.0
-content_margin_top = 20.0
-content_margin_right = 24.0
-content_margin_bottom = 20.0
+[sub_resource type="StyleBoxTexture" id="Style_Modal_Orange"]
+content_margin_left = 28.0
+content_margin_top = 22.0
+content_margin_right = 28.0
+content_margin_bottom = 22.0
+texture = ExtResource("4_orange_panel")
+texture_margin_left = 16.0
+texture_margin_top = 16.0
+texture_margin_right = 16.0
+texture_margin_bottom = 16.0
 
 [sub_resource type="StyleBoxFlat" id="Style_DetailPanel"]
-bg_color = Color(0.06, 0.07, 0.1, 0.8)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
 content_margin_left = 16.0
 content_margin_top = 16.0
 content_margin_right = 16.0
 content_margin_bottom = 16.0
+bg_color = Color(0.015, 0.04, 0.07, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0.85, 1, 0.5)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 
 [node name="HUD" type="Control"]
 layout_mode = 3
@@ -92,8 +102,61 @@ theme_override_constants/separation = 16
 
 [node name="LocationLabel" type="Label" parent="TopBar/MarginContainer/HBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "MOON EXPLORATION"
+theme_override_colors/font_color = Color(0, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 17
+text = "MOON EXPLORATION // TACTICAL HUD"
+
+[node name="EnergyPanel" type="PanelContainer" parent="TopBar/MarginContainer/HBoxContainer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("Style_Badge_Cyan")
+
+[node name="HBox" type="HBoxContainer" parent="TopBar/MarginContainer/HBoxContainer/EnergyPanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Icon" type="Label" parent="TopBar/MarginContainer/HBoxContainer/EnergyPanel/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "⚡"
+
+[node name="Title" type="Label" parent="TopBar/MarginContainer/HBoxContainer/EnergyPanel/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.85, 1, 0.85)
+theme_override_font_sizes/font_size = 12
+text = "ENERGY"
+
+[node name="EnergyLabel" type="Label" parent="TopBar/MarginContainer/HBoxContainer/EnergyPanel/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "94%"
+
+[node name="MineralsPanel" type="PanelContainer" parent="TopBar/MarginContainer/HBoxContainer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("Style_Badge_Orange")
+
+[node name="HBox" type="HBoxContainer" parent="TopBar/MarginContainer/HBoxContainer/MineralsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Icon" type="Label" parent="TopBar/MarginContainer/HBoxContainer/MineralsPanel/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.6, 0.08, 1)
+theme_override_font_sizes/font_size = 14
+text = "💎"
+
+[node name="Title" type="Label" parent="TopBar/MarginContainer/HBoxContainer/MineralsPanel/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.75, 0.45, 0.85)
+theme_override_font_sizes/font_size = 12
+text = "MINERALS"
+
+[node name="MineralsLabel" type="Label" parent="TopBar/MarginContainer/HBoxContainer/MineralsPanel/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.6, 0.08, 1)
+theme_override_font_sizes/font_size = 14
+text = "1,420 kg"
 
 [node name="Spacer" type="Control" parent="TopBar/MarginContainer/HBoxContainer"]
 layout_mode = 2
@@ -101,24 +164,25 @@ size_flags_horizontal = 3
 
 [node name="CounterBadge" type="PanelContainer" parent="TopBar/MarginContainer/HBoxContainer"]
 layout_mode = 2
-theme_override_styles/panel = SubResource("Style_Badge")
+theme_override_styles/panel = SubResource("Style_Badge_Cyan")
 
 [node name="CounterLabel" type="Label" parent="TopBar/MarginContainer/HBoxContainer/CounterBadge"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.9, 0.96, 1, 1)
+theme_override_font_sizes/font_size = 14
 text = "0 / 3 Artifacts Found"
 
 [node name="JournalButton" type="Button" parent="TopBar/MarginContainer/HBoxContainer"]
-custom_minimum_size = Vector2(120, 36)
+custom_minimum_size = Vector2(130, 36)
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
-text = "[J] Journal"
+theme_override_font_sizes/font_size = 14
+text = "[J] JOURNAL"
 
 [node name="MenuButton" type="Button" parent="TopBar/MarginContainer/HBoxContainer"]
 custom_minimum_size = Vector2(100, 36)
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
-text = "[ESC] Menu"
+theme_override_font_sizes/font_size = 14
+text = "[ESC] MENU"
 
 [node name="RadarWidget" type="PanelContainer" parent="."]
 layout_mode = 1
@@ -127,28 +191,30 @@ anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -260.0
-offset_top = -220.0
-offset_right = -20.0
-offset_bottom = -20.0
+offset_left = -276.0
+offset_top = -340.0
+offset_right = -16.0
+offset_bottom = -16.0
 grow_horizontal = 0
 grow_vertical = 0
-theme_override_styles/panel = SubResource("Style_Radar")
+theme_override_styles/panel = SubResource("Style_TopBar")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="RadarWidget"]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="RadarWidget/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.4, 0.8, 1, 1)
-theme_override_font_sizes/font_size = 13
-text = "PROXIMITY SCANNER"
+theme_override_colors/font_color = Color(0, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 12
+text = "// TACTICAL SCANNER & RADAR"
 horizontal_alignment = 1
 
 [node name="RadarCircle" type="Control" parent="RadarWidget/VBoxContainer"]
-custom_minimum_size = Vector2(0, 30)
+custom_minimum_size = Vector2(160, 160)
 layout_mode = 2
+size_flags_horizontal = 4
+script = ExtResource("2_minimap")
 
 [node name="Needle" type="Control" parent="RadarWidget/VBoxContainer/RadarCircle"]
 layout_mode = 1
@@ -162,19 +228,21 @@ grow_vertical = 2
 
 [node name="DistanceLabel" type="Label" parent="RadarWidget/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
+theme_override_colors/font_color = Color(0, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 24
 text = "-- m"
 horizontal_alignment = 1
 
 [node name="TargetNameLabel" type="Label" parent="RadarWidget/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.65, 0.88, 1, 1)
+theme_override_font_sizes/font_size = 12
 text = "Searching..."
 horizontal_alignment = 1
 clip_text = true
 
 [node name="StrengthBar" type="ProgressBar" parent="RadarWidget/VBoxContainer"]
-custom_minimum_size = Vector2(0, 14)
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 max_value = 100.0
 step = 1.0
@@ -194,7 +262,7 @@ offset_right = 300.0
 offset_bottom = 180.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("Style_Modal")
+theme_override_styles/panel = SubResource("Style_Modal_Orange")
 
 [node name="MarginContainer" type="MarginContainer" parent="DiscoveryPopup"]
 layout_mode = 2
@@ -205,20 +273,21 @@ theme_override_constants/separation = 12
 
 [node name="TitleLabel" type="Label" parent="DiscoveryPopup/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
+theme_override_colors/font_color = Color(1, 0.6, 0.08, 1)
 theme_override_font_sizes/font_size = 18
-text = "ARTIFACT RECOVERED!"
+text = "// SUBSURFACE ARTIFACT RECOVERED //"
 horizontal_alignment = 1
 
 [node name="ArtifactNameLabel" type="Label" parent="DiscoveryPopup/MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.95, 1, 1)
 theme_override_font_sizes/font_size = 22
 text = "Lunar Roving Vehicle"
 horizontal_alignment = 1
 
 [node name="MissionLabel" type="Label" parent="DiscoveryPopup/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.8, 0.95, 1)
+theme_override_colors/font_color = Color(0.7, 0.85, 1, 1)
 theme_override_font_sizes/font_size = 14
 text = "Mission: Apollo 15 | Year: 1971"
 horizontal_alignment = 1
@@ -238,12 +307,12 @@ alignment = 1
 [node name="OpenJournalButton" type="Button" parent="DiscoveryPopup/MarginContainer/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(170, 40)
 layout_mode = 2
-text = "Open Journal [J]"
+text = "OPEN JOURNAL [J]"
 
 [node name="CloseButton" type="Button" parent="DiscoveryPopup/MarginContainer/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
-text = "Continue"
+text = "CONTINUE"
 
 [node name="JournalModal" type="PanelContainer" parent="."]
 visible = false
@@ -253,13 +322,13 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -450.0
+offset_left = -460.0
 offset_top = -280.0
-offset_right = 450.0
+offset_right = 460.0
 offset_bottom = 280.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("Style_Modal")
+theme_override_styles/panel = SubResource("Style_TopBar")
 
 [node name="MarginContainer" type="MarginContainer" parent="JournalModal"]
 layout_mode = 2
@@ -273,9 +342,9 @@ layout_mode = 2
 
 [node name="Title" type="Label" parent="JournalModal/MarginContainer/VBoxContainer/HeaderHBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
-theme_override_font_sizes/font_size = 22
-text = "ARCHAEOLOGICAL JOURNAL"
+theme_override_colors/font_color = Color(0, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "// ARCHAEOLOGICAL ARCHIVE & MISSION LOG //"
 
 [node name="Spacer" type="Control" parent="JournalModal/MarginContainer/VBoxContainer/HeaderHBox"]
 layout_mode = 2
@@ -291,14 +360,14 @@ layout_mode = 2
 theme_override_constants/separation = 12
 
 [node name="MoonTabBtn" type="Button" parent="JournalModal/MarginContainer/VBoxContainer/TabHBox"]
-custom_minimum_size = Vector2(150, 36)
+custom_minimum_size = Vector2(160, 36)
 layout_mode = 2
-text = "Moon Artifacts"
+text = "[ MOON ARTIFACTS ]"
 
 [node name="MarsTabBtn" type="Button" parent="JournalModal/MarginContainer/VBoxContainer/TabHBox"]
-custom_minimum_size = Vector2(150, 36)
+custom_minimum_size = Vector2(160, 36)
 layout_mode = 2
-text = "Mars Artifacts"
+text = "[ MARS ARTIFACTS ]"
 
 [node name="ContentHBox" type="HBoxContainer" parent="JournalModal/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -306,7 +375,7 @@ size_flags_vertical = 3
 theme_override_constants/separation = 16
 
 [node name="ScrollContainer" type="ScrollContainer" parent="JournalModal/MarginContainer/VBoxContainer/ContentHBox"]
-custom_minimum_size = Vector2(320, 0)
+custom_minimum_size = Vector2(330, 0)
 layout_mode = 2
 
 [node name="ArtifactList" type="VBoxContainer" parent="JournalModal/MarginContainer/VBoxContainer/ContentHBox/ScrollContainer"]
@@ -325,6 +394,7 @@ theme_override_constants/separation = 10
 
 [node name="DetailName" type="Label" parent="JournalModal/MarginContainer/VBoxContainer/ContentHBox/DetailPanel/VBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.6, 0.08, 1)
 theme_override_font_sizes/font_size = 20
 text = "Select an artifact"
 
@@ -342,13 +412,13 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -280.0
+offset_left = -290.0
 offset_top = -140.0
-offset_right = 280.0
+offset_right = 290.0
 offset_bottom = 140.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("Style_Modal")
+theme_override_styles/panel = SubResource("Style_TopBar")
 
 [node name="MarginContainer" type="MarginContainer" parent="CompletionModal"]
 layout_mode = 2
@@ -360,13 +430,14 @@ theme_override_constants/separation = 14
 [node name="Title" type="Label" parent="CompletionModal/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
-theme_override_font_sizes/font_size = 24
-text = "SURVEY MISSION COMPLETE!"
+theme_override_font_sizes/font_size = 22
+text = "// SURVEY MISSION COMPLETE //"
 horizontal_alignment = 1
 
 [node name="DescLabel" type="Label" parent="CompletionModal/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(0.8, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 14
 text = "All historical artifacts recovered! Mars is now unlocked."
 horizontal_alignment = 1
 autowrap_mode = 2
@@ -379,9 +450,9 @@ alignment = 1
 [node name="TravelMarsBtn" type="Button" parent="CompletionModal/MarginContainer/VBoxContainer/BtnContainer"]
 custom_minimum_size = Vector2(160, 42)
 layout_mode = 2
-text = "Travel to Mars"
+text = "TRAVEL TO MARS"
 
 [node name="ContinueBtn" type="Button" parent="CompletionModal/MarginContainer/VBoxContainer/BtnContainer"]
-custom_minimum_size = Vector2(130, 42)
+custom_minimum_size = Vector2(140, 42)
 layout_mode = 2
-text = "Stay & Explore"
+text = "STAY & EXPLORE"

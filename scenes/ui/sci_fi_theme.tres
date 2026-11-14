@@ -1,0 +1,112 @@
+[gd_resource type="Theme" format=3]
+
+[ext_resource type="Texture2D" path="res://textures/ui/sci_fi_btn_normal.png" id="1_8q2or"]
+[ext_resource type="Texture2D" path="res://textures/ui/sci_fi_btn_hover.png" id="2_ub5c5"]
+[ext_resource type="Texture2D" path="res://textures/ui/sci_fi_btn_pressed.png" id="3_3jki0"]
+[ext_resource type="Texture2D" path="res://textures/ui/sci_fi_glass_panel.png" id="4_bu2gq"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_5kylk"]
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+texture = ExtResource("1_8q2or")
+texture_margin_left = 10.0
+texture_margin_top = 10.0
+texture_margin_right = 10.0
+texture_margin_bottom = 10.0
+modulate_color = Color(0.5, 0.5, 0.6, 0.4)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5lgxj"]
+draw_center = false
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 1, 1, 0.9)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_k35mu"]
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+texture = ExtResource("2_ub5c5")
+texture_margin_left = 10.0
+texture_margin_top = 10.0
+texture_margin_right = 10.0
+texture_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_vfiw4"]
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+texture = ExtResource("1_8q2or")
+texture_margin_left = 10.0
+texture_margin_top = 10.0
+texture_margin_right = 10.0
+texture_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_fu565"]
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+texture = ExtResource("3_3jki0")
+texture_margin_left = 10.0
+texture_margin_top = 10.0
+texture_margin_right = 10.0
+texture_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_13bq1"]
+content_margin_left = 18.0
+content_margin_top = 14.0
+content_margin_right = 18.0
+content_margin_bottom = 14.0
+texture = ExtResource("4_bu2gq")
+texture_margin_left = 16.0
+texture_margin_top = 16.0
+texture_margin_right = 16.0
+texture_margin_bottom = 16.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7miqu"]
+bg_color = Color(0.02, 0.05, 0.09, 0.75)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0.8, 1, 0.6)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hgfpy"]
+bg_color = Color(0, 0.95, 1, 0.95)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+shadow_color = Color(0, 0.95, 1, 0.4)
+shadow_size = 4
+
+[resource]
+Button/colors/font_color = Color(0.15, 0.9, 1, 1)
+Button/colors/font_disabled_color = Color(0.4, 0.5, 0.6, 1)
+Button/colors/font_hover_color = Color(1, 1, 1, 1)
+Button/colors/font_pressed_color = Color(1, 0.65, 0.1, 1)
+Button/font_sizes/font_size = 15
+Button/styles/disabled = SubResource("StyleBoxTexture_5kylk")
+Button/styles/focus = SubResource("StyleBoxFlat_5lgxj")
+Button/styles/hover = SubResource("StyleBoxTexture_k35mu")
+Button/styles/normal = SubResource("StyleBoxTexture_vfiw4")
+Button/styles/pressed = SubResource("StyleBoxTexture_fu565")
+Label/colors/font_color = Color(0.85, 0.94, 1, 1)
+Label/colors/font_shadow_color = Color(0, 0.4, 0.8, 0.4)
+Label/constants/shadow_offset_x = 1
+Label/constants/shadow_offset_y = 1
+Label/font_sizes/font_size = 15
+Panel/styles/panel = SubResource("StyleBoxTexture_13bq1")
+PanelContainer/styles/panel = SubResource("StyleBoxTexture_13bq1")
+ProgressBar/styles/background = SubResource("StyleBoxFlat_7miqu")
+ProgressBar/styles/fill = SubResource("StyleBoxFlat_hgfpy")

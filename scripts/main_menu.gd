@@ -28,12 +28,12 @@ func _update_mars_button() -> void:
 		var unlocked = gs.is_planet_unlocked("Mars")
 		if unlocked:
 			play_mars_btn.disabled = false
-			play_mars_btn.text = "Explore Mars [UNLOCKED]"
-			play_mars_btn.modulate = Color(1.0, 0.9, 0.4)
+			play_mars_btn.text = "[ SURVEY MARS EXPEDITION — UNLOCKED ]"
+			play_mars_btn.modulate = Color(1.0, 0.60, 0.08)
 		else:
 			play_mars_btn.disabled = false # Allow clicking to inform user
-			play_mars_btn.text = "Explore Mars (Complete Moon Survey First)"
-			play_mars_btn.modulate = Color(0.7, 0.75, 0.85)
+			play_mars_btn.text = "[ SURVEY MARS (COMPLETE MOON EXPEDITION FIRST) ]"
+			play_mars_btn.modulate = Color(0.65, 0.75, 0.85)
 
 func _on_play_moon_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/levels/moon.tscn")
@@ -41,7 +41,6 @@ func _on_play_moon_pressed() -> void:
 func _on_play_mars_pressed() -> void:
 	var gs = get_node_or_null("/root/GameState")
 	if gs and not gs.is_planet_unlocked("Mars"):
-		# If user wants to jump directly to Mars for testing or play, we allow it with notification
 		print("[MainMenu] Mars selected. Unlocking for direct exploration.")
 		gs.unlock_planet("Mars")
 	get_tree().change_scene_to_file("res://scenes/levels/mars.tscn")

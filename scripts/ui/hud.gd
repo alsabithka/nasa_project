@@ -1,6 +1,6 @@
 extends Control
 
-# Echoes Beyond Earth - In-Game HUD, Mystery Scanner Radar, Discovery & Flashback Flow
+# Echoes Beyond Earth - In-Game HUD, Holographic Tactical Radar, Mystery Scanner & Journal Flow
 
 @export var current_planet: String = "Moon"
 
@@ -9,6 +9,10 @@ extends Control
 @onready var counter_label: Label = $TopBar/MarginContainer/HBoxContainer/CounterBadge/CounterLabel
 @onready var journal_button: Button = $TopBar/MarginContainer/HBoxContainer/JournalButton
 @onready var menu_button: Button = $TopBar/MarginContainer/HBoxContainer/MenuButton
+
+# Resource Counters
+@onready var energy_label: Label = get_node_or_null("TopBar/MarginContainer/HBoxContainer/EnergyPanel/HBox/EnergyLabel")
+@onready var minerals_label: Label = get_node_or_null("TopBar/MarginContainer/HBoxContainer/MineralsPanel/HBox/MineralsLabel")
 
 # Radar Widget
 @onready var radar_panel: PanelContainer = $RadarWidget
@@ -80,7 +84,34 @@ func _connect_gamestate() -> void:
 	
 	gs.artifact_recovered.connect(_on_artifact_recovered)
 	gs.mission_completed.connect(_on_mission_completed)
+	if gs.has_signal("resources_updated"):
+		gs.resources_updated.connect(_on_resources_updated)
+	
+	_on_resources_updated(gs.get_energy(), gs.max_energy, gs.get_minerals())
 	_update_header()
+
+func _on_resources_updated(energy_val: float, max_energy_val: float, minerals_val: int) -> void:
+	if energy_label:
+		var pct = int((energy_val / max(1.0, max_energy_val)) * 100.0)
+		energy_label.text = "%d%%" % pct
+		if pct < 20:
+			energy_label.modulate = Color(1.0, 0.35, 0.35)
+		else:
+			energy_label.modulate = Color(0.0, 0.95, 1.0)
+	
+	if minerals_label:
+		minerals_label.text = "%s kg" % _format_number(minerals_val)
+
+func _format_number(n: int) -> String:
+	var s = str(n)
+	var out = ""
+	var count = 0
+	for i in range(s.length() - 1, -1, -1):
+		out = s[i] + out
+		count += 1
+		if count % 3 == 0 and i > 0:
+			out = "," + out
+	return out
 
 func _connect_scanner() -> void:
 	var scanners = get_tree().get_nodes_in_group("scanner")
@@ -90,12 +121,12 @@ func _connect_scanner() -> void:
 
 # Mystery Scanner: Proximity and Signal Strength only, NEVER reveals artifact identity!
 func _on_scan_updated(target_id: String, distance: float, signal_strength: float) -> void:
-	if target_id == "" or distance > 60.0:
+	if target_id == "" or distance > 65.0:
 		distance_label.text = "-- m"
 		strength_bar.value = 0
-		target_name_label.text = "Searching for signals..."
-		target_name_label.modulate = Color(0.65, 0.7, 0.75)
-		distance_label.modulate = Color(0.6, 0.65, 0.7)
+		target_name_label.text = "SEARCHING FOR SIGNALS..."
+		target_name_label.modulate = Color(0.0, 0.75, 0.95, 0.65)
+		distance_label.modulate = Color(0.0, 0.75, 0.95, 0.65)
 		if compass_needle:
 			compass_needle.rotation = 0.0
 		return
@@ -103,23 +134,23 @@ func _on_scan_updated(target_id: String, distance: float, signal_strength: float
 	distance_label.text = "%.1f m" % distance
 	strength_bar.value = signal_strength * 100.0
 	
-	# Mystery-based signal categorization
+	# Mystery-based signal categorization with neon cyan & orange holographic colors
 	if distance <= 4.0:
 		target_name_label.text = "● ANOMALY BENEATH SURFACE — DIG HERE"
 		target_name_label.modulate = Color(0.2, 1.0, 0.4)
 		distance_label.modulate = Color(0.2, 1.0, 0.4)
-	elif distance < 12.0:
+	elif distance < 15.0:
 		target_name_label.text = "▲ STRONG SUBSURFACE ANOMALY"
-		target_name_label.modulate = Color(0.3, 0.9, 1.0)
-		distance_label.modulate = Color(0.3, 0.9, 1.0)
-	elif distance < 25.0:
+		target_name_label.modulate = Color(1.0, 0.60, 0.08)
+		distance_label.modulate = Color(1.0, 0.60, 0.08)
+	elif distance < 35.0:
 		target_name_label.text = "◆ MODERATE SIGNAL DETECTED"
-		target_name_label.modulate = Color(1.0, 0.85, 0.2)
-		distance_label.modulate = Color(1.0, 0.85, 0.2)
+		target_name_label.modulate = Color(0.0, 0.95, 1.0)
+		distance_label.modulate = Color(0.0, 0.95, 1.0)
 	else:
 		target_name_label.text = "~ FAINT SIGNAL DETECTED"
-		target_name_label.modulate = Color(0.75, 0.8, 0.9)
-		distance_label.modulate = Color(0.75, 0.8, 0.9)
+		target_name_label.modulate = Color(0.4, 0.7, 0.9)
+		distance_label.modulate = Color(0.4, 0.7, 0.9)
 
 func _on_artifact_recovered(artifact_id: String) -> void:
 	_last_discovered_id = artifact_id
@@ -153,11 +184,11 @@ func _on_mission_completed(planet: String) -> void:
 	if completion_modal:
 		completion_modal.visible = true
 		if planet == "Moon":
-			completion_desc.text = "You have excavated, restored, and cataloged all historical Apollo lunar equipment! Mars exploration coordinates are now unlocked."
+			completion_desc.text = "All Apollo lunar artifacts cataloged and preserved! Deep space trajectory to Mars unlocked."
 			if travel_mars_btn:
 				travel_mars_btn.visible = true
 		else:
-			completion_desc.text = "Congratulations! You have successfully surveyed all historical Martian exploration artifacts!"
+			completion_desc.text = "Mission complete! All historical Martian survey equipment successfully cataloged."
 			if travel_mars_btn:
 				travel_mars_btn.visible = false
 
@@ -166,12 +197,15 @@ func _travel_to_mars() -> void:
 	get_tree().change_scene_to_file("res://scenes/levels/mars.tscn")
 
 func _update_header() -> void:
-	location_label.text = current_planet.to_upper() + " EXPLORATION"
+	if location_label:
+		location_label.text = "%s EXPLORATION // TACTICAL HUD" % current_planet.to_upper()
 	var gs = get_node_or_null("/root/GameState")
 	if gs:
 		var rec = gs.get_recovered_count(current_planet)
 		var total = gs.get_total_count(current_planet)
-		counter_label.text = "%d / %d Artifacts Found" % [rec, total]
+		if counter_label:
+			counter_label.text = "%d / %d Artifacts Found" % [rec, total]
+		_on_resources_updated(gs.get_energy(), gs.max_energy, gs.get_minerals())
 
 func _show_discovery_popup(artifact_id: String) -> void:
 	var gs = get_node_or_null("/root/GameState")
@@ -179,7 +213,7 @@ func _show_discovery_popup(artifact_id: String) -> void:
 	if gs:
 		data = gs.get_artifact_data(artifact_id)
 	
-	popup_title.text = "ARTIFACT IDENTIFIED & RESTORED!"
+	popup_title.text = "// SUBSURFACE ARTIFACT RECOVERED //"
 	popup_name.text = data.get("name", artifact_id.capitalize())
 	popup_mission.text = "Mission: %s (%s) | Status: %s" % [
 		str(data.get("mission", "Unknown")),
@@ -220,14 +254,12 @@ func _populate_journal(planet: String) -> void:
 		return
 	
 	var artifacts = gs.artifacts_data
-	var found_any = false
 	
 	for id in artifacts.keys():
 		var data = artifacts[id]
 		if data.get("location", "").to_lower() != planet.to_lower():
 			continue
 		
-		found_any = true
 		var is_rec = gs.is_artifact_recovered(id)
 		
 		var btn = Button.new()
@@ -236,10 +268,10 @@ func _populate_journal(planet: String) -> void:
 		
 		if is_rec:
 			btn.text = " [✓] " + data.get("name", id)
-			btn.modulate = Color(0.9, 1.0, 0.9)
+			btn.modulate = Color(0.2, 1.0, 0.4)
 		else:
 			btn.text = " [ ? ] Unidentified Subsurface Anomaly"
-			btn.modulate = Color(0.6, 0.65, 0.75)
+			btn.modulate = Color(0.65, 0.75, 0.85)
 		
 		var target_id = id
 		btn.pressed.connect(func(): _show_artifact_detail(target_id))
@@ -261,7 +293,7 @@ func _show_artifact_detail(artifact_id: String) -> void:
 	
 	if is_rec:
 		journal_detail_name.text = data.get("name", artifact_id)
-		journal_detail_name.modulate = Color(1.0, 0.9, 0.3)
+		journal_detail_name.modulate = Color(1.0, 0.60, 0.08)
 		var sources_str = ", ".join(data.get("sources", []))
 		journal_detail_text.text = "[b]Mission:[/b] %s\n[b]Year:[/b] %s\n[b]Location:[/b] %s\n[b]Status:[/b] %s\n\n[b]Purpose:[/b]\n%s\n\n[b]Historical Narrative:[/b]\n%s\n\n[b]Sources:[/b] %s" % [
 			str(data.get("mission", "")),
@@ -273,9 +305,9 @@ func _show_artifact_detail(artifact_id: String) -> void:
 			sources_str
 		]
 	else:
-		journal_detail_name.text = "Unidentified Anomaly"
-		journal_detail_name.modulate = Color(0.7, 0.7, 0.7)
-		journal_detail_text.text = "[i]This historical object remains buried beneath the lunar dust.\n\nFollow your handheld survey scanner signal to locate, excavate, and clean the artifact to uncover its identity and mission history![/i]"
+		journal_detail_name.text = "Unidentified Subsurface Anomaly"
+		journal_detail_name.modulate = Color(0.0, 0.85, 1.0)
+		journal_detail_text.text = "[i]This historical object remains buried beneath the lunar dust.\n\nFollow your tactical radar and proximity scanner to excavate and clean the artifact to uncover its identity and mission history![/i]"
 
 func _on_menu_pressed() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
