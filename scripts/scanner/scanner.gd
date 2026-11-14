@@ -111,7 +111,9 @@ func _perform_scan() -> void:
 	
 	if closest_artifact != null and closest_dist <= max_scan_range:
 		var art_id = closest_artifact.get_artifact_id()
-		var strength = clamp(1.0 - (closest_dist / max_scan_range), 0.0, 1.0)
+		# Realistic electromagnetic VLF induction response curve (non-linear inverse distance decay)
+		var norm_dist = closest_dist / max_scan_range
+		var strength = clampf(pow(clampf(1.0 - norm_dist, 0.0, 1.0), 2.2), 0.0, 1.0)
 		target_direction = (closest_artifact.get_world_position() - scan_origin).normalized()
 		
 		if current_target_id != art_id:
@@ -122,6 +124,9 @@ func _perform_scan() -> void:
 		current_signal_strength = strength
 		scan_updated.emit(art_id, closest_dist, strength)
 		mystery_signal_updated.emit(strength, closest_dist)
+
+		if player and player.has_method("update_metal_detector_signal"):
+			player.update_metal_detector_signal(strength, closest_dist)
 		
 		# Lock-on logic: within 4m = locked on
 		if closest_dist <= 4.0:

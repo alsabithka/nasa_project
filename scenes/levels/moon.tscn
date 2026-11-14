@@ -62,5 +62,21 @@ artifact_id = "apollo_lm_descent_stage"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, 15)
 artifact_id = "alsep"
 
+[node name="Artifact_Anorthosite" parent="." instance=ExtResource("5_artifact")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0, -14)
+artifact_id = "lunar_ferroan_anorthosite"
+
+[node name="Artifact_Meteorite" parent="." instance=ExtResource("5_artifact")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0, 28)
+artifact_id = "lunar_iron_meteorite"
+
+[node name="Artifact_OrangeGlass" parent="." instance=ExtResource("5_artifact")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 0, -12)
+artifact_id = "pyroclastic_orange_glass"
+
+[node name="Artifact_Bracket" parent="." instance=ExtResource("5_artifact")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -22)
+artifact_id = "apollo_cable_bracket"
+
 [node name="HUD" parent="." instance=ExtResource("6_hud")]
 current_planet = "Moon"

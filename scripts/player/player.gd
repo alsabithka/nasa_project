@@ -50,6 +50,9 @@ var interaction_target: Vector3 = Vector3.ZERO
 var audio_system: Node = null
 var dust_system: Node = null
 var footprint_system: Node = null
+var metal_detector: Node3D = null
+var excavation_tools: Node3D = null
+var current_tool_id: int = 0 # 0=Detector, 1=Scoop, 2=Brush, 3=Bag
 
 # Agreed public interface for Scanner & External systems
 func get_scan_origin() -> Vector3:
@@ -121,6 +124,47 @@ func _connect_subsystems() -> void:
 	
 	if dust_system and dust_system.has_method("set_gravity"):
 		dust_system.set_gravity(gravity)
+	
+	# Initialize Professional Lunar Metal Detector (88 cm shaft, 26 cm coil, VLF prospecting)
+	var md_script = load("res://scripts/tools/lunar_metal_detector.gd")
+	if md_script and right_arm:
+		metal_detector = Node3D.new()
+		metal_detector.set_script(md_script)
+		right_arm.add_child(metal_detector)
+		if scanner_device:
+			scanner_device.visible = false
+	
+	# Initialize NASA Scientific Excavation Tools (Scoop, Brush, Sample Bag)
+	var tools_script = load("res://scripts/tools/lunar_excavation_tools.gd")
+	if tools_script and right_arm:
+		excavation_tools = Node3D.new()
+		excavation_tools.set_script(tools_script)
+		right_arm.add_child(excavation_tools)
+	
+	set_active_tool(0)
+
+func set_active_tool(tool_id: int) -> void:
+	current_tool_id = tool_id
+	if metal_detector:
+		metal_detector.visible = (tool_id == 0)
+	if excavation_tools:
+		match tool_id:
+			1:
+				excavation_tools.set_tool(1) # SCOOP
+			2:
+				excavation_tools.set_tool(2) # BRUSH
+			3:
+				excavation_tools.set_tool(3) # SAMPLE_BAG
+			_:
+				excavation_tools.set_tool(0) # NONE
+
+func update_metal_detector_signal(strength: float, distance: float) -> void:
+	if metal_detector and metal_detector.has_method("set_signal"):
+		metal_detector.set_signal(strength, distance)
+
+func emit_dig_dust(target_pos: Vector3) -> void:
+	if dust_system and dust_system.has_method("emit_impact_dust"):
+		dust_system.emit_impact_dust(target_pos, 0.45)
 
 func update_gravity(new_gravity: float) -> void:
 	gravity = new_gravity
@@ -336,16 +380,42 @@ func _animate_astronaut(delta: float, is_moving: bool, is_loping: bool) -> void:
 	
 	# Excavation / interaction pose when digging, cleaning, or inspecting samples
 	if is_interacting:
-		if left_arm and right_arm:
-			left_arm.rotation.x = lerp(left_arm.rotation.x, -0.95, 8.0 * delta)
-			left_arm.rotation.y = lerp(left_arm.rotation.y, 0.18, 8.0 * delta)
-			right_arm.rotation.x = lerp(right_arm.rotation.x, -0.95, 8.0 * delta)
-			right_arm.rotation.y = lerp(right_arm.rotation.y, -0.18, 8.0 * delta)
+		# Kneeling / crouching excavation posture near the pit
+		torso.position.y = lerp(torso.position.y, 0.44, 6.0 * delta)
 		if left_leg and right_leg:
-			left_leg.rotation.x = lerp(left_leg.rotation.x, 0.0, 10.0 * delta)
-			right_leg.rotation.x = lerp(right_leg.rotation.x, 0.0, 10.0 * delta)
+			left_leg.rotation.x = lerp(left_leg.rotation.x, deg_to_rad(38.0), 8.0 * delta)
+			right_leg.rotation.x = lerp(right_leg.rotation.x, deg_to_rad(-38.0), 8.0 * delta)
+		
+		# Tool animations during excavation
+		var t_sec = Time.get_ticks_msec() * 0.001
+		if current_tool_id == 1: # SCOOP
+			var scoop_cycle = sin(t_sec * 3.5)
+			if right_arm:
+				right_arm.rotation.x = lerp(right_arm.rotation.x, -0.65 + scoop_cycle * 0.28, 8.0 * delta)
+				right_arm.rotation.y = lerp(right_arm.rotation.y, -0.15, 8.0 * delta)
+			if left_arm:
+				left_arm.rotation.x = lerp(left_arm.rotation.x, -0.60 + scoop_cycle * 0.20, 8.0 * delta)
+				left_arm.rotation.y = lerp(left_arm.rotation.y, 0.15, 8.0 * delta)
+		elif current_tool_id == 2: # BRUSH
+			var brush_cycle = sin(t_sec * 5.0) * 0.18
+			if right_arm:
+				right_arm.rotation.x = lerp(right_arm.rotation.x, -0.80, 8.0 * delta)
+				right_arm.rotation.y = lerp(right_arm.rotation.y, -0.10 + brush_cycle, 10.0 * delta)
+			if left_arm:
+				left_arm.rotation.x = lerp(left_arm.rotation.x, -0.75, 8.0 * delta)
+				left_arm.rotation.y = lerp(left_arm.rotation.y, 0.20, 8.0 * delta)
+		else:
+			if left_arm and right_arm:
+				left_arm.rotation.x = lerp(left_arm.rotation.x, -0.90, 8.0 * delta)
+				left_arm.rotation.y = lerp(left_arm.rotation.y, 0.18, 8.0 * delta)
+				right_arm.rotation.x = lerp(right_arm.rotation.x, -0.90, 8.0 * delta)
+				right_arm.rotation.y = lerp(right_arm.rotation.y, -0.18, 8.0 * delta)
 		return
 	
+	# Normal exploration posture: upright in EVA spacesuit
+	torso.position.y = lerp(torso.position.y, 0.65, 8.0 * delta)
+	visuals.rotation.z = 0.0
+
 	# Realistic spacesuit leg strides
 	if left_leg and right_leg:
 		left_leg.rotation.x = lerp(left_leg.rotation.x, -stride_angle, 12.0 * delta)
@@ -355,13 +425,13 @@ func _animate_astronaut(delta: float, is_moving: bool, is_loping: bool) -> void:
 	if left_arm:
 		left_arm.rotation.x = lerp(left_arm.rotation.x, stride_angle * 0.6, 10.0 * delta)
 	
-	# Right arm: holds handheld scanner or counter-swings
+	# Right arm: holds professional metal detector and sweeps search coil near ground
 	if right_arm:
-		if scanner_raise_weight > 0.05:
-			var scan_angle = -0.90 - (signal_strength * 0.25)
-			var sweep = sin(Time.get_ticks_msec() * 0.003) * 0.08 * (1.0 - signal_strength)
-			right_arm.rotation.x = lerp(right_arm.rotation.x, scan_angle, 6.0 * delta)
-			right_arm.rotation.y = lerp(right_arm.rotation.y, -0.20 + sweep, 6.0 * delta)
+		if metal_detector and metal_detector.visible:
+			metal_detector.apply_sweep_motion(delta, is_moving)
+			# Natural prospecting angle holding detector shaft towards ground
+			right_arm.rotation.x = lerp(right_arm.rotation.x, deg_to_rad(-24.0), 6.0 * delta)
+			right_arm.rotation.y = lerp(right_arm.rotation.y, deg_to_rad(12.0), 6.0 * delta)
 		else:
 			right_arm.rotation.x = lerp(right_arm.rotation.x, -stride_angle * 0.35, 8.0 * delta)
 			right_arm.rotation.y = lerp(right_arm.rotation.y, 0.0, 8.0 * delta)

@@ -50,6 +50,7 @@ var _clean_ui: CanvasLayer = null
 var _scanner_ref: Node = null
 var _is_player_in_zone: bool = false
 var _interacting_player: CharacterBody3D = null
+var _excavation_pit: Node3D = null
 
 func _get_player() -> CharacterBody3D:
 	if _interacting_player and is_instance_valid(_interacting_player):
@@ -76,6 +77,14 @@ func _ready() -> void:
 	add_to_group("artifacts")
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
+	
+	# Initialize realistic stratified excavation pit & spoil pile
+	var pit_script = load("res://scripts/environment/lunar_excavation_pit.gd")
+	if pit_script:
+		_excavation_pit = Node3D.new()
+		_excavation_pit.name = "LunarExcavationPit"
+		_excavation_pit.set_script(pit_script)
+		add_child(_excavation_pit)
 	
 	_load_artifact_metadata()
 	_update_visual_representation()
@@ -194,7 +203,7 @@ func _update_state_visuals() -> void:
 		
 		ArtifactState.DIG_SITE:
 			visual_model.visible = false
-			prompt_label.text = "[E] DIG HERE - Unidentified Signal Source"
+			prompt_label.text = "[E] MARK ANOMALY & EXCAVATE SOIL"
 			prompt_label.modulate = Color(1.0, 0.85, 0.2, 1.0)
 			prompt_label.visible = true
 			if dig_progress_label:
@@ -206,13 +215,13 @@ func _update_state_visuals() -> void:
 			prompt_label.visible = false
 			if dig_progress_label:
 				dig_progress_label.visible = true
-				dig_progress_label.text = "Excavating... 0%"
+				dig_progress_label.text = "Excavating [Layer 1: Loose Regolith]... 0%"
 			_set_beacon_color(Color(1.0, 0.65, 0.0, 0.9), Color(1.0, 0.6, 0.0))
 		
 		ArtifactState.EXPOSED:
 			visual_model.visible = true
 			visual_model.scale = Vector3.ONE
-			prompt_label.text = "[E] RECOVER OBJECT"
+			prompt_label.text = "[E] DELICATE BRUSHING & SAMPLE RECOVERY"
 			prompt_label.modulate = Color(0.3, 1.0, 0.5, 1.0)
 			prompt_label.visible = true
 			if dig_progress_label:
@@ -265,29 +274,39 @@ func _process(delta: float) -> void:
 			_:
 				beacon_ring.scale = Vector3.ONE
 	
-	# Digging progress
+	# Digging progress & soil displacement
 	if current_state == ArtifactState.DIGGING:
 		if is_player_holding_e:
 			dig_progress += delta / dig_duration
-			dig_progress = clamp(dig_progress, 0.0, 1.0)
+			dig_progress = clampf(dig_progress, 0.0, 1.0)
 			
-			# Update progress label
+			if _excavation_pit and _excavation_pit.has_method("set_progress"):
+				_excavation_pit.set_progress(dig_progress)
+			
+			# Stratified excavation label showing authentic geological layer
 			if dig_progress_label:
-				dig_progress_label.text = "Excavating... %d%%" % int(dig_progress * 100.0)
+				var layer_desc = "Layer 1: Loose Regolith"
+				if dig_progress > 0.65:
+					layer_desc = "Layer 3: Impact Breccia Clasts"
+				elif dig_progress > 0.30:
+					layer_desc = "Layer 2: Compacted Agglutinates"
+				dig_progress_label.text = "Excavating [%s]... %d%%" % [layer_desc, int(dig_progress * 100.0)]
 			
-			# Progressively reveal visual model
-			if dig_progress >= 0.3 and not visual_model.visible:
+			# Progressively reveal visual model inside the pit
+			if dig_progress >= 0.25 and not visual_model.visible:
 				visual_model.visible = true
 			if visual_model.visible:
-				var reveal_scale = clamp(remap(dig_progress, 0.3, 1.0, 0.3, 1.0), 0.3, 1.0)
-				if dig_progress < 0.3:
-					reveal_scale = 0.0
-					visual_model.visible = false
+				var reveal_scale = clampf(remap(dig_progress, 0.25, 1.0, 0.35, 1.0), 0.35, 1.0)
 				visual_model.scale = Vector3.ONE * reveal_scale
+				visual_model.position.y = lerp(-0.25, 0.0, clampf((dig_progress - 0.3) / 0.7, 0.0, 1.0))
 			
-			# Activate dust
+			# Subtle regolith dust displacement
 			if dust_particles and not dust_particles.emitting:
 				dust_particles.emitting = true
+			
+			var player = _get_player()
+			if player and player.has_method("emit_dig_dust"):
+				player.emit_dig_dust(global_position)
 			
 			if dig_progress >= 1.0:
 				_complete_digging()
@@ -316,46 +335,65 @@ func _unhandled_input(event: InputEvent) -> void:
 func _start_digging() -> void:
 	_set_state(ArtifactState.DIGGING)
 	dig_started.emit()
+	if _excavation_pit and _excavation_pit.has_method("set_marker_visible"):
+		_excavation_pit.set_marker_visible(true)
 	var player = _get_player()
-	if player and player.has_method("begin_interaction"):
-		var anchor = get_interaction_anchor(player.global_position)
-		player.begin_interaction(anchor, global_position)
+	if player:
+		if player.has_method("set_active_tool"):
+			player.set_active_tool(1) # LUNAR SCOOP
+		if player.has_method("begin_interaction"):
+			var anchor = get_interaction_anchor(player.global_position)
+			player.begin_interaction(anchor, global_position)
 
 func _pause_digging() -> void:
 	if dust_particles and dust_particles.emitting:
 		dust_particles.emitting = false
 	var player = _get_player()
-	if player and player.has_method("end_interaction"):
-		player.end_interaction()
+	if player:
+		if player.has_method("set_active_tool"):
+			player.set_active_tool(0) # RETURN TO DETECTOR
+		if player.has_method("end_interaction"):
+			player.end_interaction()
 
 func _cancel_digging() -> void:
 	is_player_holding_e = false
 	if dust_particles and dust_particles.emitting:
 		dust_particles.emitting = false
 	var player = _get_player()
-	if player and player.has_method("end_interaction"):
-		player.end_interaction()
+	if player:
+		if player.has_method("set_active_tool"):
+			player.set_active_tool(0)
+		if player.has_method("end_interaction"):
+			player.end_interaction()
 	_set_state(ArtifactState.BURIED)
 
 # ---- Dig completion ----
 func _complete_digging() -> void:
 	dig_progress = 1.0
+	if _excavation_pit and _excavation_pit.has_method("set_progress"):
+		_excavation_pit.set_progress(1.0)
 	if dust_particles:
 		dust_particles.emitting = false
 	dig_completed.emit()
 	_set_state(ArtifactState.EXPOSED)
 	var player = _get_player()
-	if player and player.has_method("end_interaction"):
-		player.end_interaction()
+	if player:
+		if player.has_method("set_active_tool"):
+			player.set_active_tool(2) # GEOLOGICAL BRUSH
+		if player.has_method("end_interaction"):
+			player.end_interaction()
 
 # ---- Cleaning UI ----
 func _start_cleaning() -> void:
 	cleaning_started.emit()
 	_set_state(ArtifactState.CLEANING)
 	var player = _get_player()
-	if player and player.has_method("begin_interaction"):
-		var anchor = get_interaction_anchor(player.global_position)
-		player.begin_interaction(anchor, global_position)
+	if player:
+		if player.has_method("set_active_tool"):
+			player.set_active_tool(2) # GEOLOGICAL BRUSH
+		if player.has_method("begin_interaction"):
+			var anchor = get_interaction_anchor(player.global_position)
+			player.begin_interaction(anchor, global_position)
 	_start_cleaning_ui()
 
 func _start_cleaning_ui() -> void:
@@ -376,10 +414,37 @@ func on_cleaning_done(done_artifact_id: String) -> void:
 	if _clean_ui:
 		_clean_ui.queue_free()
 		_clean_ui = null
+	
+	var player = _get_player()
+	if player and player.has_method("set_active_tool"):
+		player.set_active_tool(3) # SAMPLE CONTAINER
+	
+	_open_scientific_examination()
+
+func _open_scientific_examination() -> void:
+	var exam_script = load("res://scripts/ui/scientific_examination_panel.gd")
+	if not exam_script:
+		_identify_artifact()
+		var player = _get_player()
+		if player and player.has_method("end_interaction"):
+			player.end_interaction()
+		if player and player.has_method("set_active_tool"):
+			player.set_active_tool(0)
+		return
+	
+	var panel = CanvasLayer.new()
+	panel.set_script(exam_script)
+	panel.artifact_id = artifact_id
+	panel.documentation_closed.connect(_on_documentation_closed)
+	add_child(panel)
+
+func _on_documentation_closed(done_id: String) -> void:
 	_identify_artifact()
 	var player = _get_player()
 	if player and player.has_method("end_interaction"):
 		player.end_interaction()
+	if player and player.has_method("set_active_tool"):
+		player.set_active_tool(0) # RETURN TO DETECTOR
 	if player and player.has_method("capture_mouse"):
 		player.capture_mouse()
 
@@ -419,6 +484,14 @@ func _update_visual_representation() -> void:
 			_build_opportunity_mesh()
 		"ingenuity":
 			_build_ingenuity_mesh()
+		"lunar_ferroan_anorthosite":
+			_build_anorthosite_mesh()
+		"lunar_iron_meteorite":
+			_build_iron_meteorite_mesh()
+		"pyroclastic_orange_glass":
+			_build_orange_glass_mesh()
+		"apollo_cable_bracket":
+			_build_bracket_mesh()
 		_:
 			_build_default_mesh()
 
@@ -711,3 +784,116 @@ func _build_default_mesh() -> void:
 	box.mesh = b
 	box.position = Vector3(0, 0.4, 0)
 	visual_model.add_child(box)
+
+func _build_anorthosite_mesh() -> void:
+	var rock = MeshInstance3D.new()
+	var sphere = SphereMesh.new()
+	sphere.radius = 0.26
+	sphere.height = 0.42
+	sphere.radial_segments = 12
+	sphere.rings = 6
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = Color(0.86, 0.88, 0.90) # Plagioclase feldspar anorthosite white
+	mat.roughness = 0.92
+	sphere.material = mat
+	rock.mesh = sphere
+	rock.position = Vector3(0, 0.15, 0)
+	visual_model.add_child(rock)
+
+	# Dark pyroxene crystal facets
+	for i in range(4):
+		var facet = MeshInstance3D.new()
+		var f_mesh = BoxMesh.new()
+		f_mesh.size = Vector3(0.08, 0.06, 0.08)
+		var f_mat = StandardMaterial3D.new()
+		f_mat.albedo_color = Color(0.18, 0.22, 0.19)
+		f_mat.roughness = 0.8
+		f_mesh.material = f_mat
+		facet.mesh = f_mesh
+		var a = i * 1.57
+		facet.position = Vector3(cos(a) * 0.18, 0.15 + sin(a) * 0.08, sin(a) * 0.18)
+		visual_model.add_child(facet)
+
+func _build_iron_meteorite_mesh() -> void:
+	var meteor = MeshInstance3D.new()
+	var m_mesh = SphereMesh.new()
+	m_mesh.radius = 0.20
+	m_mesh.height = 0.32
+	m_mesh.radial_segments = 10
+	m_mesh.rings = 5
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = Color(0.32, 0.33, 0.35)
+	mat.metallic = 0.92
+	mat.roughness = 0.38
+	m_mesh.material = mat
+	meteor.mesh = m_mesh
+	meteor.position = Vector3(0, 0.12, 0)
+	visual_model.add_child(meteor)
+
+	# Metallic thumbprint / regmaglypt depressions
+	for i in range(3):
+		var pit = MeshInstance3D.new()
+		var p_mesh = SphereMesh.new()
+		p_mesh.radius = 0.08
+		p_mesh.height = 0.06
+		var p_mat = StandardMaterial3D.new()
+		p_mat.albedo_color = Color(0.24, 0.25, 0.28)
+		p_mat.metallic = 0.95
+		p_mat.roughness = 0.25
+		p_mesh.material = p_mat
+		pit.mesh = p_mesh
+		pit.position = Vector3(cos(i * 2.0) * 0.14, 0.12, sin(i * 2.0) * 0.14)
+		visual_model.add_child(pit)
+
+func _build_orange_glass_mesh() -> void:
+	# Apollo core sample drive tube
+	var tube = MeshInstance3D.new()
+	var t_mesh = CylinderMesh.new()
+	t_mesh.top_radius = 0.05
+	t_mesh.bottom_radius = 0.05
+	t_mesh.height = 0.55
+	var t_mat = StandardMaterial3D.new()
+	t_mat.albedo_color = Color(0.85, 0.86, 0.88)
+	t_mat.metallic = 0.85
+	t_mat.roughness = 0.25
+	t_mesh.material = t_mat
+	tube.mesh = t_mesh
+	tube.position = Vector3(0, 0.22, 0)
+	tube.rotation.z = deg_to_rad(65.0)
+	visual_model.add_child(tube)
+
+	# Exposed core section showing brilliant pyroclastic orange glass beads
+	var glass = MeshInstance3D.new()
+	var g_mesh = CylinderMesh.new()
+	g_mesh.top_radius = 0.046
+	g_mesh.bottom_radius = 0.046
+	g_mesh.height = 0.32
+	var g_mat = StandardMaterial3D.new()
+	g_mat.albedo_color = Color(1.0, 0.50, 0.06) # Vibrant Apollo 17 orange soil
+	g_mat.roughness = 0.35
+	g_mat.metallic = 0.1
+	glass.mesh = g_mesh
+	glass.position = Vector3(0, 0.22, 0)
+	glass.rotation.z = deg_to_rad(65.0)
+	visual_model.add_child(glass)
+
+func _build_bracket_mesh() -> void:
+	var bracket = MeshInstance3D.new()
+	var b_mesh = BoxMesh.new()
+	b_mesh.size = Vector3(0.32, 0.12, 0.22)
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = Color(0.82, 0.84, 0.86) # Anodized Aluminum 6061-T6
+	mat.metallic = 0.88
+	mat.roughness = 0.3
+	b_mesh.material = mat
+	bracket.mesh = b_mesh
+	bracket.position = Vector3(0, 0.10, 0)
+	visual_model.add_child(bracket)
+
+	# Mounting holes and cable clamp
+	var clamp_bar = MeshInstance3D.new()
+	var c_mesh = BoxMesh.new()
+	c_mesh.size = Vector3(0.06, 0.08, 0.26)
+	clamp_bar.mesh = c_mesh
+	clamp_bar.position = Vector3(0, 0.18, 0)
+	visual_model.add_child(clamp_bar)
