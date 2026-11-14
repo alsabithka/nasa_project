@@ -197,8 +197,10 @@ func _run_verification() -> void:
 		quit(1)
 		return
 	
-	# Simulate cleaning mini-game completion
+	# Simulate cleaning mini-game completion and scientific documentation closure
 	lrv.on_cleaning_done("apollo_lrv")
+	if lrv.has_method("_on_documentation_closed"):
+		lrv._on_documentation_closed("apollo_lrv")
 	for i in range(10):
 		await process_frame
 	

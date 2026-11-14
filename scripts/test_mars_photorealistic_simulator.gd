@@ -176,6 +176,47 @@ func _run_all_tests() -> void:
 		_assert_test("3.71" in hud.gravity_label.text, "HUD displays Mars gravity 3.71 m/s²: '%s'" % hud.gravity_label.text)
 		_assert_test("6.1 hPa" in hud.suit_pressure_label.text or "95.3% CO₂" in hud.suit_pressure_label.text, "HUD displays Mars atmosphere telemetry: '%s'" % hud.suit_pressure_label.text)
 
+	# 7. Infinite, Fully Spherical Mars Exploration System
+	_assert_test(terrain.is_in_group("spherical_planet"), "Terrain registered in spherical_planet group for center gravity")
+	_assert_test(terrain.planet_radius >= 1000.0, "Mars spherical planet radius calibrated (radius: %.1fm)" % terrain.planet_radius)
+	_assert_test(terrain.planet_center == Vector3(0.0, -terrain.planet_radius, 0.0), "Planetary center positioned beneath landing site at (0, -R, 0)")
+
+	var norm_origin = terrain.get_surface_normal(Vector3(0.0, 0.2, 0.0))
+	_assert_test(norm_origin.is_equal_approx(Vector3.UP), "Surface normal at Jezero landing site is Vector3.UP")
+
+	var coords_origin = terrain.get_planetary_coords(Vector3(0.0, 0.0, 0.0))
+	_assert_test(abs(coords_origin["lat"] - 18.38) < 1.0 and abs(coords_origin["lon"] - 77.58) < 1.0, "Landing site correctly maps to Jezero Crater (lat: %.2f°, lon: %.2f°)" % [coords_origin["lat"], coords_origin["lon"]])
+
+	# Global Martian Geography & Biomes
+	var oly_dir = terrain.get_unit_vector_from_lat_lon(18.65, 226.2)
+	var oly_elev = terrain.get_elevation(oly_dir)
+	_assert_test(oly_elev > 40.0, "Olympus Mons shield volcano rises high above datum (peak: +%.1fm)" % oly_elev)
+
+	var vm_dir = terrain.get_unit_vector_from_lat_lon(-13.9, 300.8)
+	var vm_elev = terrain.get_elevation(vm_dir)
+	_assert_test(vm_elev < -15.0, "Valles Marineris grand canyon plunges deep below datum (chasma: %.1fm)" % vm_elev)
+
+	var pole_dir = terrain.get_unit_vector_from_lat_lon(84.0, 0.0)
+	var pole_elev = terrain.get_elevation(pole_dir)
+	_assert_test(pole_elev > 3.0, "Planum Boreum North Polar Ice Cap forms elevated perennial dome (+%.1fm)" % pole_elev)
+
+	# Dynamic cube-sphere math
+	var test_dir = Vector3(0.6, 0.8, 0.0).normalized()
+	var cube_info = terrain.get_cube_face_and_coords(test_dir)
+	var roundtrip_dir = terrain.cube_to_sphere(cube_info["face"], cube_info["u"], cube_info["v"])
+	_assert_test(test_dir.is_equal_approx(roundtrip_dir), "Cube-to-sphere bijection verified for dynamic planetary chunks")
+
+	# PBR wind-rippled surface shader
+	var body_node = terrain.get_node_or_null("MarsTerrainBody")
+	if body_node:
+		var mesh_inst = body_node.get_node_or_null("TerrainMesh")
+		_assert_test(mesh_inst != null and mesh_inst.mesh.surface_get_material(0) is ShaderMaterial, "PBR wind-rippled surface shader active on Martian terrain")
+
+	# Player planetary alignment & distance telemetry
+	if player:
+		_assert_test(player.has_method("align_to_normal"), "Player astronaut has align_to_normal for spherical surface tracking")
+		_assert_test(player.has_method("get_distance_travelled_km"), "Player astronaut tracks planetary exploration distance in km")
+
 	level.queue_free()
 	_finish()
 
