@@ -81,11 +81,29 @@ func _run_all_tests() -> void:
 		_assert_test(seitah_block != null, "Séítah olivine cumulate block generated")
 		_assert_test(ventifact != null, "Wind-sculpted eolian ventifact generated")
 
-	# 3. Celestial System: Sky, Sun, Phobos, Deimos
+		# Multi-tiered flat sedimentary bedrock slabs
+		var slab_a = terrain.get_node_or_null("DeltaSlabFormation_A")
+		var slab_b = terrain.get_node_or_null("DeltaSlabFormation_B")
+		var stepped_strata = terrain.get_node_or_null("SteppedStrata_1")
+		var neretva_pavement = terrain.get_node_or_null("NeretvaPavement")
+		_assert_test(slab_a != null and slab_b != null, "Multi-tiered flat sedimentary bedrock formations exist")
+		_assert_test(stepped_strata != null and neretva_pavement != null, "Stepped strata layers and fluvial rock pavements exist")
+
+		# Scree fields and scattered stones
+		var stone_count = 0
+		for child in terrain.get_children():
+			if child.name.begins_with("Stone_"):
+				stone_count += 1
+		_assert_test(stone_count >= 50, "Geological scree fields and stone clusters generated (found: %d stones)" % stone_count)
+
+	# 3. Celestial System & Atmospheric Fog: Sky, Sun, Depth Fog, Phobos, Deimos
 	var env_node = level.get_node_or_null("WorldEnvironment")
 	_assert_test(env_node != null and env_node.environment != null, "WorldEnvironment configured")
 	if env_node and env_node.environment:
-		var sky = env_node.environment.sky
+		var env = env_node.environment
+		_assert_test(env.fog_enabled, "Atmospheric distance depth fog is enabled")
+		_assert_test(env.fog_light_color.r > env.fog_light_color.b, "Atmospheric fog matches pale dusty peach Martian horizon hue")
+		var sky = env.sky
 		_assert_test(sky != null and sky.sky_material is ProceduralSkyMaterial, "Martian sky dome uses procedural atmospheric sky material")
 		if sky and sky.sky_material:
 			var mat = sky.sky_material as ProceduralSkyMaterial

@@ -1,42 +1,46 @@
 extends Node3D
 
-# Echoes Beyond Earth - Photorealistic Mars Jezero Crater Exploration Simulator
-# Scientifically grounded in NASA Mars 2020 Perseverance Rover, MRO HiRISE, and CRISM datasets:
-# Landing Site: Jezero Crater (18.38° N, 77.58° E)
+# Echoes Beyond Earth - Scientifically Realistic Mars Jezero Crater Surface & Environment
+# Grounded in NASA Mars 2020 Perseverance Mastcam-Z, SuperCam, and Curiosity Mastcam photography.
 #
-# Geological Architecture:
-# 1. JEZERO RIVER DELTA & NERETVA VALLIS:
-#    - Ancient lakebed bottomset floor (sedimentary mudstone & clay deposits).
-#    - Delta front layered escarpments (terraced sedimentary sandstone beds).
-#    - Neretva Vallis inflow breach (carved river channel entering crater lake).
+# Scientific Architecture:
+# 1. REALISTIC MARTIAN GEOMORPHOLOGY:
+#    - Vast uneven rocky plain with gentle elevation swells and distant low crater rim hills.
+#    - Delta front layered sedimentary escarpment stepping into ancient lakebed floor.
+#    - Meandering Neretva Vallis ancient inflow channel with rounded fluvial gravels.
+#    - South Séítah depression with dark barchan sand dunes and wind ripples.
+#    - Belva impact crater with raised rim, excavated interior, and outward ejecta blanket.
 #    - Kodiak remnant butte / delta mesa outpost.
-# 2. SEITAH FORMATION & VOLCANIC BEDROCK:
-#    - South Séítah fractured olivine-cumulate igneous basement.
-#    - Dark barchan and transverse sand dunes with wind ripple micro-relief.
-# 3. IMPACT CRATERS:
-#    - Belva Crater: Major delta-penetrating impact crater with layered wall stratigraphy.
-#    - Secondary impact pits with raised rims and parabolic bowls.
-# 4. SCIENTIFIC MARTIAN PBR PALETTE:
-#    - Rust-red oxidized dust (Fe2O3 ferric coating).
-#    - Beige/tan deltaic clay & carbonate mudstones.
-#    - Dark olivine-rich basaltic sand in dune troughs.
-#    - Sulfate-cemented duricrust hardpan.
-# 5. CELESTIAL SYSTEM:
-#    - Butterscotch daytime sky with blue twilight sunset halo.
-#    - Irregular potato-shaped Phobos with Stickney crater.
-#    - Distant irregular Deimos.
-# 6. EXACT TRIMESH COLLISION: ConcavePolygonShape3D for reliable physics.
+# 2. SIX SCIENTIFIC SURFACE MATERIALS & GRADUAL BLENDING:
+#    - Fine oxidized ferric regolith (reddish-orange powder in hollows).
+#    - Coarse regolith & angular gravel.
+#    - Dense exposed bedrock visible through loose dust.
+#    - Layered sedimentary slabs (tan/ochre laminated siltstone/mudstone).
+#    - Dark wind-sculpted basaltic sand deposits in dune troughs.
+#    - Pale sulfate duricrust evaporite hardpan.
+# 3. REALISTIC ROCK DISTRIBUTION & CLUSTERING:
+#    - Multi-tiered flat sedimentary rock slabs with broken edges, fractures, and dust draping.
+#    - Large isolated boulders (Belva basalt, Séítah olivine cumulates).
+#    - Medium-sized fractured blocks and polished eolian ventifacts.
+#    - Scree fields: naturally clustered small stones and pebbles around larger formations with open sand spaces.
+# 4. WIND, SAND & DUST:
+#    - Small sand ripples, dust accumulation in leeward rock shadows.
+#    - Active suspended atmospheric dust and rotating convective dust devils.
+# 5. SKY, LIGHTING & CELESTIAL BODIES:
+#    - Pale peach, dusty pink and warm butterscotch daytime sky with horizon depth haze.
+#    - Irregular potato-shaped Phobos with Stickney crater & distant Deimos.
+# 6. EXACT TRIMESH COLLISION: ConcavePolygonShape3D across continuous subdivided mesh.
 
-@export var terrain_size: float = 175.0
-@export var grid_subdivisions: int = 120
-@export var ground_seed: int = 2021 # Mars 2020 landing year
+@export var terrain_size: float = 185.0
+@export var grid_subdivisions: int = 130
+@export var ground_seed: int = 2021 # Mars 2020 Perseverance landing year
 
 var terrain_body: StaticBody3D
 var terrain_mesh_instance: MeshInstance3D
 
 # Real NASA Jezero Crater feature catalog
 var craters: Array = [
-	# Belva Crater: Major impact crater on delta exposing deep layered strata
+	# Belva Crater: Major delta-penetrating impact crater exposing deep layered strata
 	{"id": "Belva", "pos": Vector2(-32.0, -28.0), "radius": 11.5, "rim": 1.45, "depth": 3.2, "peak": false, "soil_type": "basalt"},
 	# Dourbes impact pit
 	{"id": "Dourbes", "pos": Vector2(24.0, 18.0), "radius": 6.5, "rim": 0.85, "depth": 1.8, "peak": false, "soil_type": "sediment"},
@@ -55,6 +59,8 @@ func _ready() -> void:
 	add_to_group("terrain")
 	_generate_mars_terrain_mesh_and_collision()
 	_create_jezero_boulders_and_ventifacts()
+	_create_flat_layered_bedrock_formations()
+	_create_rock_clusters_and_scree_fields()
 	_create_kodiak_remnant_butte()
 	_create_phobos_and_deimos()
 	_instantiate_atmosphere_and_hud()
@@ -90,12 +96,15 @@ func _calc_height(x: float, z: float) -> float:
 		var dune_wave = sin(x * 0.18 + z * 0.12) * 0.85 + cos(x * 0.32 - z * 0.10) * 0.35
 		seitah_depression += dune_wave * sf
 
-	# 4. High-frequency wind ripple micro-relief (centimeter-scale ripples in dust)
+	# 4. Regional gentle undulating plain swells & distant low hills
+	var regional_swell = sin(x * 0.018 + z * 0.015) * 1.8 + cos(x * 0.012 - z * 0.022) * 1.4
+
+	# 5. Wind ripple micro-relief (centimeter-scale eolian ripples in dust)
 	var ripple = sin(x * 0.55 + z * 0.42) * 0.07 + cos(x * 0.85 - z * 0.65) * 0.04
 
-	var total_h = delta_gradient + delta_terrace + channel_cut + seitah_depression + ripple
+	var total_h = delta_gradient + delta_terrace + channel_cut + seitah_depression + regional_swell + ripple
 
-	# 5. Impact craters
+	# 6. Impact craters
 	for c in craters:
 		var center: Vector2 = c["pos"]
 		var R: float = c["radius"]
@@ -115,59 +124,72 @@ func _calc_height(x: float, z: float) -> float:
 
 	return total_h
 
-# Realistic PBR Martian surface vertex coloration
+# Realistic PBR Martian surface vertex coloration with 6 blended materials
 func _calc_vertex_color(x: float, z: float) -> Color:
-	# Base rust-red ferric dust
-	var col_dust = Color(0.72, 0.33, 0.18)
-	# Dark olivine-rich basaltic sand / volcanic rock
-	var col_basalt = Color(0.24, 0.22, 0.20)
-	# Tan/beige sedimentary delta mudstone
-	var col_sediment = Color(0.64, 0.53, 0.41)
-	# Pale sulfate duricrust hardpan
-	var col_duricrust = Color(0.75, 0.62, 0.50)
+	# Material 1: Fine oxidized ferric regolith (reddish-orange & brown powder)
+	var mat1_fine_regolith = Color(0.72, 0.33, 0.18)
+	# Material 2: Coarse regolith & angular gravel
+	var mat2_coarse_gravel = Color(0.58, 0.38, 0.26)
+	# Material 3: Exposed bedrock visible through loose dust
+	var mat3_bedrock = Color(0.38, 0.30, 0.25)
+	# Material 4: Layered sedimentary mudstone / siltstone slabs
+	var mat4_layered_rock = Color(0.66, 0.54, 0.42)
+	# Material 5: Dark basaltic / olivine-rich sand deposits in dune troughs
+	var mat5_dark_sand = Color(0.24, 0.22, 0.20)
+	# Material 6: Pale sulfate / duricrust evaporite hardpan
+	var mat6_duricrust = Color(0.76, 0.64, 0.52)
 
-	var base_col = col_dust
+	var base_col = mat1_fine_regolith
 
-	# Séítah region has dark basaltic sand dunes
+	# Séítah region has dark basaltic sand dunes with wind ripple color bands
 	var seitah_center = Vector2(-20.0, 28.0)
 	var s_dist = Vector2(x, z).distance_to(seitah_center)
-	if s_dist < 30.0:
-		var weight = clampf(1.0 - (s_dist / 30.0), 0.0, 1.0)
-		base_col = base_col.lerp(col_basalt, weight * 0.75)
+	if s_dist < 32.0:
+		var weight = clampf(1.0 - (s_dist / 32.0), 0.0, 1.0)
+		# Troughs between dunes accumulate darker mafic sand grains
+		var dune_phase = sin(x * 0.18 + z * 0.12)
+		var mafic_blend = mat5_dark_sand if dune_phase < 0.0 else mat2_coarse_gravel
+		base_col = base_col.lerp(mafic_blend, weight * 0.85)
 
-	# Delta front terraces expose light sedimentary layers
-	if x < -8.0 and z < 5.0:
+	# Delta front terraces expose light sedimentary layers & fractured bedrock
+	if x < -6.0 and z < 8.0:
 		var terrace_band = sin(x * 0.15 + z * 0.10)
-		if terrace_band > 0.2:
-			base_col = base_col.lerp(col_sediment, 0.65)
-		elif terrace_band < -0.3:
-			base_col = base_col.lerp(col_duricrust, 0.50)
+		if terrace_band > 0.15:
+			base_col = base_col.lerp(mat4_layered_rock, 0.70)
+		elif terrace_band < -0.25:
+			base_col = base_col.lerp(mat3_bedrock, 0.55)
+		else:
+			base_col = base_col.lerp(mat6_duricrust, 0.45)
 
-	# Neretva Vallis river channel floor
+	# Neretva Vallis ancient river channel: coarse gravel and rounded river sediments
 	var channel_dist = abs(x - 32.0 - sin(z * 0.05) * 6.0)
-	if channel_dist < 10.0:
-		var cw = clampf(1.0 - (channel_dist / 10.0), 0.0, 1.0)
-		base_col = base_col.lerp(col_sediment, cw * 0.60)
+	if channel_dist < 12.0:
+		var cw = clampf(1.0 - (channel_dist / 12.0), 0.0, 1.0)
+		var stream_blend = mat4_layered_rock.lerp(mat2_coarse_gravel, 0.5)
+		base_col = base_col.lerp(stream_blend, cw * 0.70)
 
-	# Impact craters expose basaltic ejecta or bright breccia
+	# Impact craters expose basaltic ejecta or bright crushed breccia
 	for c in craters:
 		var d = Vector2(x, z).distance_to(c["pos"])
 		var R: float = c["radius"]
 		if d < R * 1.5:
 			var cw = clampf(1.0 - (d / (R * 1.5)), 0.0, 1.0)
 			if c["soil_type"] == "basalt":
-				base_col = base_col.lerp(col_basalt, cw * 0.70)
+				base_col = base_col.lerp(mat5_dark_sand, cw * 0.75)
 			elif c["soil_type"] == "clay":
-				base_col = base_col.lerp(col_sediment, cw * 0.70)
+				base_col = base_col.lerp(mat4_layered_rock, cw * 0.75)
 			else:
-				base_col = base_col.lerp(col_duricrust, cw * 0.55)
+				base_col = base_col.lerp(mat6_duricrust, cw * 0.60)
 
-	# Subtle natural high-frequency color variation
-	var noise_val = sin(x * 0.22 + z * 0.18) * 0.04 + cos(x * 0.35 - z * 0.28) * 0.03
+	# Gradual natural noise variation: subtle gravel speckles and dust mantling
+	var fine_noise = sin(x * 0.35 + z * 0.28) * 0.04 + cos(x * 0.52 - z * 0.44) * 0.03
+	var macro_noise = sin(x * 0.08 - z * 0.06) * 0.03
+	var total_noise = fine_noise + macro_noise
+
 	return Color(
-		clampf(base_col.r + noise_val, 0.1, 0.95),
-		clampf(base_col.g + noise_val * 0.8, 0.1, 0.95),
-		clampf(base_col.b + noise_val * 0.6, 0.1, 0.95)
+		clampf(base_col.r + total_noise, 0.12, 0.95),
+		clampf(base_col.g + total_noise * 0.82, 0.10, 0.95),
+		clampf(base_col.b + total_noise * 0.65, 0.08, 0.95)
 	)
 
 # Builds the continuous terrain mesh and exact trimesh collision
@@ -195,7 +217,7 @@ func _generate_mars_terrain_mesh_and_collision() -> void:
 			var z = -half_size + float(j) * step
 			var y = _calc_height(x, z)
 			var col = _calc_vertex_color(x, z)
-			var uv = Vector2(float(i) / float(grid_subdivisions) * 22.0, float(j) / float(grid_subdivisions) * 22.0)
+			var uv = Vector2(float(i) / float(grid_subdivisions) * 24.0, float(j) / float(grid_subdivisions) * 24.0)
 			row[j] = {"pos": Vector3(x, y, z), "col": col, "uv": uv}
 		grid_pts[i] = row
 
@@ -233,12 +255,12 @@ func _generate_mars_terrain_mesh_and_collision() -> void:
 	st.generate_normals()
 	var mesh = st.commit()
 
-	# Physically based Martian regolith material
+	# Physically based velvety Martian regolith material
 	var mars_mat = StandardMaterial3D.new()
 	mars_mat.vertex_color_use_as_albedo = true
 	mars_mat.albedo_color = Color(1.0, 1.0, 1.0)
-	mars_mat.roughness = 0.94
-	mars_mat.metallic = 0.04
+	mars_mat.roughness = 0.95
+	mars_mat.metallic = 0.03
 	mars_mat.specular_mode = BaseMaterial3D.SPECULAR_SCHLICK_GGX
 	mesh.surface_set_material(0, mars_mat)
 
@@ -252,7 +274,7 @@ func _generate_mars_terrain_mesh_and_collision() -> void:
 	col_shape.shape = mesh.create_trimesh_shape()
 	terrain_body.add_child(col_shape)
 
-# Creates scattered Martian boulders, wind-sculpted ventifacts, and rounded river pebbles
+# Creates prominent landmark boulders, wind-sculpted ventifacts, and river conglomerates
 func _create_jezero_boulders_and_ventifacts() -> void:
 	var mat_basalt = StandardMaterial3D.new()
 	mat_basalt.albedo_color = Color(0.24, 0.22, 0.21)
@@ -311,6 +333,134 @@ func _create_jezero_boulders_and_ventifacts() -> void:
 
 		add_child(b_body)
 
+# Creates flat, plate-shaped layered sedimentary bedrock formations inspired by Mars rover photos
+func _create_flat_layered_bedrock_formations() -> void:
+	var mat_slab_sediment = StandardMaterial3D.new()
+	mat_slab_sediment.albedo_color = Color(0.65, 0.53, 0.41) # Tan/ochre sedimentary strata
+	mat_slab_sediment.roughness = 0.94
+
+	var mat_slab_edge = StandardMaterial3D.new()
+	mat_slab_edge.albedo_color = Color(0.48, 0.38, 0.30) # Darker fractured edge
+	mat_slab_edge.roughness = 0.90
+
+	var slab_formations = [
+		# Delta front exposed tabulate bedrock pavement
+		{"name": "DeltaSlabFormation_A", "pos": Vector2(-20.0, -8.0), "w": 5.5, "l": 4.2, "t": 0.35, "tilt": Vector3(4, 25, -3)},
+		{"name": "DeltaSlabFormation_B", "pos": Vector2(-22.5, -6.5), "w": 4.8, "l": 3.6, "t": 0.28, "tilt": Vector3(6, 20, -5)},
+		# Stepped sedimentary outcropping (Pahrump Hills style)
+		{"name": "SteppedStrata_1", "pos": Vector2(-10.0, -20.0), "w": 6.2, "l": 3.8, "t": 0.42, "tilt": Vector3(-5, 45, 8)},
+		{"name": "SteppedStrata_2", "pos": Vector2(-8.2, -18.4), "w": 5.0, "l": 3.2, "t": 0.32, "tilt": Vector3(-4, 42, 6)},
+		# Neretva outflow flat pavement slab
+		{"name": "NeretvaPavement", "pos": Vector2(22.0, -26.0), "w": 5.8, "l": 4.5, "t": 0.30, "tilt": Vector3(2, -15, 4)},
+		# Central plain partially buried slab
+		{"name": "PlainsBuriedSlab", "pos": Vector2(2.0, 18.0), "w": 4.4, "l": 3.5, "t": 0.25, "tilt": Vector3(-2, 10, -4)}
+	]
+
+	for slab in slab_formations:
+		var pos2 = slab["pos"]
+		var y = _calc_height(pos2.x, pos2.y)
+		var slab_body = StaticBody3D.new()
+		slab_body.name = slab["name"]
+		slab_body.position = Vector3(pos2.x, y + slab["t"] * 0.4, pos2.y)
+		slab_body.rotation_degrees = slab["tilt"]
+		slab_body.collision_layer = 1
+		slab_body.collision_mask = 2
+
+		# Main tabulate slab
+		var slab_mesh = MeshInstance3D.new()
+		var box = BoxMesh.new()
+		box.size = Vector3(slab["w"], slab["t"], slab["l"])
+		box.material = mat_slab_sediment
+		slab_mesh.mesh = box
+		slab_body.add_child(slab_mesh)
+
+		# Stepped edge lamination
+		var step_edge = MeshInstance3D.new()
+		var s_box = BoxMesh.new()
+		s_box.size = Vector3(slab["w"] * 0.92, slab["t"] * 0.6, slab["l"] * 0.88)
+		s_box.material = mat_slab_edge
+		step_edge.mesh = s_box
+		step_edge.position = Vector3(slab["w"] * 0.05, slab["t"] * 0.35, slab["l"] * 0.05)
+		slab_body.add_child(step_edge)
+
+		var col = CollisionShape3D.new()
+		var col_box = BoxShape3D.new()
+		col_box.size = Vector3(slab["w"], slab["t"] * 1.5, slab["l"])
+		col.shape = col_box
+		slab_body.add_child(col)
+
+		add_child(slab_body)
+
+# Creates realistic non-uniform rock clusters, scree fields, and partially buried stones
+func _create_rock_clusters_and_scree_fields() -> void:
+	var mat_angular_stone = StandardMaterial3D.new()
+	mat_angular_stone.albedo_color = Color(0.42, 0.30, 0.24)
+	mat_angular_stone.roughness = 0.92
+
+	var mat_weathered_stone = StandardMaterial3D.new()
+	mat_weathered_stone.albedo_color = Color(0.56, 0.40, 0.30)
+	mat_weathered_stone.roughness = 0.96
+
+	var mat_dark_basalt_clast = StandardMaterial3D.new()
+	mat_dark_basalt_clast.albedo_color = Color(0.26, 0.24, 0.22)
+	mat_dark_basalt_clast.roughness = 0.88
+
+	# Distinct cluster centers representing real geological rock fields
+	var cluster_centers = [
+		{"origin": Vector2(-24.0, -20.0), "radius": 7.0, "count": 14, "mat": mat_dark_basalt_clast, "type": "Belva Ejecta Field"},
+		{"origin": Vector2(-15.0, -10.0), "radius": 6.5, "count": 12, "mat": mat_weathered_stone, "type": "Delta Scree Field"},
+		{"origin": Vector2(10.0, 12.0), "radius": 6.0, "count": 10, "mat": mat_angular_stone, "type": "Ventifact Cluster"},
+		{"origin": Vector2(26.0, -16.0), "radius": 7.5, "count": 12, "mat": mat_weathered_stone, "type": "Neretva Fluvial Cobbles"},
+		{"origin": Vector2(-12.0, 24.0), "radius": 6.0, "count": 10, "mat": mat_dark_basalt_clast, "type": "Séítah Basalt Scree"}
+	]
+
+	var seed_counter = 101
+	for cluster in cluster_centers:
+		var c_pos: Vector2 = cluster["origin"]
+		var c_rad: float = cluster["radius"]
+		var count: int = cluster["count"]
+		var c_mat: StandardMaterial3D = cluster["mat"]
+
+		for i in range(count):
+			seed_counter += 7
+			var angle = float(seed_counter * 13 % 360) * (PI / 180.0)
+			var dist = float(seed_counter * 17 % int(c_rad * 100)) / 100.0
+			var rx = c_pos.x + cos(angle) * dist
+			var rz = c_pos.y + sin(angle) * dist
+
+			var ry = _calc_height(rx, rz)
+			var stone_size = lerp(0.25, 0.75, float(seed_counter % 10) / 10.0)
+
+			var stone_body = StaticBody3D.new()
+			stone_body.name = "Stone_%d_%d" % [int(c_pos.x), i]
+			# Partially embedded in the loose regolith
+			stone_body.position = Vector3(rx, ry + stone_size * 0.35, rz)
+			stone_body.rotation_degrees = Vector3(
+				float(seed_counter * 23 % 40) - 20.0,
+				float(seed_counter * 31 % 360),
+				float(seed_counter * 19 % 40) - 20.0
+			)
+			stone_body.collision_layer = 1
+			stone_body.collision_mask = 2
+
+			var stone_mesh = MeshInstance3D.new()
+			var cyl = CylinderMesh.new()
+			cyl.radial_segments = 6
+			cyl.top_radius = stone_size * 0.7
+			cyl.bottom_radius = stone_size
+			cyl.height = stone_size * 0.85
+			cyl.material = c_mat
+			stone_mesh.mesh = cyl
+			stone_body.add_child(stone_mesh)
+
+			var col = CollisionShape3D.new()
+			var box = BoxShape3D.new()
+			box.size = Vector3(stone_size * 1.5, stone_size * 0.85, stone_size * 1.5)
+			col.shape = box
+			stone_body.add_child(col)
+
+			add_child(stone_body)
+
 # Kodiak Remnant Butte: Iconic delta mesa outpost left standing by billions of years of erosion
 func _create_kodiak_remnant_butte() -> void:
 	var butte = StaticBody3D.new()
@@ -328,7 +478,7 @@ func _create_kodiak_remnant_butte() -> void:
 	cyl.height = 9.0
 
 	var mat = StandardMaterial3D.new()
-	mat.albedo_color = Color(0.66, 0.48, 0.36)
+	mat.albedo_color = Color(0.66, 0.48, 0.36) # Tan deltaic sandstone
 	mat.roughness = 0.94
 	cyl.material = mat
 	butte_mesh.mesh = cyl
