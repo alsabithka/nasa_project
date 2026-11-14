@@ -1,0 +1,70 @@
+{
+  "artifacts": [
+    {
+      "id": "apollo_lrv",
+      "name": "Lunar Roving Vehicle (LRV)",
+      "location": "Moon",
+      "mission": "Apollo 15, 16, 17",
+      "year": 1971,
+      "purpose": "Electric four-wheel rover to expand astronaut mobility and scientific sample collection",
+      "status": "Stationed permanently on lunar surface at Taurus-Littrow",
+      "history": "Built by Boeing and Delco, the Lunar Roving Vehicle allowed Apollo astronauts to travel up to 35 kilometers from their lunar module, dramatically expanding geological exploration.",
+      "sources": ["NASA Apollo Mission Summary", "NASA LRV Operations Handbook"]
+    },
+    {
+      "id": "apollo_lm_descent_stage",
+      "name": "Apollo Lunar Module Descent Stage",
+      "location": "Moon",
+      "mission": "Apollo 11",
+      "year": 1969,
+      "purpose": "Rocket-powered descent platform and the base camp for humanity's first lunar landing",
+      "status": "Historic monument at Tranquility Base",
+      "history": "On July 20, 1969, Neil Armstrong and Buzz Aldrin piloted the Eagle to the lunar surface. The descent stage remained on the Moon, serving as the launch pad for the astronauts' return to orbit.",
+      "sources": ["NASA Apollo 11 Mission Report", "Smithsonian National Air and Space Museum"]
+    },
+    {
+      "id": "alsep",
+      "name": "Apollo Lunar Surface Experiments Package (ALSEP)",
+      "location": "Moon",
+      "mission": "Apollo 12-17",
+      "year": 1969,
+      "purpose": "Nuclear-powered geophysical laboratory studying moonquakes, solar wind, and lunar atmosphere",
+      "status": "Deactivated in 1977 after collecting 8 years of seismic and thermal science",
+      "history": "Powered by plutonium-238 radioisotope generators, ALSEP stations transmitted continuous data on lunar seismology and magnetic fields back to scientists on Earth for nearly a decade.",
+      "sources": ["NASA SP-288 ALSEP Final Report", "Lunar and Planetary Institute"]
+    },
+    {
+      "id": "sojourner",
+      "name": "Sojourner Rover",
+      "location": "Mars",
+      "mission": "Mars Pathfinder",
+      "year": 1997,
+      "purpose": "Pioneering technology demonstration of the first wheeled rover on the Martian surface",
+      "status": "Mission completed; preserved at Ares Vallis",
+      "history": "The microwave-sized Sojourner rover operated for 83 sols (days) on Mars, traveling 100 meters, taking hundreds of images, and analyzing chemical composition of Martian rocks like 'Barnacle Bill'.",
+      "sources": ["NASA Mars Pathfinder Mission Overview", "JPL Sojourner Archive"]
+    },
+    {
+      "id": "opportunity",
+      "name": "Opportunity Rover (MER-B)",
+      "location": "Mars",
+      "mission": "Mars Exploration Rover",
+      "year": 2004,
+      "purpose": "Search for geological evidence of past liquid water on Mars",
+      "status": "Completed mission in 2018 at Perseverance Valley after 14.5 years",
+      "history": "Planned as a 90-day mission, 'Oppy' drove 45.16 kilometers across Meridiani Planum, discovering hematite spherules ('blueberries') and rock layers formed in ancient standing liquid water.",
+      "sources": ["NASA JPL Mars Exploration Rover Archives", "NASA Solar System Exploration"]
+    },
+    {
+      "id": "ingenuity",
+      "name": "Ingenuity Mars Helicopter",
+      "location": "Mars",
+      "mission": "Mars 2020",
+      "year": 2021,
+      "purpose": "Technology demonstration of powered, controlled aerodynamic flight on another planet",
+      "status": "Grounded after rotor blade damage; completed 72 historic flights",
+      "history": "Weighing only 1.8 kilograms, Ingenuity made history on April 19, 2021 by achieving the first powered flight in the ultra-thin Martian atmosphere, acting as an aerial scout for Perseverance.",
+      "sources": ["NASA Mars 2020 Mission Page", "JPL Ingenuity Flight Log"]
+    }
+  ]
+}

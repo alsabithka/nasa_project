@@ -1,0 +1,47 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/artifact/artifact.gd" id="1_artifact"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_1"]
+height = 2.5
+radius = 3.5
+
+[sub_resource type="StandardMaterial3D" id="Mat_Beacon"]
+transparency = 1
+albedo_color = Color(1, 0.85, 0.2, 0.7)
+emission_enabled = true
+emission = Color(1, 0.85, 0.2, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="TorusMesh" id="TorusMesh_Beacon"]
+material = SubResource("Mat_Beacon")
+inner_radius = 1.6
+outer_radius = 1.85
+rings = 24
+ring_segments = 16
+
+[node name="Artifact" type="Area3D" groups=["artifacts"]]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("1_artifact")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 0)
+shape = SubResource("CylinderShape3D_1")
+
+[node name="VisualModel" type="Node3D" parent="."]
+
+[node name="BeaconRing" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+mesh = SubResource("TorusMesh_Beacon")
+
+[node name="PromptLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.3, 0)
+visible = false
+billboard = 1
+double_sided = false
+no_depth_test = true
+modulate = Color(1, 0.9, 0.3, 1)
+text = "[E] Investigate"
+font_size = 32
+outline_size = 10

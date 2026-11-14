@@ -1,0 +1,387 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="1_hud"]
+
+[sub_resource type="StyleBoxFlat" id="Style_TopBar"]
+bg_color = Color(0.08, 0.1, 0.14, 0.85)
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="Style_Badge"]
+bg_color = Color(0.18, 0.52, 0.92, 0.9)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="Style_Radar"]
+bg_color = Color(0.06, 0.08, 0.12, 0.88)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.2, 0.6, 1, 0.7)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="Style_Modal"]
+bg_color = Color(0.1, 0.12, 0.16, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.95, 0.75, 0.2, 0.9)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+content_margin_left = 24.0
+content_margin_top = 20.0
+content_margin_right = 24.0
+content_margin_bottom = 20.0
+
+[sub_resource type="StyleBoxFlat" id="Style_DetailPanel"]
+bg_color = Color(0.06, 0.07, 0.1, 0.8)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 16.0
+content_margin_right = 16.0
+content_margin_bottom = 16.0
+
+[node name="HUD" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_hud")
+
+[node name="TopBar" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 54.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("Style_TopBar")
+
+[node name="MarginContainer" type="MarginContainer" parent="TopBar"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="TopBar/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="LocationLabel" type="Label" parent="TopBar/MarginContainer/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "MOON EXPLORATION"
+
+[node name="Spacer" type="Control" parent="TopBar/MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CounterBadge" type="PanelContainer" parent="TopBar/MarginContainer/HBoxContainer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("Style_Badge")
+
+[node name="CounterLabel" type="Label" parent="TopBar/MarginContainer/HBoxContainer/CounterBadge"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "0 / 3 Artifacts Found"
+
+[node name="JournalButton" type="Button" parent="TopBar/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(120, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "[J] Journal"
+
+[node name="MenuButton" type="Button" parent="TopBar/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(100, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "[ESC] Menu"
+
+[node name="RadarWidget" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -260.0
+offset_top = -220.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_styles/panel = SubResource("Style_Radar")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="RadarWidget"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="RadarWidget/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "PROXIMITY SCANNER"
+horizontal_alignment = 1
+
+[node name="RadarCircle" type="Control" parent="RadarWidget/VBoxContainer"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+
+[node name="Needle" type="Control" parent="RadarWidget/VBoxContainer/RadarCircle"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="DistanceLabel" type="Label" parent="RadarWidget/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "-- m"
+horizontal_alignment = 1
+
+[node name="TargetNameLabel" type="Label" parent="RadarWidget/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "Searching..."
+horizontal_alignment = 1
+clip_text = true
+
+[node name="StrengthBar" type="ProgressBar" parent="RadarWidget/VBoxContainer"]
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+max_value = 100.0
+step = 1.0
+show_percentage = false
+
+[node name="DiscoveryPopup" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -180.0
+offset_right = 300.0
+offset_bottom = 180.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("Style_Modal")
+
+[node name="MarginContainer" type="MarginContainer" parent="DiscoveryPopup"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="DiscoveryPopup/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TitleLabel" type="Label" parent="DiscoveryPopup/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
+theme_override_font_sizes/font_size = 18
+text = "ARTIFACT RECOVERED!"
+horizontal_alignment = 1
+
+[node name="ArtifactNameLabel" type="Label" parent="DiscoveryPopup/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Lunar Roving Vehicle"
+horizontal_alignment = 1
+
+[node name="MissionLabel" type="Label" parent="DiscoveryPopup/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.8, 0.95, 1)
+theme_override_font_sizes/font_size = 14
+text = "Mission: Apollo 15 | Year: 1971"
+horizontal_alignment = 1
+
+[node name="HistoryLabel" type="RichTextLabel" parent="DiscoveryPopup/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 110)
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "Historical narrative goes here..."
+
+[node name="ButtonContainer" type="HBoxContainer" parent="DiscoveryPopup/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="OpenJournalButton" type="Button" parent="DiscoveryPopup/MarginContainer/VBoxContainer/ButtonContainer"]
+custom_minimum_size = Vector2(170, 40)
+layout_mode = 2
+text = "Open Journal [J]"
+
+[node name="CloseButton" type="Button" parent="DiscoveryPopup/MarginContainer/VBoxContainer/ButtonContainer"]
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+text = "Continue"
+
+[node name="JournalModal" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -450.0
+offset_top = -280.0
+offset_right = 450.0
+offset_bottom = 280.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("Style_Modal")
+
+[node name="MarginContainer" type="MarginContainer" parent="JournalModal"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="JournalModal/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="HeaderHBox" type="HBoxContainer" parent="JournalModal/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="JournalModal/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
+theme_override_font_sizes/font_size = 22
+text = "ARCHAEOLOGICAL JOURNAL"
+
+[node name="Spacer" type="Control" parent="JournalModal/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CloseJournalBtn" type="Button" parent="JournalModal/MarginContainer/VBoxContainer/HeaderHBox"]
+custom_minimum_size = Vector2(36, 36)
+layout_mode = 2
+text = "✕"
+
+[node name="TabHBox" type="HBoxContainer" parent="JournalModal/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MoonTabBtn" type="Button" parent="JournalModal/MarginContainer/VBoxContainer/TabHBox"]
+custom_minimum_size = Vector2(150, 36)
+layout_mode = 2
+text = "Moon Artifacts"
+
+[node name="MarsTabBtn" type="Button" parent="JournalModal/MarginContainer/VBoxContainer/TabHBox"]
+custom_minimum_size = Vector2(150, 36)
+layout_mode = 2
+text = "Mars Artifacts"
+
+[node name="ContentHBox" type="HBoxContainer" parent="JournalModal/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="ScrollContainer" type="ScrollContainer" parent="JournalModal/MarginContainer/VBoxContainer/ContentHBox"]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+
+[node name="ArtifactList" type="VBoxContainer" parent="JournalModal/MarginContainer/VBoxContainer/ContentHBox/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="DetailPanel" type="PanelContainer" parent="JournalModal/MarginContainer/VBoxContainer/ContentHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("Style_DetailPanel")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="JournalModal/MarginContainer/VBoxContainer/ContentHBox/DetailPanel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="DetailName" type="Label" parent="JournalModal/MarginContainer/VBoxContainer/ContentHBox/DetailPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Select an artifact"
+
+[node name="DetailText" type="RichTextLabel" parent="JournalModal/MarginContainer/VBoxContainer/ContentHBox/DetailPanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "Details will appear here."
+
+[node name="CompletionModal" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -140.0
+offset_right = 280.0
+offset_bottom = 140.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("Style_Modal")
+
+[node name="MarginContainer" type="MarginContainer" parent="CompletionModal"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CompletionModal/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="CompletionModal/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
+theme_override_font_sizes/font_size = 24
+text = "SURVEY MISSION COMPLETE!"
+horizontal_alignment = 1
+
+[node name="DescLabel" type="Label" parent="CompletionModal/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "All historical artifacts recovered! Mars is now unlocked."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="BtnContainer" type="HBoxContainer" parent="CompletionModal/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="TravelMarsBtn" type="Button" parent="CompletionModal/MarginContainer/VBoxContainer/BtnContainer"]
+custom_minimum_size = Vector2(160, 42)
+layout_mode = 2
+text = "Travel to Mars"
+
+[node name="ContinueBtn" type="Button" parent="CompletionModal/MarginContainer/VBoxContainer/BtnContainer"]
+custom_minimum_size = Vector2(130, 42)
+layout_mode = 2
+text = "Stay & Explore"
