@@ -47,6 +47,13 @@ var scanner_raise_weight: float = 0.0
 var exertion_level: float = 0.0
 var prev_vertical_velocity: float = 0.0
 
+# Jump and Floor Robustness (Prevents getting stuck on uneven lunar terrain)
+var jump_buffer_timer: float = 0.0
+var coyote_timer: float = 0.0
+var is_jumping: bool = false
+var air_time: float = 0.0
+var is_moving_horizontal: bool = false
+
 # Stable interaction state (prevents rubberbanding/displacement during digging, cleaning & inspection)
 var is_interacting: bool = false
 var interaction_anchor: Vector3 = Vector3.ZERO
@@ -122,7 +129,7 @@ func _connect_subsystems() -> void:
 	# Floor adhesion on uneven lunar regolith: prevents unwanted floating over slopes and craters
 	floor_snap_length = 0.45
 	floor_constant_speed = true
-	floor_max_angle = deg_to_rad(50.0)
+	floor_max_angle = deg_to_rad(65.0)
 	floor_stop_on_slope = true
 	
 	if dust_system and dust_system.has_method("set_gravity"):
@@ -134,6 +141,9 @@ func update_gravity(new_gravity: float) -> void:
 		dust_system.set_gravity(gravity)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("jump"):
+		jump_buffer_timer = 0.22
+	
 	# Mouse Orbit & Zoom Controls
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
@@ -181,8 +191,26 @@ func release_mouse() -> void:
 	is_mouse_captured = false
 
 func _physics_process(delta: float) -> void:
+	# Update jump buffer timer
+	jump_buffer_timer = maxf(0.0, jump_buffer_timer - delta)
+	if Input.is_action_just_pressed("jump"):
+		jump_buffer_timer = 0.22
+	
+	# Ground tracking & coyote grace window
+	var on_ground = is_on_floor()
+	if on_ground:
+		coyote_timer = 0.18 # 180ms coyote grace window
+		air_time = 0.0
+		is_jumping = false
+		floor_snap_length = 0.45
+	else:
+		coyote_timer = maxf(0.0, coyote_timer - delta)
+		air_time += delta
+		if velocity.y <= 0.0:
+			floor_snap_length = 0.45 # Restore snap so landing immediately adheres
+	
 	# Apply exact real Moon gravitation (1.62 m/s²) with consistent downward pull
-	var was_in_air = not is_on_floor()
+	var was_in_air = not on_ground
 	if was_in_air:
 		velocity.y -= gravity * delta
 		velocity.y = maxf(velocity.y, -24.0)
@@ -190,11 +218,11 @@ func _physics_process(delta: float) -> void:
 		landing_squash = move_toward(landing_squash, 0.0, 1.2 * delta)
 	else:
 		landing_squash = move_toward(landing_squash, 0.0, 6.0 * delta)
-		if velocity.y < 0.0:
+		if velocity.y < 0.0 and not is_jumping:
 			velocity.y = -0.6 # Maintain solid ground adhesion over craters and slopes
 	
 	# Landing detection: landing impact sound, footprint imprint and subtle contact dust
-	if was_in_air and is_on_floor():
+	if was_in_air and on_ground and not is_jumping:
 		floor_snap_length = 0.45
 		_handle_landing(prev_vertical_velocity)
 	prev_vertical_velocity = velocity.y
@@ -226,8 +254,19 @@ func _physics_process(delta: float) -> void:
 	var active_loping = is_loping_mode or Input.is_key_pressed(KEY_SHIFT)
 	var current_max_speed = lope_speed if active_loping else walk_speed
 	
-	# Handle Low-Gravity Jump
-	if Input.is_action_just_pressed("jump") and is_on_floor():
+	# Ground support detection (including steep crater slopes)
+	var has_ground_support = on_ground or (coyote_timer > 0.0)
+	if not has_ground_support and air_time < 0.25:
+		for i in range(get_slide_collision_count()):
+			var col = get_slide_collision(i)
+			if col.get_normal().y > 0.15:
+				has_ground_support = true
+				break
+	
+	# Handle Low-Gravity Jump with buffer & coyote support
+	if jump_buffer_timer > 0.0 and has_ground_support and not is_interacting:
+		jump_buffer_timer = 0.0
+		coyote_timer = 0.0
 		jump()
 	
 	# Camera-relative movement calculation
@@ -251,44 +290,58 @@ func _physics_process(delta: float) -> void:
 	right = right.normalized()
 	
 	var move_direction = (forward * -input_dir.y + right * input_dir.x).normalized()
-	var is_moving = move_direction.length() > 0.01
+	var has_input = move_direction.length() > 0.01
 	
-	var accel_rate = 3.2 if is_on_floor() else 0.8
-	var decel_rate = 4.4 if is_on_floor() else 0.4
+	var accel_rate = 3.2 if on_ground else 0.8
+	var decel_rate = 4.4 if on_ground else 0.4
 	
-	if is_moving:
+	if has_input:
 		velocity.x = move_toward(velocity.x, move_direction.x * current_max_speed, accel_rate * delta * current_max_speed)
 		velocity.z = move_toward(velocity.z, move_direction.z * current_max_speed, accel_rate * delta * current_max_speed)
 		
 		# Rotate astronaut smoothly towards movement direction
 		var target_angle = atan2(move_direction.x, move_direction.z)
 		visuals.rotation.y = lerp_angle(visuals.rotation.y, target_angle, 8.5 * delta)
-		
-		# Advance gait step cycle
+	else:
+		velocity.x = move_toward(velocity.x, 0.0, decel_rate * delta * current_max_speed)
+		velocity.z = move_toward(velocity.z, 0.0, decel_rate * delta * current_max_speed)
+		exertion_level = move_toward(exertion_level, 0.0, 0.15 * delta)
+	
+	var h_velocity = Vector2(velocity.x, velocity.z)
+	var h_speed = h_velocity.length()
+	is_moving_horizontal = has_input or (h_speed > 0.35 and on_ground)
+	
+	if is_moving_horizontal:
+		# Advance gait step cycle smoothly
 		var stride_rate = 5.0 if active_loping else 3.8
-		walk_cycle += delta * stride_rate
-		step_cycle_tracker += delta * stride_rate
+		var speed_factor = clampf(h_speed / maxf(current_max_speed, 0.1), 0.5, 1.2)
+		walk_cycle += delta * stride_rate * speed_factor
+		walk_cycle = fmod(walk_cycle, TAU * 100.0)
+		step_cycle_tracker += delta * stride_rate * speed_factor
 		
-		if is_on_floor():
+		if on_ground:
 			exertion_level = move_toward(exertion_level, 0.55 if active_loping else 0.20, 0.1 * delta)
 		
 		# Detect footstep touchdown
 		if step_cycle_tracker >= PI:
 			step_cycle_tracker -= PI
 			last_foot_step = not last_foot_step
-			_trigger_footstep(move_direction, active_loping)
+			var step_dir = move_direction if has_input else Vector3(velocity.x, 0, velocity.z).normalized()
+			_trigger_footstep(step_dir, active_loping)
 	else:
-		velocity.x = move_toward(velocity.x, 0.0, decel_rate * delta * current_max_speed)
-		velocity.z = move_toward(velocity.z, 0.0, decel_rate * delta * current_max_speed)
-		exertion_level = move_toward(exertion_level, 0.0, 0.15 * delta)
+		step_cycle_tracker = 0.0
 	
-	_animate_astronaut(delta, is_moving, active_loping)
+	_animate_astronaut(delta, is_moving_horizontal, active_loping)
 	move_and_slide()
 
 func jump() -> void:
-	if is_on_floor() and not is_interacting:
+	if not is_interacting:
 		velocity.y = jump_velocity
 		floor_snap_length = 0.0 # Clean lift-off for low-gravity jump
+		is_jumping = true
+		coyote_timer = 0.0
+		jump_buffer_timer = 0.0
+		air_time = 0.08
 		jump_anim_weight = 1.0
 		exertion_level = clampf(exertion_level + 0.35, 0.0, 1.0)
 		if dust_system and dust_system.has_method("emit_impact_dust"):
@@ -359,7 +412,13 @@ func _animate_astronaut(delta: float, is_moving: bool, is_loping: bool) -> void:
 		return
 	
 	# Animation Branch: Airborne vs Walking vs Idle
-	if not is_on_floor():
+	# Truly airborne: actively jumping, or falling freely off terrain dips for more than coyote grace
+	var on_ground = is_on_floor()
+	if on_ground:
+		is_jumping = false
+	var is_airborne = not on_ground and (is_jumping or air_time > 0.14 or abs(velocity.y) > 1.25)
+	
+	if is_airborne:
 		# 1. JUMPING & FLOATING IN LUNAR VACUUM (1.62 m/s²)
 		jump_anim_weight = move_toward(jump_anim_weight, 1.0, 8.0 * delta)
 		var is_rising = velocity.y > 0.05

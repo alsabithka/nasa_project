@@ -25,18 +25,18 @@ albedo_color = Color(0.96, 0.96, 0.98, 1)
 roughness = 0.25
 
 [sub_resource type="StandardMaterial3D" id="Mat_EyeIris"]
-albedo_color = Color(0.48, 0.25, 0.12, 1)
-roughness = 0.35
+albedo_color = Color(0.50, 0.26, 0.12, 1)
+roughness = 0.25
 
 [sub_resource type="StandardMaterial3D" id="Mat_EyePupil"]
-albedo_color = Color(0.04, 0.04, 0.05, 1)
-roughness = 0.1
+albedo_color = Color(0.02, 0.02, 0.02, 1)
+roughness = 0.05
 
 [sub_resource type="StandardMaterial3D" id="Mat_EyeSparkle"]
 albedo_color = Color(1, 1, 1, 1)
 emission_enabled = true
 emission = Color(1, 1, 1, 1)
-emission_energy_multiplier = 0.6
+emission_energy_multiplier = 0.8
 
 [sub_resource type="StandardMaterial3D" id="Mat_MouthInterior"]
 albedo_color = Color(0.18, 0.04, 0.08, 1)
@@ -130,22 +130,22 @@ rings = 8
 
 [sub_resource type="SphereMesh" id="Mesh_Iris"]
 material = SubResource("Mat_EyeIris")
-radius = 0.045
-height = 0.06
-radial_segments = 12
-rings = 6
+radius = 0.052
+height = 0.04
+radial_segments = 16
+rings = 8
 
 [sub_resource type="SphereMesh" id="Mesh_Pupil"]
 material = SubResource("Mat_EyePupil")
-radius = 0.024
-height = 0.03
-radial_segments = 10
-rings = 4
+radius = 0.030
+height = 0.025
+radial_segments = 14
+rings = 6
 
 [sub_resource type="SphereMesh" id="Mesh_Sparkle"]
 material = SubResource("Mat_EyeSparkle")
-radius = 0.01
-height = 0.015
+radius = 0.010
+height = 0.012
 radial_segments = 8
 rings = 4
 
@@ -510,19 +510,19 @@ transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, -0.12,
 mesh = SubResource("Mesh_GoggleRing")
 
 [node name="LeftEyeSclera" type="MeshInstance3D" parent="Visuals/Torso/Head/LeftGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.02, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
 mesh = SubResource("Mesh_Sclera")
 
 [node name="LeftEyeIris" type="MeshInstance3D" parent="Visuals/Torso/Head/LeftGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.07, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.038, 0)
 mesh = SubResource("Mesh_Iris")
 
 [node name="LeftEyePupil" type="MeshInstance3D" parent="Visuals/Torso/Head/LeftGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.085, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.052, 0)
 mesh = SubResource("Mesh_Pupil")
 
 [node name="LeftEyeSparkle" type="MeshInstance3D" parent="Visuals/Torso/Head/LeftGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.02, -0.09, 0.02)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.014, 0.062, 0.014)
 mesh = SubResource("Mesh_Sparkle")
 
 [node name="RightGoggleRing" type="MeshInstance3D" parent="Visuals/Torso/Head"]
@@ -530,19 +530,19 @@ transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0.12, 
 mesh = SubResource("Mesh_GoggleRing")
 
 [node name="RightEyeSclera" type="MeshInstance3D" parent="Visuals/Torso/Head/RightGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.02, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
 mesh = SubResource("Mesh_Sclera")
 
 [node name="RightEyeIris" type="MeshInstance3D" parent="Visuals/Torso/Head/RightGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.07, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.038, 0)
 mesh = SubResource("Mesh_Iris")
 
 [node name="RightEyePupil" type="MeshInstance3D" parent="Visuals/Torso/Head/RightGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.085, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.052, 0)
 mesh = SubResource("Mesh_Pupil")
 
 [node name="RightEyeSparkle" type="MeshInstance3D" parent="Visuals/Torso/Head/RightGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.02, -0.09, 0.02)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.014, 0.062, 0.014)
 mesh = SubResource("Mesh_Sparkle")
 
 [node name="SmileMouth" type="Node3D" parent="Visuals/Torso/Head"]
