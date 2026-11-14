@@ -7,6 +7,13 @@ signal scan_updated(target_id: String, distance: float, signal_strength: float)
 signal target_acquired(target_id: String)
 signal target_lost()
 
+# New signals for location-based interaction
+signal locked_on_location()
+signal left_location()
+
+# New signal without identity info
+signal mystery_signal_updated(strength: float, distance: float)
+
 @export var max_scan_range: float = 65.0
 @export var scan_rate: float = 5.0 # Hz (scans 5 times a second)
 @export var is_active: bool = true
@@ -15,6 +22,7 @@ var current_target_id: String = ""
 var current_distance: float = 999.0
 var current_signal_strength: float = 0.0
 var target_direction: Vector3 = Vector3.ZERO
+var is_locked_on: bool = false
 
 var _scan_timer: float = 0.0
 var _audio_timer: float = 0.0
@@ -62,8 +70,13 @@ func _process(delta: float) -> void:
 	# Handle proximity beep cadence
 	if current_signal_strength > 0.05:
 		_audio_timer += delta
-		# Beep interval scales inversely with signal strength: 1.2s far -> 0.15s near
-		var beep_interval = lerp(1.2, 0.15, current_signal_strength)
+		var beep_interval: float
+		# When locked on and very strong signal: very rapid continuous beep
+		if is_locked_on and current_signal_strength >= 0.85:
+			beep_interval = 0.08
+		else:
+			# Beep interval scales inversely with signal strength: 1.2s far -> 0.15s near
+			beep_interval = lerp(1.2, 0.15, current_signal_strength)
 		if _audio_timer >= beep_interval:
 			_audio_timer = 0.0
 			if _audio_player and not _audio_player.playing:
@@ -108,13 +121,30 @@ func _perform_scan() -> void:
 		current_distance = closest_dist
 		current_signal_strength = strength
 		scan_updated.emit(art_id, closest_dist, strength)
+		mystery_signal_updated.emit(strength, closest_dist)
+		
+		# Lock-on logic: within 4m = locked on
+		if closest_dist <= 4.0:
+			if not is_locked_on:
+				is_locked_on = true
+				locked_on_location.emit()
+		else:
+			# Hysteresis: only release lock after moving >6m away
+			if is_locked_on and closest_dist > 6.0:
+				is_locked_on = false
+				left_location.emit()
 	else:
 		if current_target_id != "":
 			current_target_id = ""
 			current_distance = 999.0
 			current_signal_strength = 0.0
 			target_lost.emit()
+			# If we were locked on, leaving scan range releases lock
+			if is_locked_on:
+				is_locked_on = false
+				left_location.emit()
 		scan_updated.emit("", 999.0, 0.0)
+		mystery_signal_updated.emit(0.0, 999.0)
 
 func _get_player() -> Node:
 	if get_parent() and get_parent().has_method("get_scan_origin"):

@@ -1,45 +1,43 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/level.gd" id="1_level"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/scanner/scanner.tscn" id="3_scanner"]
 [ext_resource type="PackedScene" path="res://scenes/artifact/artifact.tscn" id="4_artifact"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="5_hud"]
+[ext_resource type="Script" path="res://scripts/levels/moon_terrain.gd" id="6_terrain"]
+
+[sub_resource type="ProceduralSkyMaterial" id="SkyMat_Moon"]
+sky_top_color = Color(0.0, 0.0, 0.0, 1)
+sky_horizon_color = Color(0.02, 0.02, 0.025, 1)
+sky_curve = 0.15
+ground_bottom_color = Color(0.38, 0.4, 0.42, 1)
+ground_horizon_color = Color(0.4, 0.42, 0.44, 1)
+ground_curve = 0.02
+sun_angle_max = 30.0
+sun_curve = 0.15
+
+[sub_resource type="Sky" id="Sky_Moon"]
+sky_material = SubResource("SkyMat_Moon")
 
 [sub_resource type="Environment" id="Env_Moon"]
-background_mode = 1
-background_color = Color(0.01, 0.01, 0.03, 1)
+background_mode = 2
+sky = SubResource("Sky_Moon")
 ambient_light_source = 2
-ambient_light_color = Color(0.22, 0.24, 0.3, 1)
+ambient_light_color = Color(0.18, 0.2, 0.26, 1)
+ambient_light_energy = 0.35
 
-[sub_resource type="StandardMaterial3D" id="Mat_LunarSoil"]
-albedo_color = Color(0.48, 0.5, 0.53, 1)
-roughness = 0.85
+[sub_resource type="StandardMaterial3D" id="Mat_EarthGlobe"]
+albedo_color = Color(0.2, 0.45, 0.8, 1)
+roughness = 0.3
+metallic = 0.0
 
-[sub_resource type="BoxMesh" id="Mesh_Ground"]
-material = SubResource("Mat_LunarSoil")
-size = Vector3(120, 1, 120)
-
-[sub_resource type="BoxShape3D" id="Shape_Ground"]
-size = Vector3(120, 1, 120)
-
-[sub_resource type="StandardMaterial3D" id="Mat_Rock"]
-albedo_color = Color(0.35, 0.37, 0.4, 1)
-roughness = 0.9
-
-[sub_resource type="BoxMesh" id="Mesh_Rock"]
-material = SubResource("Mat_Rock")
-size = Vector3(4, 2, 4)
-
-[sub_resource type="BoxShape3D" id="Shape_Rock"]
-size = Vector3(4, 2, 4)
-
-[sub_resource type="CylinderMesh" id="Mesh_CraterRim"]
-material = SubResource("Mat_LunarSoil")
-top_radius = 8.0
-bottom_radius = 10.0
-height = 1.2
-radial_segments = 24
+[sub_resource type="SphereMesh" id="Mesh_Earth"]
+material = SubResource("Mat_EarthGlobe")
+radius = 25.0
+height = 50.0
+radial_segments = 32
+rings = 16
 
 [node name="MoonLevel" type="Node3D"]
 script = ExtResource("1_level")
@@ -51,42 +49,16 @@ environment = SubResource("Env_Moon")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.866025, -0.25, 0.433013, 0, 0.866025, 0.5, -0.5, -0.433013, 0.75, 0, 20, 0)
-light_color = Color(0.98, 0.98, 1, 1)
-light_energy = 1.4
+light_color = Color(1.0, 0.98, 0.95, 1)
+light_energy = 2.0
 shadow_enabled = true
 
-[node name="Terrain" type="StaticBody3D" parent="."]
-collision_mask = 3
+[node name="EarthSphere" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 280, 180, -400)
+mesh = SubResource("Mesh_Earth")
 
-[node name="GroundMesh" type="MeshInstance3D" parent="Terrain"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
-mesh = SubResource("Mesh_Ground")
-
-[node name="GroundCollision" type="CollisionShape3D" parent="Terrain"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
-shape = SubResource("Shape_Ground")
-
-[node name="Crater1" type="MeshInstance3D" parent="Terrain"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0.2, 12)
-mesh = SubResource("Mesh_CraterRim")
-
-[node name="Rock1" type="StaticBody3D" parent="Terrain"]
-transform = Transform3D(0.9, 0, 0.4, 0, 1, 0, -0.4, 0, 0.9, 8, 0.8, -10)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Terrain/Rock1"]
-mesh = SubResource("Mesh_Rock")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Terrain/Rock1"]
-shape = SubResource("Shape_Rock")
-
-[node name="Rock2" type="StaticBody3D" parent="Terrain"]
-transform = Transform3D(1.5, 0, 0, 0, 1.2, 0, 0, 0, 1.5, -25, 1, 5)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Terrain/Rock2"]
-mesh = SubResource("Mesh_Rock")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Terrain/Rock2"]
-shape = SubResource("Shape_Rock")
+[node name="LunarTerrain" type="Node3D" parent="."]
+script = ExtResource("6_terrain")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)

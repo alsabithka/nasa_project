@@ -19,6 +19,11 @@ extends CharacterBody3D
 @onready var left_leg: Node3D = $Visuals/Torso/LeftLeg
 @onready var right_leg: Node3D = $Visuals/Torso/RightLeg
 
+# Scanner arm animation
+var _scanner_raise_target: float = 0.0  # 0=lowered, 1=raised
+var _scanner_raise_current: float = 0.0
+@onready var scanner_device_node: Node3D = $Visuals/Torso/RightArm/ScannerDevice
+
 var is_mouse_captured: bool = false
 var walk_cycle: float = 0.0
 
@@ -88,6 +93,16 @@ func _physics_process(delta: float) -> void:
 	
 	var move_direction = (forward * -input_dir.y + right * input_dir.x).normalized()
 	
+	# Update scanner raise target from scanner child
+	var scanner = get_node_or_null("Scanner")
+	if scanner and scanner.has_method("get_signal_strength"):
+		_scanner_raise_target = scanner.get_signal_strength()
+	else:
+		_scanner_raise_target = 0.0
+	
+	# Smooth scanner raise current value
+	_scanner_raise_current = lerp(_scanner_raise_current, _scanner_raise_target, 3.0 * delta)
+	
 	if move_direction.length() > 0.01:
 		velocity.x = move_direction.x * speed
 		velocity.z = move_direction.z * speed
@@ -101,7 +116,12 @@ func _physics_process(delta: float) -> void:
 		var limb_angle = sin(walk_cycle) * 0.6
 		if left_arm and right_arm:
 			left_arm.rotation.x = limb_angle
-			right_arm.rotation.x = -limb_angle
+			# Right arm: blend walk animation with scanner raise
+			var scanner_target_x = -1.1 * _scanner_raise_current
+			if _scanner_raise_current > 0.05:
+				right_arm.rotation.x = lerp(right_arm.rotation.x, scanner_target_x, 5.0 * delta)
+			else:
+				right_arm.rotation.x = -limb_angle
 		if left_leg and right_leg:
 			left_leg.rotation.x = -limb_angle
 			right_leg.rotation.x = limb_angle
@@ -109,12 +129,21 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0.0, speed * 8.0 * delta)
 		velocity.z = move_toward(velocity.z, 0.0, speed * 8.0 * delta)
 		
-		# Reset limb positions
+		# Reset limb positions or hold scanner raise
 		if left_arm and right_arm:
 			left_arm.rotation.x = lerp(left_arm.rotation.x, 0.0, 10.0 * delta)
-			right_arm.rotation.x = lerp(right_arm.rotation.x, 0.0, 10.0 * delta)
+			var scanner_target_x = -1.1 * _scanner_raise_current
+			right_arm.rotation.x = lerp(right_arm.rotation.x, scanner_target_x, 5.0 * delta)
 		if left_leg and right_leg:
 			left_leg.rotation.x = lerp(left_leg.rotation.x, 0.0, 10.0 * delta)
 			right_leg.rotation.x = lerp(right_leg.rotation.x, 0.0, 10.0 * delta)
+	
+	# Scanner device scanning animation
+	if scanner_device_node:
+		scanner_device_node.rotation.y = lerp(
+			scanner_device_node.rotation.y,
+			sin(Time.get_ticks_msec() * 0.001) * 0.3 * _scanner_raise_current,
+			3.0 * delta
+		)
 	
 	move_and_slide()
