@@ -51,6 +51,9 @@ var _scanner_ref: Node = null
 var _is_player_in_zone: bool = false
 var _interacting_player: CharacterBody3D = null
 var _excavation_pit: Node3D = null
+var _glint_effect: Node3D = null
+var _excavation_menu: CanvasLayer = null
+var is_anomaly_confirmed: bool = false
 
 func _get_player() -> CharacterBody3D:
 	if _interacting_player and is_instance_valid(_interacting_player):
@@ -78,6 +81,12 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 	
+	# Permanently hide artificial yellow ring and floating markers
+	if beacon_ring:
+		beacon_ring.visible = false
+	if prompt_label:
+		prompt_label.visible = false
+	
 	# Initialize realistic stratified excavation pit & spoil pile
 	var pit_script = load("res://scripts/environment/lunar_excavation_pit.gd")
 	if pit_script:
@@ -85,6 +94,22 @@ func _ready() -> void:
 		_excavation_pit.name = "LunarExcavationPit"
 		_excavation_pit.set_script(pit_script)
 		add_child(_excavation_pit)
+	
+	# Initialize natural organic glittering ground shimmer
+	var is_metal = true
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state:
+		var data = game_state.get_artifact_data(artifact_id)
+		if data.get("category", "") == "Natural Lunar Material" and artifact_id != "lunar_iron_meteorite":
+			is_metal = false
+	
+	var glint_script = load("res://scripts/environment/lunar_glint_effect.gd")
+	if glint_script:
+		_glint_effect = Node3D.new()
+		_glint_effect.set_script(glint_script)
+		_glint_effect.name = "LunarGlintEffect"
+		_glint_effect.is_metallic = is_metal
+		add_child(_glint_effect)
 	
 	_load_artifact_metadata()
 	_update_visual_representation()
@@ -95,7 +120,6 @@ func _ready() -> void:
 	_setup_dust_particles()
 	
 	# Listen for future recovery signals from game_state
-	var game_state = get_node_or_null("/root/GameState")
 	if game_state:
 		game_state.artifact_recovered.connect(_on_artifact_recovered_globally)
 	
@@ -177,6 +201,8 @@ func _on_body_entered(body: Node3D) -> void:
 func _on_body_exited(body: Node3D) -> void:
 	if body.is_in_group("player"):
 		_is_player_in_zone = false
+		is_anomaly_confirmed = false
+		_close_excavation_menu()
 		if current_state == ArtifactState.DIG_SITE:
 			_set_state(ArtifactState.BURIED)
 		elif current_state == ArtifactState.DIGGING:
@@ -190,59 +216,62 @@ func _set_state(new_state: ArtifactState) -> void:
 	_update_state_visuals()
 
 func _update_state_visuals() -> void:
-	if not prompt_label or not beacon_ring or not visual_model:
+	if beacon_ring:
+		beacon_ring.visible = false
+	
+	if not visual_model:
 		return
 	
 	match current_state:
 		ArtifactState.BURIED:
 			visual_model.visible = false
-			prompt_label.visible = false
+			if prompt_label:
+				prompt_label.visible = false
 			if dig_progress_label:
 				dig_progress_label.visible = false
-			_set_beacon_color(Color(1.0, 0.65, 0.0, 0.7), Color(1.0, 0.5, 0.0))
 		
 		ArtifactState.DIG_SITE:
 			visual_model.visible = false
-			prompt_label.text = "[E] MARK ANOMALY & EXCAVATE SOIL"
-			prompt_label.modulate = Color(1.0, 0.85, 0.2, 1.0)
-			prompt_label.visible = true
+			# Handled by minimalist excavation direction menu upon metal detector confirmation
+			if prompt_label:
+				prompt_label.visible = false
 			if dig_progress_label:
 				dig_progress_label.visible = false
-			_set_beacon_color(Color(1.0, 0.65, 0.0, 0.9), Color(1.0, 0.6, 0.0))
 		
 		ArtifactState.DIGGING:
 			visual_model.visible = false
-			prompt_label.visible = false
+			if prompt_label:
+				prompt_label.visible = false
 			if dig_progress_label:
 				dig_progress_label.visible = true
 				dig_progress_label.text = "Excavating [Layer 1: Loose Regolith]... 0%"
-			_set_beacon_color(Color(1.0, 0.65, 0.0, 0.9), Color(1.0, 0.6, 0.0))
 		
 		ArtifactState.EXPOSED:
 			visual_model.visible = true
 			visual_model.scale = Vector3.ONE
-			prompt_label.text = "[E] DELICATE BRUSHING & SAMPLE RECOVERY"
-			prompt_label.modulate = Color(0.3, 1.0, 0.5, 1.0)
-			prompt_label.visible = true
+			if prompt_label:
+				prompt_label.text = "[E] DELICATE BRUSHING & SAMPLE RECOVERY"
+				prompt_label.modulate = Color(0.85, 0.95, 1.0, 0.9)
+				prompt_label.visible = true
 			if dig_progress_label:
 				dig_progress_label.visible = false
-			_set_beacon_color(Color(0.2, 0.9, 0.4, 0.7), Color(0.2, 0.9, 0.4))
 		
 		ArtifactState.CLEANING:
 			visual_model.visible = true
-			prompt_label.visible = false
+			if prompt_label:
+				prompt_label.visible = false
 			if dig_progress_label:
 				dig_progress_label.visible = false
 		
 		ArtifactState.IDENTIFIED:
 			visual_model.visible = true
 			visual_model.scale = Vector3.ONE
-			prompt_label.text = "[IDENTIFIED] " + artifact_name
-			prompt_label.modulate = Color(0.4, 1.0, 0.5, 0.9)
-			prompt_label.visible = true
+			if prompt_label:
+				prompt_label.text = "[IDENTIFIED] " + artifact_name
+				prompt_label.modulate = Color(0.4, 1.0, 0.5, 0.8)
+				prompt_label.visible = true
 			if dig_progress_label:
 				dig_progress_label.visible = false
-			_set_beacon_color(Color(0.2, 0.9, 0.4, 0.6), Color(0.2, 0.9, 0.4))
 			is_recovered = true
 
 func _set_beacon_color(albedo: Color, emission: Color) -> void:
@@ -257,22 +286,29 @@ func _set_beacon_color(albedo: Color, emission: Color) -> void:
 
 # ---- Process ----
 func _process(delta: float) -> void:
-	_beacon_phase += delta
+	# Keep artificial yellow rings permanently disabled
+	if beacon_ring and beacon_ring.visible:
+		beacon_ring.visible = false
 	
-	# Beacon ring animation
-	if beacon_ring:
-		beacon_ring.rotate_y(delta * (2.5 if current_state == ArtifactState.DIG_SITE else 0.8))
-		match current_state:
-			ArtifactState.BURIED, ArtifactState.DIG_SITE:
-				var pulse = (sin(_beacon_phase * 3.0) + 1.0) * 0.5
-				var spd = 4.0 if current_state == ArtifactState.DIG_SITE else 1.5
-				pulse = (sin(_beacon_phase * spd) + 1.0) * 0.5
-				beacon_ring.scale = Vector3(1.0 + pulse * 0.2, 1.0, 1.0 + pulse * 0.2)
-			ArtifactState.EXPOSED, ArtifactState.IDENTIFIED:
-				var pulse = (sin(_beacon_phase * 2.0) + 1.0) * 0.5
-				beacon_ring.scale = Vector3(1.0 + pulse * 0.1, 1.0, 1.0 + pulse * 0.1)
-			_:
-				beacon_ring.scale = Vector3.ONE
+	# Update natural organic glint effect on regolith
+	if _glint_effect and _glint_effect.has_method("set_excavation_progress"):
+		_glint_effect.set_excavation_progress(dig_progress)
+
+	# Approach & Metal Detector Confirmation Check in DIG_SITE
+	if current_state == ArtifactState.DIG_SITE:
+		var player = _get_player()
+		if player:
+			var coil_pos = player.global_position
+			var md = player.get_node_or_null("Visuals/Torso/RightArm/LunarMetalDetector")
+			if md and md.has_method("get_coil_global_position"):
+				coil_pos = md.get_coil_global_position()
+			
+			var dist = coil_pos.distance_to(global_position)
+			if dist <= 3.2 and not is_anomaly_confirmed:
+				_confirm_anomaly_site()
+			elif dist > 4.2 and is_anomaly_confirmed:
+				is_anomaly_confirmed = false
+				_close_excavation_menu()
 	
 	# Digging progress & soil displacement
 	if current_state == ArtifactState.DIGGING:
@@ -282,6 +318,9 @@ func _process(delta: float) -> void:
 			
 			if _excavation_pit and _excavation_pit.has_method("set_progress"):
 				_excavation_pit.set_progress(dig_progress)
+			
+			if _glint_effect and _glint_effect.has_method("set_excavation_progress"):
+				_glint_effect.set_excavation_progress(dig_progress)
 			
 			# Stratified excavation label showing authentic geological layer
 			if dig_progress_label:
@@ -333,6 +372,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_pause_digging()
 
 func _start_digging() -> void:
+	_close_excavation_menu()
 	_set_state(ArtifactState.DIGGING)
 	dig_started.emit()
 	if _excavation_pit and _excavation_pit.has_method("set_marker_visible"):
@@ -357,6 +397,7 @@ func _pause_digging() -> void:
 
 func _cancel_digging() -> void:
 	is_player_holding_e = false
+	_close_excavation_menu()
 	if dust_particles and dust_particles.emitting:
 		dust_particles.emitting = false
 	var player = _get_player()
@@ -370,6 +411,9 @@ func _cancel_digging() -> void:
 # ---- Dig completion ----
 func _complete_digging() -> void:
 	dig_progress = 1.0
+	_close_excavation_menu()
+	if _glint_effect:
+		_glint_effect.visible = false
 	if _excavation_pit and _excavation_pit.has_method("set_progress"):
 		_excavation_pit.set_progress(1.0)
 	if dust_particles:
@@ -382,6 +426,52 @@ func _complete_digging() -> void:
 			player.set_active_tool(2) # GEOLOGICAL BRUSH
 		if player.has_method("end_interaction"):
 			player.end_interaction()
+
+func _confirm_anomaly_site() -> void:
+	if is_anomaly_confirmed:
+		return
+	is_anomaly_confirmed = true
+	_show_excavation_menu()
+
+func _show_excavation_menu() -> void:
+	if _excavation_menu or current_state != ArtifactState.DIG_SITE:
+		return
+	var menu_script = load("res://scripts/ui/excavation_menu.gd")
+	if not menu_script:
+		return
+	
+	_excavation_menu = CanvasLayer.new()
+	_excavation_menu.set_script(menu_script)
+	
+	var depth = 14.0
+	var sig = "Conductive Metal"
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state:
+		var data = game_state.get_artifact_data(artifact_id)
+		depth = data.get("discovery_depth_cm", 14.0)
+		sig = data.get("detection_signature", "Conductive Metal")
+	
+	_excavation_menu.set_anomaly_details(artifact_name, depth, sig)
+	_excavation_menu.begin_excavation_requested.connect(_on_menu_begin_excavation)
+	_excavation_menu.inspect_signal_requested.connect(_on_menu_inspect_signal)
+	_excavation_menu.menu_cancelled.connect(_on_menu_cancelled)
+	add_child(_excavation_menu)
+
+func _close_excavation_menu() -> void:
+	if _excavation_menu:
+		_excavation_menu.queue_free()
+		_excavation_menu = null
+
+func _on_menu_begin_excavation() -> void:
+	_excavation_menu = null
+	_start_digging()
+
+func _on_menu_inspect_signal() -> void:
+	print("[Prospecting] Anomaly signal verified for: ", artifact_name)
+	_show_excavation_menu()
+
+func _on_menu_cancelled() -> void:
+	_excavation_menu = null
 
 # ---- Cleaning UI ----
 func _start_cleaning() -> void:

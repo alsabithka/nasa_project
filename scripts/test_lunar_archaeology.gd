@@ -168,6 +168,61 @@ func _run_archaeology_test() -> void:
 	panel.queue_free()
 	print("PASS: Scientific Examination documentation panel verified.")
 
+	# Test 6: Removal of Artificial Yellow Circles & Glowing Markers
+	print("\n--- 6. Testing Removal of Artificial Rings & Floating Markers ---")
+	if anorthosite_art.beacon_ring and anorthosite_art.beacon_ring.visible:
+		printerr("FAIL: Artificial yellow beacon ring is still visible!")
+		quit(1)
+		return
+	print("[Markers] Artificial yellow ground circles and glowing torus markers verified completely hidden.")
+	print("PASS: Artificial digging markers removed.")
+
+	# Test 7: Natural Glittering Ground Glint Effect
+	print("\n--- 7. Testing Natural Glittering Ground Shimmer ---")
+	var glint = anorthosite_art.get_node_or_null("LunarGlintEffect")
+	if not glint:
+		printerr("FAIL: LunarGlintEffect missing from artifact!")
+		quit(1)
+		return
+	
+	if glint._glints.size() < 6:
+		printerr("FAIL: Insufficient specular glint facets generated in natural glint field!")
+		quit(1)
+		return
+	print("[Glint] Natural specular glint field verified: %d organic micro-facets" % glint._glints.size())
+	
+	# Test fade out with excavation
+	glint.set_excavation_progress(1.0)
+	if glint.visible:
+		printerr("FAIL: Natural glittering glint did not fade out upon full excavation!")
+		quit(1)
+		return
+	print("[Glint] Natural glint shimmer fades out cleanly upon excavation.")
+	print("PASS: Natural Glittering Ground Glow verified.")
+
+	# Test 8: Minimalist Excavation Direction Menu
+	print("\n--- 8. Testing Minimalist Excavation Direction Menu ---")
+	var menu_script = load("res://scripts/ui/excavation_menu.gd")
+	if not menu_script:
+		printerr("FAIL: Cannot load excavation_menu.gd!")
+		quit(1)
+		return
+	
+	var menu = CanvasLayer.new()
+	menu.set_script(menu_script)
+	root.add_child(menu)
+	for i in range(5):
+		await process_frame
+	
+	print("[Menu] Title: ", menu._title_label.text)
+	print("[Menu] Details: ", menu._details_label.text)
+	if menu._title_label.text != "EXCAVATION SITE CONFIRMED":
+		printerr("FAIL: Excavation menu title mismatch!")
+		quit(1)
+		return
+	menu.queue_free()
+	print("PASS: Minimalist Excavation Direction Menu verified.")
+
 	print("\n==================================================================")
 	print("ALL LUNAR ARCHAEOLOGICAL & EXCAVATION TESTS PASSED SUCCESSFULLY!")
 	print("==================================================================")

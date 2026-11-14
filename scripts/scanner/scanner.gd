@@ -114,6 +114,24 @@ func _perform_scan() -> void:
 		# Realistic electromagnetic VLF induction response curve (non-linear inverse distance decay)
 		var norm_dist = closest_dist / max_scan_range
 		var strength = clampf(pow(clampf(1.0 - norm_dist, 0.0, 1.0), 2.2), 0.0, 1.0)
+		
+		# Material conductivity differentiation: Metal hardware & iron meteorites vs non-metallic silicates
+		var conductivity = 1.0
+		var game_state = get_node_or_null("/root/GameState")
+		if game_state:
+			var data = game_state.get_artifact_data(art_id)
+			var cat = data.get("category", "")
+			if cat == "Natural Lunar Material":
+				if art_id == "lunar_iron_meteorite":
+					conductivity = 1.0 # High ferromagnetic nickel-iron response
+				else:
+					conductivity = 0.08 # Non-metallic silicate rock
+			elif art_id == "pyroclastic_orange_glass":
+				conductivity = 0.35 # Moderate ilmenite volcanic glass response
+			else:
+				conductivity = 1.0 # Aerospace metals (Al, Ti, Inconel, Beryllium)
+		
+		var detector_strength = strength * conductivity
 		target_direction = (closest_artifact.get_world_position() - scan_origin).normalized()
 		
 		if current_target_id != art_id:
@@ -126,7 +144,7 @@ func _perform_scan() -> void:
 		mystery_signal_updated.emit(strength, closest_dist)
 
 		if player and player.has_method("update_metal_detector_signal"):
-			player.update_metal_detector_signal(strength, closest_dist)
+			player.update_metal_detector_signal(detector_strength, closest_dist)
 		
 		# Lock-on logic: within 4m = locked on
 		if closest_dist <= 4.0:
