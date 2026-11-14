@@ -29,7 +29,7 @@ tonemap_mode = 2
 [node name="MoonLevel" type="Node3D"]
 script = ExtResource("1_level")
 planet_name = "Moon"
-level_gravity = 3.24
+level_gravity = 1.62
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Env_Moon")

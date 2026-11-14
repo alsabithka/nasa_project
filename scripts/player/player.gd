@@ -11,8 +11,8 @@ extends CharacterBody3D
 # Physics Exports
 @export var walk_speed: float = 1.6
 @export var lope_speed: float = 3.2
-@export var jump_velocity: float = 3.4 # Gives ~2.1s airtime under 3.24 m/s²
-@export var gravity: float = 3.24 # Calibrated 2x lunar gravity for responsive traversal
+@export var jump_velocity: float = 2.4 # Real lunar hop (~1.77m apex under 1.62 m/s² gravity)
+@export var gravity: float = 1.62 # Exact real NASA Moon gravitation (1.62 m/s², ~0.166g)
 @export var mouse_sensitivity: float = 0.0028
 @export var min_pitch: float = deg_to_rad(-62.0)
 @export var max_pitch: float = deg_to_rad(65.0)
@@ -113,6 +113,12 @@ func _connect_subsystems() -> void:
 			footprint_system.add_to_group("footprints")
 			get_parent().add_child(footprint_system)
 	
+	# Floor adhesion on uneven lunar regolith: prevents unwanted floating over slopes and craters
+	floor_snap_length = 0.45
+	floor_constant_speed = true
+	floor_max_angle = deg_to_rad(50.0)
+	floor_stop_on_slope = true
+	
 	if dust_system and dust_system.has_method("set_gravity"):
 		dust_system.set_gravity(gravity)
 
@@ -169,14 +175,19 @@ func release_mouse() -> void:
 	is_mouse_captured = false
 
 func _physics_process(delta: float) -> void:
-	# Apply exact lunar gravity (1.62 m/s²)
+	# Apply exact real Moon gravitation (1.62 m/s²) with consistent downward pull
 	var was_in_air = not is_on_floor()
 	if was_in_air:
 		velocity.y -= gravity * delta
+		velocity.y = maxf(velocity.y, -24.0)
 		exertion_level = move_toward(exertion_level, 0.4, 0.2 * delta)
+	else:
+		if velocity.y < 0.0:
+			velocity.y = -0.6 # Maintain solid ground adhesion over craters and slopes
 	
-	# Landing detection: landing impact sound and subtle contact dust
+	# Landing detection: landing impact sound, footprint imprint and subtle contact dust
 	if was_in_air and is_on_floor():
+		floor_snap_length = 0.45
 		_handle_landing(prev_vertical_velocity)
 	prev_vertical_velocity = velocity.y
 	
@@ -269,6 +280,7 @@ func _physics_process(delta: float) -> void:
 func jump() -> void:
 	if is_on_floor() and not is_interacting:
 		velocity.y = jump_velocity
+		floor_snap_length = 0.0 # Clean lift-off for low-gravity jump
 		exertion_level = clampf(exertion_level + 0.35, 0.0, 1.0)
 		if dust_system and dust_system.has_method("emit_impact_dust"):
 			dust_system.emit_impact_dust(global_position, 0.4)

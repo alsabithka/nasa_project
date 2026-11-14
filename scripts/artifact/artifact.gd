@@ -108,7 +108,7 @@ func _setup_dust_particles() -> void:
 	var pm = ParticleProcessMaterial.new()
 	pm.direction = Vector3(0, 1, 0)
 	pm.spread = 180.0
-	pm.gravity = Vector3(0, -3.24, 0)
+	pm.gravity = Vector3(0, -1.62, 0)
 	pm.initial_velocity_min = 0.3
 	pm.initial_velocity_max = 0.5
 	pm.scale_min = 0.03

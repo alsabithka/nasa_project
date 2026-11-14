@@ -42,8 +42,8 @@ func _init_dust_pool() -> void:
 		p.explosiveness = 0.95
 		p.randomness = 0.35
 		
-		# Lunar gravitational acceleration (calibrated to 3.24 m/s² for responsiveness)
-		p.gravity = Vector3(0, -3.24, 0)
+		# Exact real Moon gravitational acceleration (1.62 m/s²)
+		p.gravity = Vector3(0, -1.62, 0)
 		p.damping_min = 0.0
 		p.damping_max = 0.0 # Strict vacuum: ZERO air drag/floating
 		
