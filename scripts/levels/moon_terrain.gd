@@ -20,19 +20,19 @@ extends Node3D
 #    - Fresh high-albedo anorthositic pulverized rock on crater rims.
 # 4. EXACT TRIMESH COLLISION: ConcavePolygonShape3D prevents falling through and normal errors.
 
-@export var terrain_size: float = 170.0
+@export var terrain_size: float = 180.0
 @export var grid_subdivisions: int = 120
 @export var ground_seed: int = 1972 # Apollo 17 mission year
 
 var terrain_body: StaticBody3D
 var terrain_mesh_instance: MeshInstance3D
 
-# Real NASA Apollo 17 Taurus-Littrow crater catalog
+# Apollo 17 Taurus-Littrow crater catalog (Open Mare Topography - Mountains Removed)
 var craters: Array = [
 	# Station 1: Camelot Crater (Major sub-floor basalt impact crater)
 	{"id": "Camelot", "pos": Vector2(21.0, 14.0), "radius": 8.5, "rim": 1.15, "depth": 2.4, "peak": false, "soil_type": "basalt"},
 	
-	# Station 4: Shorty Crater (Famous site of Harrison Schmitt's orange volcanic pyroclastic soil discovery)
+	# Station 4: Shorty Crater (Harrison Schmitt's orange volcanic pyroclastic soil discovery)
 	{"id": "Shorty", "pos": Vector2(-35.0, 8.0), "radius": 7.0, "rim": 0.95, "depth": 2.0, "peak": false, "soil_type": "orange_glass"},
 	
 	# Station 3 / LM vicinity: Steno Crater
@@ -41,14 +41,11 @@ var craters: Array = [
 	# ALSEP deployment crater site
 	{"id": "ALSEP_Pond", "pos": Vector2(-25.0, 18.0), "radius": 5.2, "rim": 0.60, "depth": 1.2, "peak": false, "soil_type": "regolith"},
 	
-	# North Massif Bounding Crater
-	{"id": "North_Massif_Impact", "pos": Vector2(46.0, -32.0), "radius": 16.0, "rim": 2.4, "depth": 4.8, "peak": true, "soil_type": "anorthosite"},
-	
-	# South Massif Border Crater
-	{"id": "South_Border", "pos": Vector2(-48.0, 36.0), "radius": 13.0, "rim": 1.8, "depth": 3.4, "peak": false, "soil_type": "regolith"},
-	
-	# East Sculptured Hills Crater
-	{"id": "East_Hills_Crater", "pos": Vector2(36.0, 38.0), "radius": 9.5, "rim": 1.25, "depth": 2.5, "peak": false, "soil_type": "regolith"},
+	# Open Mare Impact Craters across the lunar plain
+	{"id": "Mare_Crater_East", "pos": Vector2(52.0, -28.0), "radius": 8.0, "rim": 0.85, "depth": 1.8, "peak": false, "soil_type": "regolith"},
+	{"id": "Mare_Crater_West", "pos": Vector2(-54.0, 34.0), "radius": 7.5, "rim": 0.80, "depth": 1.6, "peak": false, "soil_type": "regolith"},
+	{"id": "Mare_Crater_North", "pos": Vector2(16.0, 54.0), "radius": 8.5, "rim": 0.90, "depth": 1.9, "peak": false, "soil_type": "regolith"},
+	{"id": "Mare_Crater_South", "pos": Vector2(-12.0, -58.0), "radius": 8.0, "rim": 0.85, "depth": 1.7, "peak": false, "soil_type": "regolith"},
 	
 	# Secondary impact pits (LOLA documented secondary bombardment)
 	{"id": "Micro_1", "pos": Vector2(6.0, 8.0), "radius": 3.2, "rim": 0.38, "depth": 0.75, "peak": false, "soil_type": "regolith"},
@@ -64,7 +61,6 @@ func _ready() -> void:
 	_generate_lunar_terrain_mesh_and_collision()
 	_create_scientific_boulders_and_debris()
 	_create_corrugated_trails()
-	_create_taurus_littrow_massifs()
 	_create_earth_in_sky()
 	_instantiate_exploration_systems()
 	_align_scene_objects_to_surface()
@@ -73,24 +69,39 @@ func _ready() -> void:
 func get_terrain_height(x: float, z: float) -> float:
 	return _calc_height(x, z)
 
-# Calculates the lunar surface elevation by combining:
-# 1. Measured LOLA Taurus-Littrow valley floor gradient and massif foothills
-# 2. Authentic crater rim, parabolic bowl, and ejecta morphology
-# 3. Procedural high-frequency regolith micro-relief
+func get_world_size() -> float:
+	return terrain_size
+
+# Computes distance on a toroidally connected manifold (connecting one end to another)
+func _toroidal_dist(x: float, z: float, cx: float, cz: float) -> float:
+	var dx = absf(x - cx)
+	if dx > terrain_size * 0.5:
+		dx = terrain_size - dx
+	var dz = absf(z - cz)
+	if dz > terrain_size * 0.5:
+		dz = terrain_size - dz
+	return sqrt(dx * dx + dz * dz)
+
+# Calculates the lunar surface elevation with 100% periodic seamless boundary continuity
+# Mountains are removed: terrain is an open mare expanse connecting seamlessly across ends like a sphere
 func _calc_height(x: float, z: float) -> float:
-	# 1. Measured Regional Topography: Taurus-Littrow valley floor with regional gradient
-	# Valley floor rises gently toward North Massif (-z) and South Massif (+z)
-	var valley_floor = (z * z * 0.0006) + (x * 0.015)
+	# Harmonic angular frequencies strictly periodic across terrain_size:
+	# sin(k * (x + L)) = sin(k * x + 2*pi*n) = sin(k * x)
+	var k1 = TAU / terrain_size
+	var k2 = TAU * 2.0 / terrain_size
+	var k3 = TAU * 3.0 / terrain_size
+	var k8 = TAU * 8.0 / terrain_size
+	var k14 = TAU * 14.0 / terrain_size
 	
-	# Natural undulating swells (lunar mare dorsa ridges)
-	var dorsa = sin(x * 0.032) * cos(z * 0.028) * 1.4 + cos((x + z * 0.65) * 0.020) * 0.9
+	# Open undulating swells (lunar mare dorsa ridges)
+	var dorsa = sin(x * k1) * cos(z * k1) * 1.1 + cos((x + z * 0.5) * k2) * 0.65 + sin((x - z) * k3) * 0.35
 	
-	# High-frequency procedural micro-relief (cm-scale roughness of regolith blanket)
-	var micro_relief = sin(x * 0.35 + z * 0.28) * 0.06 + cos(x * 0.52 - z * 0.44) * 0.04
+	# High-frequency procedural micro-relief (cm-scale regolith roughness)
+	var micro_relief = sin(x * k8 + z * k8) * 0.05 + cos(x * k14 - z * k14) * 0.03
 	
-	var total_h = valley_floor + dorsa + micro_relief
+	var total_h = dorsa + micro_relief
 	
-	# 2. Impact crater profiles
+	# Impact crater profiles wrapped toroidally
 	for c in craters:
 		var center: Vector2 = c["pos"]
 		var R: float = c["radius"]
@@ -98,18 +109,16 @@ func _calc_height(x: float, z: float) -> float:
 		var depth: float = c["depth"]
 		var has_peak: bool = c.get("peak", false)
 		
-		var dist = Vector2(x, z).distance_to(center)
+		var dist = _toroidal_dist(x, z, center.x, center.y)
 		if dist < R * 2.8:
 			var u = dist / R
 			if u < 1.0:
-				# Parabolic inner bowl: drops to -depth, rises to +rim at u=1.0
 				var bowl = -depth * (1.0 - u * u) + rim_h * (u * u)
 				if has_peak and u < 0.28:
 					var pu = u / 0.28
 					bowl += (rim_h * 1.3) * (1.0 - pu * pu)
 				total_h += bowl
 			else:
-				# Sloping ejecta blanket: elevated rim tapering outward smoothly into ambient terrain
 				var ejecta = rim_h * exp(-2.5 * (u - 1.0)) * (1.0 - clampf((u - 1.0) / 1.8, 0.0, 1.0))
 				total_h += ejecta
 	
@@ -126,7 +135,7 @@ func _calc_vertex_color(x: float, z: float) -> Color:
 	for c in craters:
 		var center: Vector2 = c["pos"]
 		var R: float = c["radius"]
-		var dist = Vector2(x, z).distance_to(center)
+		var dist = _toroidal_dist(x, z, center.x, center.y)
 		if dist < R * 2.4:
 			var u = dist / R
 			var stype: String = c.get("soil_type", "regolith")
@@ -256,13 +265,32 @@ func _generate_lunar_terrain_mesh_and_collision() -> void:
 	terrain_mesh_instance.mesh = mesh
 	terrain_body.add_child(terrain_mesh_instance)
 	
-	# Exact ConcavePolygonShape3D collision
+	# Exact ConcavePolygonShape3D collision for primary center tile
 	var col_shape = CollisionShape3D.new()
 	col_shape.name = "TerrainCollisionShape"
-	col_shape.shape = mesh.create_trimesh_shape()
+	var trimesh_shape = mesh.create_trimesh_shape()
+	col_shape.shape = trimesh_shape
 	terrain_body.add_child(col_shape)
+	
+	# 8 Surrounding wrap tiles: connects the moon from one end to another
+	# creates seamless visual and physical horizon in all directions (infinite walkable moon)
+	for ox in [-terrain_size, 0.0, terrain_size]:
+		for oz in [-terrain_size, 0.0, terrain_size]:
+			if ox == 0.0 and oz == 0.0:
+				continue
+			var wrap_mesh = MeshInstance3D.new()
+			wrap_mesh.name = "WrapMesh_%d_%d" % [int(ox), int(oz)]
+			wrap_mesh.mesh = mesh
+			wrap_mesh.position = Vector3(ox, 0, oz)
+			terrain_body.add_child(wrap_mesh)
+			
+			var wrap_col = CollisionShape3D.new()
+			wrap_col.name = "WrapCol_%d_%d" % [int(ox), int(oz)]
+			wrap_col.shape = trimesh_shape
+			wrap_col.position = Vector3(ox, 0, oz)
+			terrain_body.add_child(wrap_col)
 
-# Creates verified Apollo 17 boulders including Station 6 split boulder (Tracy's Rock)
+# Creates verified Apollo 17 boulders (open lunar plain boulders, mountain ejecta removed)
 func _create_scientific_boulders_and_debris() -> void:
 	var boulder_albedo = _load_texture("res://textures/moon/lunar_boulder_albedo.png")
 	var boulder_normal = _load_texture("res://textures/moon/lunar_boulder_normal.png")
@@ -289,18 +317,17 @@ func _create_scientific_boulders_and_debris() -> void:
 	light_mat.roughness = 0.88
 	light_mat.diffuse_mode = BaseMaterial3D.DIFFUSE_BURLEY
 	
-	# Verified Apollo 17 landmark boulders
+	# Verified Apollo 17 landmark boulders (open plain boulders, mountain ejecta removed)
 	var landmark_boulders = [
-		# Station 6: Tracy's Rock (North Massif fractured norite breccia, ~5m split boulder)
-		{"name": "TracysRock", "pos": Vector2(10.0, 32.0), "radius": 2.8, "h_scale": 1.25, "rot": Vector3(14, 45, -12), "dark": false},
+		# Station 6: Tracy's Rock (fractured norite breccia split boulder)
+		{"name": "TracysRock", "pos": Vector2(10.0, 32.0), "radius": 2.4, "h_scale": 1.25, "rot": Vector3(14, 45, -12), "dark": false},
 		# Station 1: Camelot Crater rim basalt boulders
-		{"name": "CamelotBoulder1", "pos": Vector2(16.0, 10.0), "radius": 1.8, "h_scale": 1.1, "rot": Vector3(8, 25, 10), "dark": true},
-		{"name": "CamelotBoulder2", "pos": Vector2(26.0, 18.0), "radius": 2.1, "h_scale": 1.3, "rot": Vector3(-12, 70, 14), "dark": true},
+		{"name": "CamelotBoulder1", "pos": Vector2(16.0, 10.0), "radius": 1.6, "h_scale": 1.1, "rot": Vector3(8, 25, 10), "dark": true},
+		{"name": "CamelotBoulder2", "pos": Vector2(26.0, 18.0), "radius": 1.8, "h_scale": 1.3, "rot": Vector3(-12, 70, 14), "dark": true},
 		# Station 4: Shorty Crater ejecta boulder
-		{"name": "ShortyBoulder", "pos": Vector2(-38.0, 12.0), "radius": 1.9, "h_scale": 1.2, "rot": Vector3(-8, 115, -6), "dark": true},
+		{"name": "ShortyBoulder", "pos": Vector2(-38.0, 12.0), "radius": 1.7, "h_scale": 1.2, "rot": Vector3(-8, 115, -6), "dark": true},
 		# Steno & ALSEP ejecta
-		{"name": "StenoBoulder", "pos": Vector2(-24.0, -26.0), "radius": 2.0, "h_scale": 1.15, "rot": Vector3(10, 50, -8), "dark": false},
-		{"name": "NorthMassif_Ejecta", "pos": Vector2(40.0, -22.0), "radius": 3.2, "h_scale": 1.5, "rot": Vector3(16, 125, 8), "dark": true}
+		{"name": "StenoBoulder", "pos": Vector2(-24.0, -26.0), "radius": 1.8, "h_scale": 1.15, "rot": Vector3(10, 50, -8), "dark": false}
 	]
 	
 	for b in landmark_boulders:
@@ -329,6 +356,16 @@ func _create_scientific_boulders_and_debris() -> void:
 		var col = CollisionShape3D.new()
 		col.shape = s_mesh.create_convex_shape()
 		b_body.add_child(col)
+		
+		# Place visual replicas on cardinal wrap tiles for horizon continuity
+		for offset in [Vector2(-terrain_size, 0), Vector2(terrain_size, 0), Vector2(0, -terrain_size), Vector2(0, terrain_size)]:
+			var rep_pos = p2 + offset
+			var rep_y = _calc_height(rep_pos.x, rep_pos.y)
+			var rep_mesh_inst = MeshInstance3D.new()
+			rep_mesh_inst.mesh = s_mesh
+			rep_mesh_inst.position = Vector3(rep_pos.x, rep_y + r * 0.42, rep_pos.y)
+			rep_mesh_inst.rotation_degrees = b["rot"]
+			add_child(rep_mesh_inst)
 	
 	# Scattered medium and small regolith stones
 	var stones = [
@@ -402,39 +439,6 @@ func _build_trail(start_2d: Vector2, end_2d: Vector2, steps: int, mat: Material,
 			boot.position = Vector3(b_pos.x, b_y, b_pos.y)
 			boot.rotation.y = rot_y
 			add_child(boot)
-
-# Taurus-Littrow mountain massif ridges framing the horizon
-func _create_taurus_littrow_massifs() -> void:
-	var massif_albedo = _load_texture("res://textures/moon/lunar_regolith_albedo.png")
-	var massif_normal = _load_texture("res://textures/moon/lunar_regolith_normal.png")
-	
-	var horizon_mat = StandardMaterial3D.new()
-	horizon_mat.albedo_color = Color(0.35, 0.37, 0.40)
-	if massif_albedo:
-		horizon_mat.albedo_texture = massif_albedo
-	if massif_normal:
-		horizon_mat.normal_enabled = true
-		horizon_mat.normal_texture = massif_normal
-		horizon_mat.normal_scale = 1.8
-	horizon_mat.roughness = 0.98
-	horizon_mat.diffuse_mode = BaseMaterial3D.DIFFUSE_BURLEY
-	
-	var angles = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]
-	var dist = 120.0
-	
-	for a in angles:
-		var rad = deg_to_rad(a)
-		var peak = MeshInstance3D.new()
-		var p_mesh = CylinderMesh.new()
-		p_mesh.top_radius = randf_range(1.0, 3.0)
-		p_mesh.bottom_radius = randf_range(35.0, 50.0)
-		p_mesh.height = randf_range(24.0, 38.0)
-		p_mesh.radial_segments = 14
-		p_mesh.material = horizon_mat
-		peak.mesh = p_mesh
-		peak.position = Vector3(sin(rad) * dist, 5.0, cos(rad) * dist)
-		peak.scale = Vector3(1.2, 0.85, 1.2)
-		add_child(peak)
 
 # Iconic Earth visible in the pitch black lunar daytime sky
 func _create_earth_in_sky() -> void:

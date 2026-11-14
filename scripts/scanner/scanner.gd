@@ -94,6 +94,13 @@ func _perform_scan() -> void:
 	
 	var closest_artifact: Node = null
 	var closest_dist: float = max_scan_range + 10.0
+	var closest_delta: Vector3 = Vector3.ZERO
+	
+	var terrain = get_tree().get_first_node_in_group("terrain")
+	var world_size: float = 180.0
+	if terrain and "terrain_size" in terrain:
+		world_size = terrain.terrain_size
+	var half_world: float = world_size * 0.5
 	
 	for art in artifacts:
 		if not art.has_method("get_artifact_id") or not art.has_method("get_world_position"):
@@ -104,15 +111,29 @@ func _perform_scan() -> void:
 		if game_state and game_state.is_artifact_recovered(art_id):
 			continue
 		
-		var dist = scan_origin.distance_to(art.get_world_position())
+		var art_pos = art.get_world_position()
+		var dx = art_pos.x - scan_origin.x
+		if world_size > 0.0:
+			if dx > half_world: dx -= world_size
+			elif dx < -half_world: dx += world_size
+		
+		var dz = art_pos.z - scan_origin.z
+		if world_size > 0.0:
+			if dz > half_world: dz -= world_size
+			elif dz < -half_world: dz += world_size
+		
+		var dy = art_pos.y - scan_origin.y
+		var dist = sqrt(dx * dx + dy * dy + dz * dz)
+		
 		if dist < closest_dist:
 			closest_dist = dist
 			closest_artifact = art
+			closest_delta = Vector3(dx, dy, dz)
 	
 	if closest_artifact != null and closest_dist <= max_scan_range:
 		var art_id = closest_artifact.get_artifact_id()
 		var strength = clamp(1.0 - (closest_dist / max_scan_range), 0.0, 1.0)
-		target_direction = (closest_artifact.get_world_position() - scan_origin).normalized()
+		target_direction = closest_delta.normalized()
 		
 		if current_target_id != art_id:
 			current_target_id = art_id

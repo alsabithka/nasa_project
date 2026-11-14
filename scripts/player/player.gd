@@ -333,6 +333,42 @@ func _physics_process(delta: float) -> void:
 	
 	_animate_astronaut(delta, is_moving_horizontal, active_loping)
 	move_and_slide()
+	_handle_spherical_world_wrap()
+
+# Connects the moon from one end to another (like a sphere where the character can walk infinitely)
+func _handle_spherical_world_wrap() -> void:
+	if is_interacting:
+		return
+		
+	var terrain = get_tree().get_first_node_in_group("terrain")
+	var world_size: float = 180.0
+	if terrain and "terrain_size" in terrain:
+		world_size = terrain.terrain_size
+	
+	var half_size: float = world_size * 0.5
+	var did_wrap: bool = false
+	var new_pos: Vector3 = global_position
+	
+	if new_pos.x > half_size:
+		new_pos.x -= world_size
+		did_wrap = true
+	elif new_pos.x < -half_size:
+		new_pos.x += world_size
+		did_wrap = true
+		
+	if new_pos.z > half_size:
+		new_pos.z -= world_size
+		did_wrap = true
+	elif new_pos.z < -half_size:
+		new_pos.z += world_size
+		did_wrap = true
+		
+	if did_wrap:
+		if terrain and terrain.has_method("get_terrain_height"):
+			var surface_y = terrain.get_terrain_height(new_pos.x, new_pos.z)
+			var h_diff = new_pos.y - surface_y
+			new_pos.y = surface_y + maxf(0.02, h_diff)
+		global_position = new_pos
 
 func jump() -> void:
 	if not is_interacting:
