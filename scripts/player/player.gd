@@ -1,31 +1,30 @@
 extends CharacterBody3D
 
-# Roblox-style 3D Third-Person Character Controller
+# Realistic EVA Spacesuit Astronaut with Handheld Scientific Survey Scanner
 # Compliant with Echoes Beyond Earth team interfaces.
 
-@export var speed: float = 7.5
-@export var jump_velocity: float = 6.5
-@export var gravity: float = 4.0 # Default Moon gravity
+@export var speed: float = 7.0
+@export var jump_velocity: float = 6.2
+@export var gravity: float = 3.8 # Default Moon gravity (1.62 m/s^2 feel in game units)
 @export var mouse_sensitivity: float = 0.003
 @export var min_pitch: float = deg_to_rad(-70.0)
-@export var max_pitch: float = deg_to_rad(50.0)
+@export var max_pitch: float = deg_to_rad(55.0)
 
 @onready var camera_pivot: Node3D = $CameraPivot
 @onready var spring_arm: SpringArm3D = $CameraPivot/SpringArm3D
 @onready var camera: Camera3D = $CameraPivot/SpringArm3D/Camera3D
 @onready var visuals: Node3D = $Visuals
+@onready var torso: Node3D = $Visuals/Torso
 @onready var left_arm: Node3D = $Visuals/Torso/LeftArm
 @onready var right_arm: Node3D = $Visuals/Torso/RightArm
 @onready var left_leg: Node3D = $Visuals/Torso/LeftLeg
 @onready var right_leg: Node3D = $Visuals/Torso/RightLeg
-
-# Scanner arm animation
-var _scanner_raise_target: float = 0.0  # 0=lowered, 1=raised
-var _scanner_raise_current: float = 0.0
-@onready var scanner_device_node: Node3D = $Visuals/Torso/RightArm/ScannerDevice
+@onready var scanner_device: Node3D = $Visuals/Torso/RightArm/ScannerDevice
+@onready var scanner_screen: MeshInstance3D = $Visuals/Torso/RightArm/ScannerDevice/Screen
 
 var is_mouse_captured: bool = false
 var walk_cycle: float = 0.0
+var scanner_raise_weight: float = 0.0
 
 # Agreed public interface for Scanner
 func get_scan_origin() -> Vector3:
@@ -62,7 +61,7 @@ func release_mouse() -> void:
 	is_mouse_captured = false
 
 func _physics_process(delta: float) -> void:
-	# Apply gravity
+	# Apply low lunar gravity
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 	
@@ -70,7 +69,7 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = jump_velocity
 	
-	# Get movement input (camera relative)
+	# Camera relative movement
 	var input_dir = Vector2.ZERO
 	if Input.is_action_pressed("move_forward"):
 		input_dir.y -= 1.0
@@ -82,7 +81,6 @@ func _physics_process(delta: float) -> void:
 		input_dir.x += 1.0
 	input_dir = input_dir.normalized()
 	
-	# Compute direction from camera horizontal heading
 	var cam_basis = camera_pivot.global_transform.basis
 	var forward = -cam_basis.z
 	forward.y = 0.0
@@ -92,58 +90,64 @@ func _physics_process(delta: float) -> void:
 	right = right.normalized()
 	
 	var move_direction = (forward * -input_dir.y + right * input_dir.x).normalized()
+	var is_moving = move_direction.length() > 0.01
 	
-	# Update scanner raise target from scanner child
-	var scanner = get_node_or_null("Scanner")
-	if scanner and scanner.has_method("get_signal_strength"):
-		_scanner_raise_target = scanner.get_signal_strength()
-	else:
-		_scanner_raise_target = 0.0
-	
-	# Smooth scanner raise current value
-	_scanner_raise_current = lerp(_scanner_raise_current, _scanner_raise_target, 3.0 * delta)
-	
-	if move_direction.length() > 0.01:
+	if is_moving:
 		velocity.x = move_direction.x * speed
 		velocity.z = move_direction.z * speed
 		
-		# Smoothly rotate visuals towards movement direction (Roblox style)
 		var target_angle = atan2(move_direction.x, move_direction.z)
-		visuals.rotation.y = lerp_angle(visuals.rotation.y, target_angle, 12.0 * delta)
-		
-		# Animate limbs procedurally
-		walk_cycle += delta * 10.0
-		var limb_angle = sin(walk_cycle) * 0.6
-		if left_arm and right_arm:
-			left_arm.rotation.x = limb_angle
-			# Right arm: blend walk animation with scanner raise
-			var scanner_target_x = -1.1 * _scanner_raise_current
-			if _scanner_raise_current > 0.05:
-				right_arm.rotation.x = lerp(right_arm.rotation.x, scanner_target_x, 5.0 * delta)
-			else:
-				right_arm.rotation.x = -limb_angle
-		if left_leg and right_leg:
-			left_leg.rotation.x = -limb_angle
-			right_leg.rotation.x = limb_angle
+		visuals.rotation.y = lerp_angle(visuals.rotation.y, target_angle, 10.0 * delta)
+		walk_cycle += delta * 7.5 # Realistic deliberate moonwalking stride
 	else:
-		velocity.x = move_toward(velocity.x, 0.0, speed * 8.0 * delta)
-		velocity.z = move_toward(velocity.z, 0.0, speed * 8.0 * delta)
-		
-		# Reset limb positions or hold scanner raise
-		if left_arm and right_arm:
-			left_arm.rotation.x = lerp(left_arm.rotation.x, 0.0, 10.0 * delta)
-			var scanner_target_x = -1.1 * _scanner_raise_current
-			right_arm.rotation.x = lerp(right_arm.rotation.x, scanner_target_x, 5.0 * delta)
-		if left_leg and right_leg:
-			left_leg.rotation.x = lerp(left_leg.rotation.x, 0.0, 10.0 * delta)
-			right_leg.rotation.x = lerp(right_leg.rotation.x, 0.0, 10.0 * delta)
+		velocity.x = move_toward(velocity.x, 0.0, speed * 6.0 * delta)
+		velocity.z = move_toward(velocity.z, 0.0, speed * 6.0 * delta)
 	
-	# Scanner device scanning animation
-	if scanner_device_node:
-		scanner_device_node.rotation.y = lerp(
-			scanner_device_node.rotation.y,
-			sin(Time.get_ticks_msec() * 0.001) * 0.3 * _scanner_raise_current,
-			3.0 * delta
-		)
-	
+	_animate_astronaut(delta, is_moving)
 	move_and_slide()
+
+func _animate_astronaut(delta: float, is_moving: bool) -> void:
+	# Read signal strength from attached scanner
+	var signal_strength: float = 0.0
+	var scanner = get_node_or_null("Scanner")
+	if not scanner:
+		scanner = get_tree().get_first_node_in_group("scanner")
+	if scanner and scanner.has_method("get_signal_strength"):
+		signal_strength = scanner.get_signal_strength()
+	
+	# Blend arm toward survey scanning raise
+	var target_raise = 1.0 if signal_strength > 0.08 else 0.0
+	scanner_raise_weight = lerp(scanner_raise_weight, target_raise, 4.0 * delta)
+	
+	# Natural walking stride
+	var stride_angle = sin(walk_cycle) * 0.45 if is_moving else 0.0
+	
+	# Legs
+	if left_leg and right_leg:
+		left_leg.rotation.x = lerp(left_leg.rotation.x, -stride_angle, 12.0 * delta)
+		right_leg.rotation.x = lerp(right_leg.rotation.x, stride_angle, 12.0 * delta)
+	
+	# Left arm swings with walk
+	if left_arm:
+		left_arm.rotation.x = lerp(left_arm.rotation.x, stride_angle * 0.7, 10.0 * delta)
+	
+	# Right arm: holds and points handheld scanner
+	if right_arm:
+		if scanner_raise_weight > 0.05:
+			# Raised survey scanning posture (pointed forward/downward toward signal)
+			var scan_angle = -0.95 - (signal_strength * 0.3)
+			# Subtle scanning sweep motion
+			var sweep = sin(Time.get_ticks_msec() * 0.003) * 0.12 * (1.0 - signal_strength)
+			right_arm.rotation.x = lerp(right_arm.rotation.x, scan_angle, 6.0 * delta)
+			right_arm.rotation.y = lerp(right_arm.rotation.y, -0.25 + sweep, 6.0 * delta)
+		else:
+			# Relaxed resting arm with scanner at side
+			right_arm.rotation.x = lerp(right_arm.rotation.x, -stride_angle * 0.4, 8.0 * delta)
+			right_arm.rotation.y = lerp(right_arm.rotation.y, 0.0, 8.0 * delta)
+	
+	# Update handheld scanner device screen emission pulse
+	if scanner_screen and signal_strength > 0.05:
+		var pulse = (sin(Time.get_ticks_msec() * (0.005 + signal_strength * 0.02)) + 1.0) * 0.5
+		var mat = scanner_screen.get_active_material(0)
+		if mat is StandardMaterial3D:
+			mat.emission_energy_multiplier = 1.2 + pulse * 2.0 * signal_strength

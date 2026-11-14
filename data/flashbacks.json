@@ -1,0 +1,67 @@
+{
+  "flashbacks": {
+    "apollo_lrv": {
+      "title": "Lunar Roving Vehicle (LRV) — 1971",
+      "subtitle": "Apollo 15, 16, and 17 Surface Missions",
+      "scenes": [
+        {
+          "header": "HADLEY-APENNINE REGION — JULY 31, 1971",
+          "narrative": "A Boeing-built electric rover is unfolded from the side of Apollo 15's Lunar Module 'Falcon'. For the first time in human history, astronauts prepare to drive across the surface of another world.",
+          "duration": 4.5
+        },
+        {
+          "header": "EXPANDING HUMAN HORIZONS",
+          "narrative": "Astronauts David Scott and James Irwin traverse 27.9 kilometers across Hadley Delta and the rim of Hadley Rille. The rover allows collection of the 4-billion-year-old 'Genesis Rock' and massive core samples.",
+          "duration": 4.5
+        },
+        {
+          "header": "PERMANENT LUNAR MONUMENT",
+          "narrative": "Parked facing Earth to televise the lunar module liftoff, three LRVs remain stationed across Taurus-Littrow, Descartes Highlands, and Hadley-Apennine — perfectly preserved in the silent lunar vacuum.",
+          "duration": 4.5
+        }
+      ]
+    },
+    "apollo_lm_descent_stage": {
+      "title": "Apollo 11 Lunar Module Descent Stage — 1969",
+      "subtitle": "Tranquility Base, Sea of Tranquility",
+      "scenes": [
+        {
+          "header": "MARE TRANQUILLITATIS — JULY 20, 1969",
+          "narrative": "With fuel running dangerously low, Commander Neil Armstrong takes manual semi-automatic control, navigating the LM 'Eagle' over a treacherous boulder field to touch down safely.",
+          "duration": 4.5
+        },
+        {
+          "header": "THE FIRST SURFACE OUTPOST",
+          "narrative": "'Houston, Tranquility Base here. The Eagle has landed.' The gold-mylar clad descent stage serves as humanity's first home base and laboratory beyond Earth during the historic 21-hour stay.",
+          "duration": 4.5
+        },
+        {
+          "header": "A MESSAGE FOR ALL TIME",
+          "narrative": "The ascent stage launches into lunar orbit, leaving the descent stage on the Moon as its permanent launch pad. Mounted to its strut is the historic plaque: 'We came in peace for all mankind.'",
+          "duration": 4.5
+        }
+      ]
+    },
+    "alsep": {
+      "title": "Apollo Lunar Surface Experiments Package — 1969–1977",
+      "subtitle": "Nuclear-Powered Geophysical Observatory",
+      "scenes": [
+        {
+          "header": "OCEAN OF STORMS — NOVEMBER 19, 1969",
+          "narrative": "Apollo 12 astronauts deploy the ALSEP central station and instrument array, powered by a plutonium-238 radioisotope thermoelectric generator (RTG) built to withstand the extreme lunar day-night cycle.",
+          "duration": 4.5
+        },
+        {
+          "header": "A WINDOW INTO THE LUNAR INTERIOR",
+          "narrative": "Passive seismometers, solar wind spectrometers, and suprathermal ion detectors beam continuous data back to Earth, detecting thousands of deep moonquakes and proving the Moon has a partially molten core.",
+          "duration": 4.5
+        },
+        {
+          "header": "EIGHT YEARS OF SCIENCE",
+          "narrative": "Designed to operate for just one year, ALSEP stations transmitted discoveries until NASA deactivated them on September 30, 1977. Their quiet stations remain monuments to long-duration planetary science.",
+          "duration": 4.5
+        }
+      ]
+    }
+  }
+}

@@ -1,6 +1,6 @@
 extends Control
 
-# Echoes Beyond Earth - Roblox-style In-Game HUD, Scanner Radar & Journal
+# Echoes Beyond Earth - In-Game HUD, Mystery Scanner Radar, Discovery & Flashback Flow
 
 @export var current_planet: String = "Moon"
 
@@ -61,7 +61,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _setup_buttons() -> void:
 	journal_button.pressed.connect(toggle_journal)
 	menu_button.pressed.connect(_on_menu_pressed)
-	popup_close_btn.pressed.connect(func(): discovery_popup.visible = false)
+	popup_close_btn.pressed.connect(_on_popup_closed)
 	popup_journal_btn.pressed.connect(_open_journal_to_last_discovered)
 	journal_close_btn.pressed.connect(func(): journal_modal.visible = false)
 	
@@ -88,12 +88,14 @@ func _connect_scanner() -> void:
 		if s.has_signal("scan_updated"):
 			s.scan_updated.connect(_on_scan_updated)
 
+# Mystery Scanner: Proximity and Signal Strength only, NEVER reveals artifact identity!
 func _on_scan_updated(target_id: String, distance: float, signal_strength: float) -> void:
 	if target_id == "" or distance > 60.0:
 		distance_label.text = "-- m"
 		strength_bar.value = 0
-		target_name_label.text = "Searching..."
-		target_name_label.modulate = Color(0.7, 0.7, 0.7)
+		target_name_label.text = "Searching for signals..."
+		target_name_label.modulate = Color(0.65, 0.7, 0.75)
+		distance_label.modulate = Color(0.6, 0.65, 0.7)
 		if compass_needle:
 			compass_needle.rotation = 0.0
 		return
@@ -101,25 +103,23 @@ func _on_scan_updated(target_id: String, distance: float, signal_strength: float
 	distance_label.text = "%.1f m" % distance
 	strength_bar.value = signal_strength * 100.0
 	
-	var gs = get_node_or_null("/root/GameState")
-	var art_name = target_id.capitalize()
-	if gs:
-		var data = gs.get_artifact_data(target_id)
-		if not data.is_empty():
-			art_name = data.get("name", target_id)
-	
-	target_name_label.text = art_name
-	
-	# Color code distance
-	if distance < 6.0:
-		distance_label.modulate = Color(0.2, 1.0, 0.4) # Green close
+	# Mystery-based signal categorization
+	if distance <= 4.0:
+		target_name_label.text = "● ANOMALY BENEATH SURFACE — DIG HERE"
 		target_name_label.modulate = Color(0.2, 1.0, 0.4)
-	elif distance < 20.0:
-		distance_label.modulate = Color(1.0, 0.9, 0.2) # Yellow mid
-		target_name_label.modulate = Color(1.0, 0.9, 0.2)
+		distance_label.modulate = Color(0.2, 1.0, 0.4)
+	elif distance < 12.0:
+		target_name_label.text = "▲ STRONG SUBSURFACE ANOMALY"
+		target_name_label.modulate = Color(0.3, 0.9, 1.0)
+		distance_label.modulate = Color(0.3, 0.9, 1.0)
+	elif distance < 25.0:
+		target_name_label.text = "◆ MODERATE SIGNAL DETECTED"
+		target_name_label.modulate = Color(1.0, 0.85, 0.2)
+		distance_label.modulate = Color(1.0, 0.85, 0.2)
 	else:
-		distance_label.modulate = Color(0.4, 0.8, 1.0) # Blue far
-		target_name_label.modulate = Color(0.8, 0.85, 0.95)
+		target_name_label.text = "~ FAINT SIGNAL DETECTED"
+		target_name_label.modulate = Color(0.75, 0.8, 0.9)
+		distance_label.modulate = Color(0.75, 0.8, 0.9)
 
 func _on_artifact_recovered(artifact_id: String) -> void:
 	_last_discovered_id = artifact_id
@@ -128,11 +128,24 @@ func _on_artifact_recovered(artifact_id: String) -> void:
 	if journal_modal.visible:
 		_populate_journal(selected_journal_planet)
 
+func _on_popup_closed() -> void:
+	discovery_popup.visible = false
+	# Trigger cinematic historical flashback after discovery
+	if _last_discovered_id != "":
+		_trigger_flashback(_last_discovered_id)
+
+func _trigger_flashback(artifact_id: String) -> void:
+	var flashback_scene = load("res://scenes/ui/flashback.tscn")
+	if flashback_scene:
+		var fb = flashback_scene.instantiate()
+		fb.artifact_id = artifact_id
+		add_child(fb)
+
 func _on_mission_completed(planet: String) -> void:
 	if completion_modal:
 		completion_modal.visible = true
 		if planet == "Moon":
-			completion_desc.text = "You have discovered and recovered all historical NASA artifacts on the Moon! Mars exploration coordinates are now unlocked."
+			completion_desc.text = "You have excavated, restored, and cataloged all historical Apollo lunar equipment! Mars exploration coordinates are now unlocked."
 			if travel_mars_btn:
 				travel_mars_btn.visible = true
 		else:
@@ -158,14 +171,14 @@ func _show_discovery_popup(artifact_id: String) -> void:
 	if gs:
 		data = gs.get_artifact_data(artifact_id)
 	
-	popup_title.text = "ARTIFACT RECOVERED!"
+	popup_title.text = "ARTIFACT IDENTIFIED & RESTORED!"
 	popup_name.text = data.get("name", artifact_id.capitalize())
 	popup_mission.text = "Mission: %s (%s) | Status: %s" % [
 		str(data.get("mission", "Unknown")),
 		str(data.get("year", "N/A")),
 		str(data.get("status", "Active"))
 	]
-	popup_history.text = "[b]Purpose:[/b] %s\n\n[b]History:[/b] %s" % [
+	popup_history.text = "[b]Purpose:[/b] %s\n\n[b]Historical Narrative:[/b] %s" % [
 		data.get("purpose", ""),
 		data.get("history", "")
 	]
@@ -216,7 +229,7 @@ func _populate_journal(planet: String) -> void:
 			btn.text = " [✓] " + data.get("name", id)
 			btn.modulate = Color(0.9, 1.0, 0.9)
 		else:
-			btn.text = " [ ? ] Undiscovered Artifact"
+			btn.text = " [ ? ] Unidentified Subsurface Anomaly"
 			btn.modulate = Color(0.6, 0.65, 0.75)
 		
 		var target_id = id
@@ -251,9 +264,9 @@ func _show_artifact_detail(artifact_id: String) -> void:
 			sources_str
 		]
 	else:
-		journal_detail_name.text = "Unknown Artifact"
+		journal_detail_name.text = "Unidentified Anomaly"
 		journal_detail_name.modulate = Color(0.7, 0.7, 0.7)
-		journal_detail_text.text = "[i]This artifact has not been recovered yet.\n\nUse your proximity scanner to trace its signal and explore the terrain![/i]"
+		journal_detail_text.text = "[i]This historical object remains buried beneath the lunar dust.\n\nFollow your handheld survey scanner signal to locate, excavate, and clean the artifact to uncover its identity and mission history![/i]"
 
 func _on_menu_pressed() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE

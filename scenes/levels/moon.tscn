@@ -1,21 +1,18 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/level.gd" id="1_level"]
-[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
-[ext_resource type="PackedScene" path="res://scenes/scanner/scanner.tscn" id="3_scanner"]
-[ext_resource type="PackedScene" path="res://scenes/artifact/artifact.tscn" id="4_artifact"]
-[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="5_hud"]
-[ext_resource type="Script" path="res://scripts/levels/moon_terrain.gd" id="6_terrain"]
+[ext_resource type="Script" path="res://scripts/levels/moon_terrain.gd" id="2_terrain"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="3_player"]
+[ext_resource type="PackedScene" path="res://scenes/scanner/scanner.tscn" id="4_scanner"]
+[ext_resource type="PackedScene" path="res://scenes/artifact/artifact.tscn" id="5_artifact"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="6_hud"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat_Moon"]
-sky_top_color = Color(0.0, 0.0, 0.0, 1)
-sky_horizon_color = Color(0.02, 0.02, 0.025, 1)
-sky_curve = 0.15
-ground_bottom_color = Color(0.38, 0.4, 0.42, 1)
-ground_horizon_color = Color(0.4, 0.42, 0.44, 1)
-ground_curve = 0.02
-sun_angle_max = 30.0
-sun_curve = 0.15
+sky_top_color = Color(0.005, 0.005, 0.012, 1)
+sky_horizon_color = Color(0.015, 0.015, 0.025, 1)
+ground_bottom_color = Color(0.12, 0.13, 0.14, 1)
+ground_horizon_color = Color(0.015, 0.015, 0.025, 1)
+sun_angle_max = 12.0
 
 [sub_resource type="Sky" id="Sky_Moon"]
 sky_material = SubResource("SkyMat_Moon")
@@ -24,20 +21,10 @@ sky_material = SubResource("SkyMat_Moon")
 background_mode = 2
 sky = SubResource("Sky_Moon")
 ambient_light_source = 2
-ambient_light_color = Color(0.18, 0.2, 0.26, 1)
-ambient_light_energy = 0.35
-
-[sub_resource type="StandardMaterial3D" id="Mat_EarthGlobe"]
-albedo_color = Color(0.2, 0.45, 0.8, 1)
-roughness = 0.3
-metallic = 0.0
-
-[sub_resource type="SphereMesh" id="Mesh_Earth"]
-material = SubResource("Mat_EarthGlobe")
-radius = 25.0
-height = 50.0
-radial_segments = 32
-rings = 16
+ambient_light_color = Color(0.18, 0.20, 0.24, 1)
+ambient_light_energy = 0.4
+reflected_light_source = 1
+tonemap_mode = 2
 
 [node name="MoonLevel" type="Node3D"]
 script = ExtResource("1_level")
@@ -47,35 +34,32 @@ level_gravity = 3.8
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Env_Moon")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(0.866025, -0.25, 0.433013, 0, 0.866025, 0.5, -0.5, -0.433013, 0.75, 0, 20, 0)
-light_color = Color(1.0, 0.98, 0.95, 1)
-light_energy = 2.0
+[node name="SunDirectionalLight" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 0, 45, 0)
+light_color = Color(1, 0.98, 0.94, 1)
+light_energy = 2.2
 shadow_enabled = true
+directional_shadow_mode = 0
 
-[node name="EarthSphere" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 280, 180, -400)
-mesh = SubResource("Mesh_Earth")
+[node name="Terrain" type="Node3D" parent="."]
+script = ExtResource("2_terrain")
 
-[node name="LunarTerrain" type="Node3D" parent="."]
-script = ExtResource("6_terrain")
+[node name="Player" parent="." instance=ExtResource("3_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
 
-[node name="Player" parent="." instance=ExtResource("2_player")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+[node name="Scanner" parent="Player" instance=ExtResource("4_scanner")]
 
-[node name="Scanner" parent="Player" instance=ExtResource("3_scanner")]
-
-[node name="Artifact_LRV" parent="." instance=ExtResource("4_artifact")]
+[node name="Artifact_LRV" parent="." instance=ExtResource("5_artifact")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, 12)
 artifact_id = "apollo_lrv"
 
-[node name="Artifact_DescentStage" parent="." instance=ExtResource("4_artifact")]
+[node name="Artifact_DescentStage" parent="." instance=ExtResource("5_artifact")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, -18)
 artifact_id = "apollo_lm_descent_stage"
 
-[node name="Artifact_ALSEP" parent="." instance=ExtResource("4_artifact")]
+[node name="Artifact_ALSEP" parent="." instance=ExtResource("5_artifact")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, 15)
 artifact_id = "alsep"
 
-[node name="HUD" parent="." instance=ExtResource("5_hud")]
+[node name="HUD" parent="." instance=ExtResource("6_hud")]
 current_planet = "Moon"

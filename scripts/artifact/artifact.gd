@@ -132,9 +132,8 @@ func _on_scanner_locked_on() -> void:
 	if current_state != ArtifactState.BURIED:
 		return
 	if not _scanner_ref:
-		return
-	# Check that the scanner is targeting us (the scanner's target matches our id)
-	if _scanner_ref.get_current_target() == artifact_id:
+		_scanner_ref = get_tree().get_first_node_in_group("scanner")
+	if _scanner_ref and _scanner_ref.get_current_target() == artifact_id:
 		_set_state(ArtifactState.DIG_SITE)
 
 func _on_scanner_left() -> void:
@@ -144,10 +143,14 @@ func _on_scanner_left() -> void:
 
 # ---- Body enter/exit ----
 func _on_body_entered(body: Node3D) -> void:
-	pass # state transitions handled by scanner signals and input
+	if body.is_in_group("player"):
+		if current_state == ArtifactState.BURIED:
+			_set_state(ArtifactState.DIG_SITE)
 
 func _on_body_exited(body: Node3D) -> void:
-	pass
+	if body.is_in_group("player"):
+		if current_state == ArtifactState.DIG_SITE:
+			_set_state(ArtifactState.BURIED)
 
 # ---- State machine ----
 func _set_state(new_state: ArtifactState) -> void:
