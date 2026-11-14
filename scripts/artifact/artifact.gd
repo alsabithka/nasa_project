@@ -48,6 +48,22 @@ var artifact_name: String = ""
 var _beacon_phase: float = 0.0
 var _clean_ui: CanvasLayer = null
 var _scanner_ref: Node = null
+var _is_player_in_zone: bool = false
+var _interacting_player: CharacterBody3D = null
+
+func _get_player() -> CharacterBody3D:
+	if _interacting_player and is_instance_valid(_interacting_player):
+		return _interacting_player
+	return get_tree().get_first_node_in_group("player") as CharacterBody3D
+
+func get_interaction_anchor(player_pos: Vector3) -> Vector3:
+	var diff = player_pos - global_position
+	diff.y = 0.0
+	var dist = diff.length()
+	var dir = diff.normalized() if dist > 0.1 else Vector3(0, 0, 1.8)
+	var anchor = global_position + dir * 1.8
+	anchor.y = player_pos.y
+	return anchor
 
 # ---- Public interface (kept for scanner & game_state compatibility) ----
 func get_artifact_id() -> String:
@@ -144,13 +160,19 @@ func _on_scanner_left() -> void:
 # ---- Body enter/exit ----
 func _on_body_entered(body: Node3D) -> void:
 	if body.is_in_group("player"):
+		_is_player_in_zone = true
+		_interacting_player = body as CharacterBody3D
 		if current_state == ArtifactState.BURIED:
 			_set_state(ArtifactState.DIG_SITE)
 
 func _on_body_exited(body: Node3D) -> void:
 	if body.is_in_group("player"):
+		_is_player_in_zone = false
 		if current_state == ArtifactState.DIG_SITE:
 			_set_state(ArtifactState.BURIED)
+		elif current_state == ArtifactState.DIGGING:
+			_cancel_digging()
+		_interacting_player = null
 
 # ---- State machine ----
 func _set_state(new_state: ArtifactState) -> void:
@@ -276,18 +298,44 @@ func _process(delta: float) -> void:
 
 # ---- Input ----
 func _unhandled_input(event: InputEvent) -> void:
+	if not _is_player_in_zone and current_state != ArtifactState.CLEANING:
+		return
+	
 	if event.is_action_pressed("interact"):
 		is_player_holding_e = true
 		match current_state:
 			ArtifactState.DIG_SITE:
-				dig_started.emit()
-				_set_state(ArtifactState.DIGGING)
+				_start_digging()
 			ArtifactState.EXPOSED:
-				cleaning_started.emit()
-				_set_state(ArtifactState.CLEANING)
-				_start_cleaning_ui()
+				_start_cleaning()
 	elif event.is_action_released("interact"):
 		is_player_holding_e = false
+		if current_state == ArtifactState.DIGGING:
+			_pause_digging()
+
+func _start_digging() -> void:
+	_set_state(ArtifactState.DIGGING)
+	dig_started.emit()
+	var player = _get_player()
+	if player and player.has_method("begin_interaction"):
+		var anchor = get_interaction_anchor(player.global_position)
+		player.begin_interaction(anchor, global_position)
+
+func _pause_digging() -> void:
+	if dust_particles and dust_particles.emitting:
+		dust_particles.emitting = false
+	var player = _get_player()
+	if player and player.has_method("end_interaction"):
+		player.end_interaction()
+
+func _cancel_digging() -> void:
+	is_player_holding_e = false
+	if dust_particles and dust_particles.emitting:
+		dust_particles.emitting = false
+	var player = _get_player()
+	if player and player.has_method("end_interaction"):
+		player.end_interaction()
+	_set_state(ArtifactState.BURIED)
 
 # ---- Dig completion ----
 func _complete_digging() -> void:
@@ -296,8 +344,20 @@ func _complete_digging() -> void:
 		dust_particles.emitting = false
 	dig_completed.emit()
 	_set_state(ArtifactState.EXPOSED)
+	var player = _get_player()
+	if player and player.has_method("end_interaction"):
+		player.end_interaction()
 
 # ---- Cleaning UI ----
+func _start_cleaning() -> void:
+	cleaning_started.emit()
+	_set_state(ArtifactState.CLEANING)
+	var player = _get_player()
+	if player and player.has_method("begin_interaction"):
+		var anchor = get_interaction_anchor(player.global_position)
+		player.begin_interaction(anchor, global_position)
+	_start_cleaning_ui()
+
 func _start_cleaning_ui() -> void:
 	# Load and instantiate the cleaning UI
 	var ui_scene = load("res://scenes/ui/dig_clean_ui.tscn")
@@ -317,6 +377,11 @@ func on_cleaning_done(done_artifact_id: String) -> void:
 		_clean_ui.queue_free()
 		_clean_ui = null
 	_identify_artifact()
+	var player = _get_player()
+	if player and player.has_method("end_interaction"):
+		player.end_interaction()
+	if player and player.has_method("capture_mouse"):
+		player.capture_mouse()
 
 func _identify_artifact() -> void:
 	_set_state(ArtifactState.IDENTIFIED)

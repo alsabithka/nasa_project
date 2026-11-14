@@ -139,7 +139,15 @@ func _trigger_flashback(artifact_id: String) -> void:
 	if flashback_scene:
 		var fb = flashback_scene.instantiate()
 		fb.artifact_id = artifact_id
+		if fb.has_signal("flashback_complete"):
+			fb.flashback_complete.connect(_on_flashback_complete)
 		add_child(fb)
+
+func _on_flashback_complete() -> void:
+	if not journal_modal.visible and not discovery_popup.visible and not completion_modal.visible:
+		var player = get_tree().get_first_node_in_group("player")
+		if player and player.has_method("capture_mouse"):
+			player.capture_mouse()
 
 func _on_mission_completed(planet: String) -> void:
 	if completion_modal:
@@ -184,6 +192,7 @@ func _show_discovery_popup(artifact_id: String) -> void:
 	]
 	
 	discovery_popup.visible = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func toggle_journal() -> void:
 	journal_modal.visible = not journal_modal.visible

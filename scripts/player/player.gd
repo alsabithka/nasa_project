@@ -26,11 +26,31 @@ var is_mouse_captured: bool = false
 var walk_cycle: float = 0.0
 var scanner_raise_weight: float = 0.0
 
+# Stable interaction state (prevents rubberbanding/displacement during digging & cleaning)
+var is_interacting: bool = false
+var interaction_anchor: Vector3 = Vector3.ZERO
+var interaction_target: Vector3 = Vector3.ZERO
+
 # Agreed public interface for Scanner
 func get_scan_origin() -> Vector3:
 	if is_inside_tree():
 		return global_position
 	return position
+
+func begin_interaction(anchor_pos: Vector3, look_at_target: Vector3) -> void:
+	is_interacting = true
+	interaction_anchor = anchor_pos
+	interaction_target = look_at_target
+	velocity.x = 0.0
+	velocity.z = 0.0
+
+func end_interaction() -> void:
+	is_interacting = false
+	velocity.x = 0.0
+	velocity.z = 0.0
+
+func is_in_interaction() -> bool:
+	return is_interacting
 
 func _ready() -> void:
 	capture_mouse()
@@ -38,13 +58,14 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			capture_mouse()
+			if not is_interacting and Input.mouse_mode != Input.MOUSE_MODE_VISIBLE:
+				capture_mouse()
 		elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			spring_arm.spring_length = clamp(spring_arm.spring_length - 0.5, 2.0, 8.0)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			spring_arm.spring_length = clamp(spring_arm.spring_length + 0.5, 2.0, 8.0)
 	
-	elif event is InputEventMouseMotion and is_mouse_captured:
+	elif event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		camera_pivot.rotate_y(-event.relative.x * mouse_sensitivity)
 		spring_arm.rotate_x(-event.relative.y * mouse_sensitivity)
 		spring_arm.rotation.x = clamp(spring_arm.rotation.x, min_pitch, max_pitch)
@@ -53,8 +74,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		release_mouse()
 
 func capture_mouse() -> void:
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	is_mouse_captured = true
+	if not is_interacting:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		is_mouse_captured = true
 
 func release_mouse() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -65,7 +87,31 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 	
-	# Handle Jump
+	# If locked in interaction (digging or cleaning), settle at anchor and hold position stably
+	if is_interacting:
+		if interaction_anchor != Vector3.ZERO:
+			var curr_h = Vector2(global_position.x, global_position.z)
+			var target_h = Vector2(interaction_anchor.x, interaction_anchor.z)
+			var next_h = curr_h.move_toward(target_h, 4.0 * delta)
+			global_position.x = next_h.x
+			global_position.z = next_h.y
+		
+		velocity.x = 0.0
+		velocity.z = 0.0
+		
+		# Smoothly orient astronaut to face the equipment/dig site
+		if interaction_target != Vector3.ZERO:
+			var to_target = interaction_target - global_position
+			to_target.y = 0.0
+			if to_target.length_squared() > 0.01:
+				var target_angle = atan2(to_target.x, to_target.z)
+				visuals.rotation.y = lerp_angle(visuals.rotation.y, target_angle, 8.0 * delta)
+		
+		_animate_astronaut(delta, false)
+		move_and_slide()
+		return
+	
+	# Handle Jump (only when active)
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = jump_velocity
 	
@@ -121,6 +167,19 @@ func _animate_astronaut(delta: float, is_moving: bool) -> void:
 	
 	# Natural walking stride
 	var stride_angle = sin(walk_cycle) * 0.45 if is_moving else 0.0
+	
+	# Excavation / interaction pose when digging or cleaning
+	if is_interacting:
+		if left_arm and right_arm:
+			# Stoop/reach forward with both arms
+			left_arm.rotation.x = lerp(left_arm.rotation.x, -1.05, 8.0 * delta)
+			left_arm.rotation.y = lerp(left_arm.rotation.y, 0.22, 8.0 * delta)
+			right_arm.rotation.x = lerp(right_arm.rotation.x, -1.05, 8.0 * delta)
+			right_arm.rotation.y = lerp(right_arm.rotation.y, -0.22, 8.0 * delta)
+		if left_leg and right_leg:
+			left_leg.rotation.x = lerp(left_leg.rotation.x, 0.0, 10.0 * delta)
+			right_leg.rotation.x = lerp(right_leg.rotation.x, 0.0, 10.0 * delta)
+		return
 	
 	# Legs
 	if left_leg and right_leg:

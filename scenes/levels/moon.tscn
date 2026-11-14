@@ -8,11 +8,11 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="6_hud"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat_Moon"]
-sky_top_color = Color(0.005, 0.005, 0.012, 1)
-sky_horizon_color = Color(0.015, 0.015, 0.025, 1)
-ground_bottom_color = Color(0.12, 0.13, 0.14, 1)
-ground_horizon_color = Color(0.015, 0.015, 0.025, 1)
-sun_angle_max = 12.0
+sky_top_color = Color(0.002, 0.002, 0.006, 1)
+sky_horizon_color = Color(0.008, 0.008, 0.014, 1)
+ground_bottom_color = Color(0.004, 0.004, 0.008, 1)
+ground_horizon_color = Color(0.008, 0.008, 0.014, 1)
+sun_angle_max = 8.0
 
 [sub_resource type="Sky" id="Sky_Moon"]
 sky_material = SubResource("SkyMat_Moon")
@@ -21,8 +21,8 @@ sky_material = SubResource("SkyMat_Moon")
 background_mode = 2
 sky = SubResource("Sky_Moon")
 ambient_light_source = 2
-ambient_light_color = Color(0.18, 0.20, 0.24, 1)
-ambient_light_energy = 0.4
+ambient_light_color = Color(0.14, 0.15, 0.18, 1)
+ambient_light_energy = 0.35
 reflected_light_source = 1
 tonemap_mode = 2
 
@@ -37,9 +37,10 @@ environment = SubResource("Env_Moon")
 [node name="SunDirectionalLight" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 0, 45, 0)
 light_color = Color(1, 0.98, 0.94, 1)
-light_energy = 2.2
+light_energy = 2.4
 shadow_enabled = true
-directional_shadow_mode = 0
+directional_shadow_mode = 2
+directional_shadow_blend_splits = true
 
 [node name="Terrain" type="Node3D" parent="."]
 script = ExtResource("2_terrain")
