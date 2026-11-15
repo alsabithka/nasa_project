@@ -205,68 +205,112 @@ func _add_quad(st: SurfaceTool, p1: Vector3, p2: Vector3, p3: Vector3, p4: Vecto
 	st.add_vertex(p4)
 
 func _build_constrained_eyelid() -> void:
-	# Eyelid mesh strictly constrained within circular lens radius R_MAX = 0.088
+	# Eyelid mesh matching the exact size and contour of the lens and eye (R = 0.092m, tucking under goggle frame 0.090m)
 	# Local goggle ring coordinates:
-	# X = lateral (-0.088 to +0.088)
+	# X = lateral
 	# Z = vertical in lens plane (-0.088 = UP, +0.088 = DOWN)
 	# Y = forward towards viewer (+Y is forward)
-	# We model an upper eyelid dome cap spanning from Z = -0.088 down to Z = +0.088
-	# with smooth spherical curvature (curvature radius 0.108 matching eyeball)
-	var max_r = 0.0875 # Strict boundary guarantee inside 0.090 inner goggle rim
+	# In calm state (scale.z = 0.50, pos.z = -0.044):
+	# Z_final ranges from -0.088 (top) to 0.000 (equator).
+	# At each row z, X_max(z) follows the circular lens contour: sqrt(R^2 - Z_final^2) + 0.005
+	# Producing a mathematically exact semicircle of radius R covering the entire upper half of the lens!
+	var r_tuck = 0.096 # Tucking radius under silver frame
 	var eye_r = 0.108
-	var steps_x = 16
-	var steps_z = 16
+	var steps_x = 24
+	var steps_z = 24
 	
 	var st = SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	
 	for iz in range(steps_z):
-		var z0 = lerp(-max_r, max_r, float(iz) / float(steps_z))
-		var z1 = lerp(-max_r, max_r, float(iz + 1) / float(steps_z))
+		var t_z0 = float(iz) / float(steps_z)
+		var t_z1 = float(iz + 1) / float(steps_z)
+		var z0 = lerp(-0.088, 0.088, t_z0)
+		var z1 = lerp(-0.088, 0.088, t_z1)
+		
+		# In calm state: Z_final = -0.044 + 0.50 * z
+		var z_fin0 = -0.044 + 0.50 * z0
+		var z_fin1 = -0.044 + 0.50 * z1
+		
+		# Exact lens circular profile at that height + 5mm tuck under silver ring
+		var x_max0 = sqrt(max(0.0004, r_tuck * r_tuck - z_fin0 * z_fin0))
+		var x_max1 = sqrt(max(0.0004, r_tuck * r_tuck - z_fin1 * z_fin1))
 		
 		for ix in range(steps_x):
-			var x0 = lerp(-max_r, max_r, float(ix) / float(steps_x))
-			var x1 = lerp(-max_r, max_r, float(ix + 1) / float(steps_x))
+			var t_x0 = float(ix) / float(steps_x)
+			var t_x1 = float(ix + 1) / float(steps_x)
+			var x00 = lerp(-x_max0, x_max0, t_x0)
+			var x10 = lerp(-x_max0, x_max0, t_x1)
+			var x01 = lerp(-x_max1, x_max1, t_x0)
+			var x11 = lerp(-x_max1, x_max1, t_x1)
 			
-			var r00 = sqrt(x0 * x0 + z0 * z0)
-			var r10 = sqrt(x1 * x1 + z0 * z0)
-			var r01 = sqrt(x0 * x0 + z1 * z1)
-			var r11 = sqrt(x1 * x1 + z1 * z1)
+			# Spherical/ellipsoid curvature Y matching eyeball dome with 2mm clearance
+			var r_sq00 = (x00 * x00 + z_fin0 * z_fin0) / (eye_r * eye_r)
+			var r_sq10 = (x10 * x10 + z_fin0 * z_fin0) / (eye_r * eye_r)
+			var r_sq01 = (x01 * x01 + z_fin1 * z_fin1) / (eye_r * eye_r)
+			var r_sq11 = (x11 * x11 + z_fin1 * z_fin1) / (eye_r * eye_r)
 			
-			# Only generate quad if at least partially within lens circle
-			if r00 <= max_r or r10 <= max_r or r01 <= max_r or r11 <= max_r:
-				# Clamp to lens circle boundary
-				var c_x0 = x0 * (max_r / r00) if r00 > max_r else x0
-				var c_z0 = z0 * (max_r / r00) if r00 > max_r else z0
-				var c_x1 = x1 * (max_r / r10) if r10 > max_r else x1
-				var c_z0_b = z0 * (max_r / r10) if r10 > max_r else z0
-				
-				var c_x0_b = x0 * (max_r / r01) if r01 > max_r else x0
-				var c_z1 = z1 * (max_r / r01) if r01 > max_r else z1
-				var c_x1_b = x1 * (max_r / r11) if r11 > max_r else x1
-				var c_z1_b = z1 * (max_r / r11) if r11 > max_r else z1
-				
-				# Spherical curvature Y
-				var y00 = sqrt(max(0.001, eye_r * eye_r - (c_x0 * c_x0 + c_z0 * c_z0))) - (eye_r - 0.02)
-				var y10 = sqrt(max(0.001, eye_r * eye_r - (c_x1 * c_x1 + c_z0_b * c_z0_b))) - (eye_r - 0.02)
-				var y01 = sqrt(max(0.001, eye_r * eye_r - (c_x0_b * c_x0_b + c_z1 * c_z1))) - (eye_r - 0.02)
-				var y11 = sqrt(max(0.001, eye_r * eye_r - (c_x1_b * c_x1_b + c_z1_b * c_z1_b))) - (eye_r - 0.02)
-				
-				var p00 = Vector3(c_x0, y00, c_z0)
-				var p10 = Vector3(c_x1, y10, c_z0_b)
-				var p01 = Vector3(c_x0_b, y01, c_z1)
-				var p11 = Vector3(c_x1_b, y11, c_z1_b)
-				
-				var n = Vector3(0, 1, 0)
-				st.set_normal(n)
-				st.add_vertex(p00)
-				st.add_vertex(p10)
-				st.add_vertex(p11)
-				
-				st.set_normal(n)
-				st.add_vertex(p00)
-				st.add_vertex(p11)
-				st.add_vertex(p01)
+			var y00 = 0.002 + 0.035 * sqrt(max(0.001, 1.0 - min(0.99, r_sq00)))
+			var y10 = 0.002 + 0.035 * sqrt(max(0.001, 1.0 - min(0.99, r_sq10)))
+			var y01 = 0.002 + 0.035 * sqrt(max(0.001, 1.0 - min(0.99, r_sq01)))
+			var y11 = 0.002 + 0.035 * sqrt(max(0.001, 1.0 - min(0.99, r_sq11)))
+			
+			var p00 = Vector3(x00, y00, z0)
+			var p10 = Vector3(x10, y10, z0)
+			var p01 = Vector3(x01, y01, z1)
+			var p11 = Vector3(x11, y11, z1)
+			
+			var n00 = Vector3(x00 / (eye_r * eye_r), 1.0 / 0.035, z0 / (eye_r * eye_r)).normalized()
+			var n10 = Vector3(x10 / (eye_r * eye_r), 1.0 / 0.035, z0 / (eye_r * eye_r)).normalized()
+			var n01 = Vector3(x01 / (eye_r * eye_r), 1.0 / 0.035, z1 / (eye_r * eye_r)).normalized()
+			var n11 = Vector3(x11 / (eye_r * eye_r), 1.0 / 0.035, z1 / (eye_r * eye_r)).normalized()
+			
+			# Triangle 1: p00 -> p11 -> p01 (faces +Y towards viewer)
+			st.set_normal(n00)
+			st.add_vertex(p00)
+			st.set_normal(n11)
+			st.add_vertex(p11)
+			st.set_normal(n01)
+			st.add_vertex(p01)
+			
+			# Triangle 2: p00 -> p10 -> p11 (faces +Y towards viewer)
+			st.set_normal(n00)
+			st.add_vertex(p00)
+			st.set_normal(n10)
+			st.add_vertex(p10)
+			st.set_normal(n11)
+			st.add_vertex(p11)
+	
+	# Add eyelid bottom edge bevel lip for physical 3D thickness (faces +Z)
+	var bot_z = 0.088
+	var z_fin_bot = 0.0
+	var x_max_bot = sqrt(max(0.0004, r_tuck * r_tuck - z_fin_bot * z_fin_bot))
+	for ix in range(steps_x):
+		var t_x0 = float(ix) / float(steps_x)
+		var t_x1 = float(ix + 1) / float(steps_x)
+		var x0 = lerp(-x_max_bot, x_max_bot, t_x0)
+		var x1 = lerp(-x_max_bot, x_max_bot, t_x1)
+		
+		var r_sq0 = (x0 * x0 + z_fin_bot * z_fin_bot) / (eye_r * eye_r)
+		var r_sq1 = (x1 * x1 + z_fin_bot * z_fin_bot) / (eye_r * eye_r)
+		var y0 = 0.002 + 0.035 * sqrt(max(0.001, 1.0 - min(0.99, r_sq0)))
+		var y1 = 0.002 + 0.035 * sqrt(max(0.001, 1.0 - min(0.99, r_sq1)))
+		
+		var p_front0 = Vector3(x0, y0, bot_z)
+		var p_front1 = Vector3(x1, y1, bot_z)
+		var p_back0 = Vector3(x0, y0 - 0.006, bot_z - 0.003)
+		var p_back1 = Vector3(x1, y1 - 0.006, bot_z - 0.003)
+		
+		var n_lip = Vector3(0, -0.5, 0.866).normalized()
+		st.set_normal(n_lip)
+		st.add_vertex(p_front0)
+		st.add_vertex(p_front1)
+		st.add_vertex(p_back1)
+		
+		st.set_normal(n_lip)
+		st.add_vertex(p_front0)
+		st.add_vertex(p_back1)
+		st.add_vertex(p_back0)
 	
 	var mesh = st.commit()
 	ResourceSaver.save(mesh, "res://scenes/player/constrained_eyelid.tres")

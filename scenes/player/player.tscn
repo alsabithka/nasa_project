@@ -538,7 +538,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.014, 0.04, -0.014)
 mesh = SubResource("Mesh_Sparkle")
 
 [node name="LeftEyelid" type="MeshInstance3D" parent="Visuals/Torso/Head/LeftGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.001, 0, 0.027, -0.088)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.001, 0, 0.005, -0.088)
 visible = false
 mesh = ExtResource("4_constrained_eyelid")
 surface_material_override/0 = SubResource("Mat_MinionYellow")
@@ -564,7 +564,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.014, 0.04, -0.014)
 mesh = SubResource("Mesh_Sparkle")
 
 [node name="RightEyelid" type="MeshInstance3D" parent="Visuals/Torso/Head/RightGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.001, 0, 0.027, -0.088)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.001, 0, 0.005, -0.088)
 visible = false
 mesh = ExtResource("4_constrained_eyelid")
 surface_material_override/0 = SubResource("Mat_MinionYellow")
