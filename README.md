@@ -303,8 +303,15 @@ Other credits:
 
 ## Team
 
-<!-- Add your team name and members here. -->
+Made by:
+
+- Alsabith K A
+- Diya Noush
+- Harsh C Hari
+- Johan P Joji
+- Athulya Mariam George
+- Heema Hemaraj
 
 ## License
 
-<!-- No LICENSE file is in the repository yet. Add one and name it here. Fonts keep their own SIL OFL license. -->
+This project is released under the terms of the [LICENSE](LICENSE) file in this repository. The bundled IBM Plex fonts keep their own [SIL Open Font License 1.1](assets/fonts/OFL.txt).
