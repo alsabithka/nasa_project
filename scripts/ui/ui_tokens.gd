@@ -67,3 +67,36 @@ static var LAYER_MODALS    := 20
 static var LAYER_CINEMA    := 30
 static var LAYER_SYSTEM    := 40
 static var LAYER_DEBUG     := 50
+
+## ── ASSET HELPERS (Phase 2) ──────────────────────────────────
+const ICON_DIR := "res://assets/ui/icons/"
+const THEME_PATH := "res://ui/theme/ebe_theme.tres"
+
+static var _icon_cache: Dictionary = {}
+
+## Returns the SVG icon texture for `icon_name` (file name without extension), or null.
+## Icons are white — tint with modulate/self_modulate (e.g. UITokens.SIGNAL_GOLD).
+static func icon(icon_name: String) -> Texture2D:
+	if _icon_cache.has(icon_name):
+		return _icon_cache[icon_name]
+	var path := ICON_DIR + icon_name + ".svg"
+	var tex: Texture2D = load(path) if ResourceLoader.exists(path) else null
+	if tex == null:
+		push_warning("UITokens.icon: missing icon '%s'" % icon_name)
+	_icon_cache[icon_name] = tex
+	return tex
+
+## Loads the shared Theme (apply per scene root: `theme = UITokens.theme()`).
+static func theme() -> Theme:
+	return load(THEME_PATH) as Theme
+
+## Creates a TextureRect showing a tinted icon at a fixed size.
+static func make_icon(icon_name: String, tint: Color = Color(0.91, 0.918, 0.929), px: int = 16) -> TextureRect:
+	var r := TextureRect.new()
+	r.texture = icon(icon_name)
+	r.modulate = tint
+	r.custom_minimum_size = Vector2(px, px)
+	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	r.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return r

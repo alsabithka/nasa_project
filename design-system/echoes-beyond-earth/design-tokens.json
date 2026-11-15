@@ -1,0 +1,28 @@
+{
+  "$description": "Echoes Beyond Earth — Direction A 'Declassified Archive'. Source of truth mirrored by scripts/ui/ui_tokens.gd and ui/theme/ebe_theme.tres. Contrast = WCAG ratio vs ink-800.",
+  "color": {
+    "ink":    { "900": "#07090D", "800": "#0D1117", "700": "#151B24", "600": "#2A3442" },
+    "paper":  { "100": "#E8EAED", "300": "#A3ACB9", "500": "#7C8797" },
+    "signal": { "gold": "#FAC733", "cyan": "#80CCFF", "red": "#FF5A4D", "green": "#5FE08A" }
+  },
+  "contrastOnInk800": { "paper-100": 15.7, "paper-300": 8.3, "paper-500": 5.2, "gold": 12.0, "cyan": 10.8, "red": 6.1, "green": 11.3, "ink-600": 1.5 },
+  "role": {
+    "gold": "history / archive record / primary action / focus ring",
+    "cyan": "live or scientific data / scanner",
+    "red": "hazard / simulated or reconstructed value flag",
+    "green": "confirmed / catalogued",
+    "paper-500": "control borders (>= 3:1) and tertiary text",
+    "ink-600": "decorative dividers only (1.5:1)"
+  },
+  "type": {
+    "families": { "sans": "IBM Plex Sans (Regular, Medium, Bold)", "mono": "IBM Plex Mono (Regular, Medium)" },
+    "scalePx_at_1280x720": { "caption": 12, "body": 14, "lead": 16, "title": 20, "display": 28, "hero": 40 },
+    "rules": ["informational text >= 14", "caption (12) only for non-essential notes", "numerals that change live use mono"]
+  },
+  "space": { "1": 4, "2": 8, "3": 12, "4": 16, "6": 24, "8": 32, "12": 48 },
+  "shape": { "radiusPanel": 0, "radiusControl": 2, "borderPanel": 1, "borderControl": 2, "borderFocus": 2, "hardShadow": "4,4 ink-900 (archive cards and discovery stamp only)" },
+  "motionSeconds": { "instant": 0.0, "fast": 0.12, "base": 0.20, "slow": 0.40, "cinematic": 0.80 },
+  "layers": { "worldHud": 0, "telemetry": 5, "overlays": 10, "modals": 20, "cinema": 30, "system": 40, "debug": 50 },
+  "highContrast": "swap signals to paper-100 + shape/icon markers; ink-600 dividers -> paper-500",
+  "scannerShapes": ["signal_none (dashed ring)", "signal_faint (ring)", "signal_moderate (diamond)", "signal_strong (triangle)", "signal_dig (solid disc)"]
+}

@@ -96,6 +96,7 @@ const InputSetup = preload("res://scripts/input/input_setup.gd")
 
 func _ready() -> void:
 	InputSetup.ensure()
+	mouse_sensitivity = SettingsStore.mouse_sensitivity_value()  # Phase 3: stored setting
 	capture_mouse()
 	_setup_third_person_camera()
 	call_deferred("_connect_subsystems")

@@ -3,20 +3,21 @@ extends Control
 
 ## Echoes Beyond Earth — SegmentedMeter Component
 ## A horizontal segmented bar (like a signal strength or fuel gauge).
-## Segments light up left-to-right with an accent colour.
+## Segments light up left-to-right in ONE accent colour (house rule: one accent per component).
+## Optionally flips to `warn_color` below `warn_below` (the segment COUNT still carries the
+## value, so the meter never relies on colour alone).
 ##
 ## Usage:
 ##   $Meter.segment_count = 8
 ##   $Meter.value = 0.6        # 0.0–1.0
-##   $Meter.low_color  = UITokens.SIGNAL_RED
-##   $Meter.mid_color  = UITokens.SIGNAL_GOLD
-##   $Meter.high_color = UITokens.SIGNAL_GREEN
+##   $Meter.accent = UITokens.SIGNAL_CYAN
+##   $Meter.warn_below = 0.2   # optional
 
 @export var segment_count: int = 8 : set = set_segments
 @export_range(0.0, 1.0) var value: float = 0.5 : set = set_value
-@export var low_color:  Color = Color(1.0, 0.353, 0.302)   # SIGNAL_RED
-@export var mid_color:  Color = Color(0.98, 0.78, 0.2)      # SIGNAL_GOLD
-@export var high_color: Color = Color(0.502, 0.8, 1.0)      # SIGNAL_CYAN
+@export var accent: Color = Color(0.502, 0.8, 1.0) : set = set_accent   # SIGNAL_CYAN
+@export var warn_color: Color = Color(1.0, 0.353, 0.302)                 # SIGNAL_RED
+@export_range(0.0, 1.0) var warn_below: float = 0.0
 @export var gap_px: int = 2
 
 var _rects: Array[ColorRect] = []
@@ -56,17 +57,13 @@ func _build_segments() -> void:
 
 	_refresh_colors()
 
+func set_accent(c: Color) -> void:
+	accent = c
+	if is_inside_tree():
+		_refresh_colors()
+
 func _refresh_colors() -> void:
 	var lit := int(ceil(value * segment_count))
+	var lit_color := warn_color if (warn_below > 0.0 and value < warn_below) else accent
 	for i in range(_rects.size()):
-		if i < lit:
-			# Colour interpolation: low→mid at 50%, mid→high at 100%
-			var t := float(i + 1) / float(segment_count)
-			var col: Color
-			if t < 0.5:
-				col = low_color.lerp(mid_color, t * 2.0)
-			else:
-				col = mid_color.lerp(high_color, (t - 0.5) * 2.0)
-			_rects[i].color = col
-		else:
-			_rects[i].color = UITokens.INK_700
+		_rects[i].color = lit_color if i < lit else UITokens.INK_700

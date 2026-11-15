@@ -1,14 +1,28 @@
 extends CanvasLayer
 
-# Echoes Beyond Earth - NASA Scientific Examination & Geological Documentation Panel
-# Phase 5: Restyled with UITokens — ArchiveCard look, clear data hierarchy, no raw literals.
-# Formatted according to NASA Apollo Lunar Sample Compendium standards:
-# - Clearly distinguishes measured vs estimated properties
-# - Documents stratigraphic depth, discovery coordinates, and classification
+# Echoes Beyond Earth — Catalogue Entry (Phase 5)
+# ONE screen replaces the old "Scientific Examination" panel + the HUD "Discovery popup".
+#
+#   NAME  [stamp]                     (what you found; the stamp presses on once)
+#   MISSION | YEAR | STATUS           (structured data row, no sentences)
+#   ARCHIVE RECORD  | FIELD READINGS  (documented NASA record  |  in-game survey values)
+#   [CONTINUE  Esc]   [WATCH STORY  E]
+#
+# Honesty rule: the left column is the documented record (purpose, size, account, sources); the
+# right column is what the in-game survey instruments reported and carries a SIM badge. They are
+# never mixed, and no fact is shown twice.
+#
+# Contract kept (artifact.gd, tests): script attached to a CanvasLayer, `artifact_id` set before
+# add_child, signal documentation_closed(artifact_id), fields title_label / category_badge /
+# measured_label / estimated_label, populate_data(), _on_close_pressed().
+# New: signal story_requested(artifact_id) — emitted just before documentation_closed when the
+# player chooses WATCH STORY.
 
 signal documentation_closed(artifact_id: String)
+signal story_requested(artifact_id: String)
 
-const UITokens = preload("res://scripts/ui/ui_tokens.gd")
+const ARM_DELAY := 0.8      # keyboard ignored for this long so a held/pumped E cannot skip the entry
+const CARD_WIDTH := 1040.0
 
 var artifact_id: String = ""
 var artifact_data: Dictionary = {}
@@ -16,158 +30,386 @@ var artifact_data: Dictionary = {}
 var panel_container: PanelContainer
 var title_label: Label
 var category_badge: Label
-var context_label: Label
+var index_label: Label
 var measured_label: Label
 var estimated_label: Label
-var history_text: RichTextLabel
-var close_button: Button
+var close_button: Button        # CONTINUE
+var story_button: Button        # WATCH STORY
+var stamp: CatalogueStamp
+
+var _root: Control
+var _armed := false
+var _closing := false
+var _fields := {}               # Label per data key, filled by populate_data()
+
 
 func _ready() -> void:
-	if not close_button:
-		_build_ui_fallback()
-	else:
-		close_button.pressed.connect(_on_close_pressed)
-	populate_data()
-
-func _build_ui_fallback() -> void:
 	layer = UITokens.LAYER_MODALS  # 20 — above overlays, below cinema
-	var cc = CenterContainer.new()
-	cc.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(cc)
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_build_ui()
+	populate_data()
+	_play_entrance()
+	story_button.call_deferred("grab_focus")
 
-	var p = PanelContainer.new()
-	p.custom_minimum_size = Vector2(700, 540)
 
-	# Phase 5: ArchiveCard style — INK_800, 0px radius, SIGNAL_CYAN accent border
-	var sb = StyleBoxFlat.new()
-	sb.bg_color = UITokens.INK_800
-	sb.border_color = UITokens.SIGNAL_CYAN
-	sb.set_border_width_all(2)
-	sb.set_corner_radius_all(0)
-	sb.content_margin_left = 36.0
-	sb.content_margin_top = 28.0
-	sb.content_margin_right = 36.0
-	sb.content_margin_bottom = 24.0
-	p.add_theme_stylebox_override("panel", sb)
-	cc.add_child(p)
+# ── Layout ───────────────────────────────────────────────────────────────────────────────
 
-	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 10)
-	p.add_child(vb)
+func _build_ui() -> void:
+	_root = Control.new()
+	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_root.theme = UITokens.theme()
+	add_child(_root)
 
-	# Header row: title + category badge
-	var hb = HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 16)
-	vb.add_child(hb)
+	var dim := ColorRect.new()
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(UITokens.INK_900, 0.88)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	_root.add_child(dim)
 
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(center)
+
+	var card := ArchiveCard.new()
+	card.show_offset_shadow = true
+	var w := minf(CARD_WIDTH, get_viewport().get_visible_rect().size.x - 96.0)
+	card.custom_minimum_size = Vector2(w, 0)
+	center.add_child(card)
+	panel_container = card
+
+	var pad := MarginContainer.new()
+	for side in ["left", "right"]:
+		pad.add_theme_constant_override("margin_" + side, UITokens.SP_6)
+	pad.add_theme_constant_override("margin_top", UITokens.SP_4)
+	pad.add_theme_constant_override("margin_bottom", UITokens.SP_4)
+	card.add_child(pad)
+
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", UITokens.SP_3)
+	pad.add_child(col)
+
+	# Gold rule: gold = archive / history (colour language of the whole game).
+	var gold := ColorRect.new()
+	gold.color = UITokens.SIGNAL_GOLD
+	gold.custom_minimum_size = Vector2(0, 4)
+	col.add_child(gold)
+
+	# Header: category (left) · planet + position in the sequence (right)
+	var head := HBoxContainer.new()
+	col.add_child(head)
+	category_badge = _caption("", UITokens.SIGNAL_GOLD)
+	category_badge.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(category_badge)
+	index_label = _mono("", UITokens.PAPER_300, UITokens.TEXT_BODY)
+	head.add_child(index_label)
+
+	# Name + stamp
+	var name_row := HBoxContainer.new()
+	name_row.add_theme_constant_override("separation", UITokens.SP_4)
+	col.add_child(name_row)
 	title_label = Label.new()
-	title_label.text = "NASA LUNAR SPECIMEN DOCUMENTATION"
-	title_label.add_theme_font_size_override("font_size", UITokens.TEXT_LEAD)
-	title_label.add_theme_color_override("font_color", UITokens.PAPER_100)
+	title_label.theme_type_variation = &"DisplayLabel"
+	title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hb.add_child(title_label)
+	title_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	name_row.add_child(title_label)
+	stamp = CatalogueStamp.new()
+	stamp.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	name_row.add_child(stamp)
 
-	category_badge = Label.new()
-	category_badge.text = "[GEOLOGICAL SAMPLE]"
-	category_badge.add_theme_font_size_override("font_size", UITokens.TEXT_CAPTION)
-	category_badge.add_theme_color_override("font_color", UITokens.SIGNAL_GOLD)
-	hb.add_child(category_badge)
+	# Data row: mission | year | status
+	var data_row := HBoxContainer.new()
+	data_row.add_theme_constant_override("separation", UITokens.SP_8)
+	col.add_child(data_row)
+	_add_cell(data_row, "mission", "MISSION", 3, false)
+	_add_cell(data_row, "year", "YEAR", 0, true)
+	_add_cell(data_row, "status", "STATUS", 5, false)
 
-	# Divider
-	var sep1 = HSeparator.new()
-	vb.add_child(sep1)
+	col.add_child(_rule())
 
-	# Context & Stratigraphy
-	context_label = Label.new()
-	context_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	context_label.add_theme_font_size_override("font_size", UITokens.TEXT_BODY)
-	context_label.add_theme_color_override("font_color", UITokens.PAPER_300)
-	vb.add_child(context_label)
+	# Two columns: archive record | field readings
+	var cols := HBoxContainer.new()
+	cols.add_theme_constant_override("separation", UITokens.SP_6)
+	col.add_child(cols)
 
-	# Properties (Measured vs Estimated)
-	var prop_box = VBoxContainer.new()
-	prop_box.add_theme_constant_override("separation", 6)
-	vb.add_child(prop_box)
+	var left := VBoxContainer.new()
+	left.add_theme_constant_override("separation", UITokens.SP_3)
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.custom_minimum_size = Vector2(440, 0)
+	cols.add_child(left)
+	left.add_child(_badge_row(Badge.make(Badge.Kind.ARCHIVE)))
+	_add_fact(left, "purpose", "PURPOSE")
+	_add_fact(left, "size", "SIZE")
+	_add_fact(left, "history", "ACCOUNT")
+	_fields["sources"] = _caption("", UITokens.PAPER_500)
+	_fields["sources"].autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	left.add_child(_fields["sources"])
 
-	var m_title = Label.new()
-	m_title.text = "MEASURED PROPERTIES (In-Situ & Laboratory):"
-	m_title.add_theme_font_size_override("font_size", UITokens.TEXT_CAPTION)
-	m_title.add_theme_color_override("font_color", UITokens.SIGNAL_GREEN)
-	prop_box.add_child(m_title)
+	var vrule := ColorRect.new()
+	vrule.color = UITokens.INK_600
+	vrule.custom_minimum_size = Vector2(1, 0)
+	cols.add_child(vrule)
 
-	measured_label = Label.new()
-	measured_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	measured_label.add_theme_font_size_override("font_size", UITokens.TEXT_BODY)
-	measured_label.add_theme_color_override("font_color", UITokens.PAPER_300)
-	prop_box.add_child(measured_label)
+	var right := VBoxContainer.new()
+	right.add_theme_constant_override("separation", UITokens.SP_3)
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right.custom_minimum_size = Vector2(440, 0)
+	cols.add_child(right)
+	right.add_child(_badge_row(Badge.make(Badge.Kind.SIM, "FIELD READINGS · IN-GAME")))
+	_add_fact(right, "stratum", "STRATUM")
+	_add_fact(right, "depth", "DEPTH", true)
+	_add_fact(right, "signal", "SIGNAL")
+	measured_label = _add_fact(right, "measured", "MEASURED")
+	estimated_label = _add_fact(right, "estimated", "ESTIMATED")
+	_add_fact(right, "context", "SETTING")
 
-	var e_title = Label.new()
-	e_title.text = "ESTIMATED / THEORETICAL INFERENCES:"
-	e_title.add_theme_font_size_override("font_size", UITokens.TEXT_CAPTION)
-	e_title.add_theme_color_override("font_color", UITokens.SIGNAL_GOLD)
-	prop_box.add_child(e_title)
+	col.add_child(_rule())
 
-	estimated_label = Label.new()
-	estimated_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	estimated_label.add_theme_font_size_override("font_size", UITokens.TEXT_BODY)
-	estimated_label.add_theme_color_override("font_color", UITokens.PAPER_300)
-	prop_box.add_child(estimated_label)
+	# Actions
+	var actions := HBoxContainer.new()
+	actions.add_theme_constant_override("separation", UITokens.SP_3)
+	col.add_child(actions)
+	var note := _caption("Either choice stores the specimen in your journal.", UITokens.PAPER_300)
+	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	note.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	actions.add_child(note)
+	close_button = _action(actions, "ui_cancel", "Esc", "CONTINUE", &"GhostButton", _on_close_pressed)
+	story_button = _action(actions, "interact", "", "WATCH STORY", &"PrimaryButton", _on_story_pressed)
 
-	# Scientific History
-	history_text = RichTextLabel.new()
-	history_text.bbcode_enabled = true  # B2 FIX preserved
-	history_text.custom_minimum_size = Vector2(0, 110)
-	history_text.fit_content = false
-	history_text.scroll_active = true
-	history_text.add_theme_font_size_override("normal_font_size", UITokens.TEXT_BODY)
-	history_text.add_theme_color_override("default_color", UITokens.PAPER_300)
-	vb.add_child(history_text)
 
-	# Close button
-	close_button = Button.new()
-	close_button.text = "CATALOG & STORE SPECIMEN  [ E ]"
-	close_button.custom_minimum_size = Vector2(0, 44)
-	close_button.add_theme_font_size_override("font_size", UITokens.TEXT_BODY)
-	close_button.add_theme_color_override("font_color", UITokens.SIGNAL_GOLD)
-	close_button.pressed.connect(_on_close_pressed)
-	vb.add_child(close_button)
+func _caption(text: String, color: Color) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.theme_type_variation = &"CaptionLabel"
+	l.add_theme_color_override("font_color", color)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
+
+func _mono(text: String, color: Color, size: int) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.theme_type_variation = &"StatLabel"
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", color)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
+
+func _rule() -> ColorRect:
+	var r := ColorRect.new()
+	r.color = UITokens.INK_600
+	r.custom_minimum_size = Vector2(0, 1)
+	return r
+
+
+func _badge_row(b: Badge) -> Control:
+	var row := HBoxContainer.new()
+	b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	row.add_child(b)
+	return row
+
+
+## Cell of the data row: caption title over a value (mono for numbers).
+func _add_cell(parent: Control, key: String, title: String, ratio: int, mono: bool) -> void:
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 2)
+	if ratio > 0:
+		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		v.size_flags_stretch_ratio = float(ratio)
+	parent.add_child(v)
+	v.add_child(_caption(title, UITokens.PAPER_300))
+	var val: Label
+	if mono:
+		val = _mono("", UITokens.PAPER_100, UITokens.TEXT_LEAD)
+	else:
+		val = Label.new()
+		val.theme_type_variation = &"LeadLabel"
+		val.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		val.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(val)
+	_fields[key] = val
+
+
+## Caption + body text pair. Returns the body label.
+func _add_fact(parent: Control, key: String, title: String, mono: bool = false) -> Label:
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 2)
+	parent.add_child(v)
+	v.add_child(_caption(title, UITokens.PAPER_300))
+	var body: Label
+	if mono:
+		body = _mono("", UITokens.PAPER_100, UITokens.TEXT_BODY)
+	else:
+		body = Label.new()
+		body.add_theme_font_size_override("font_size", UITokens.TEXT_BODY)
+		body.add_theme_color_override("font_color", UITokens.PAPER_100)
+		body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(body)
+	_fields[key] = body
+	# Hide the whole pair when a value is missing (never show an invented placeholder).
+	body.set_meta("pair", v)
+	return body
+
+
+func _action(parent: Control, action: String, cap_text: String, label_text: String, variation: StringName, handler: Callable) -> Button:
+	var box := HBoxContainer.new()
+	box.add_theme_constant_override("separation", UITokens.SP_2)
+	parent.add_child(box)
+	var cap := KeyCap.new()
+	cap.action_name = action
+	if cap_text != "":
+		cap.label_override = cap_text
+	box.add_child(cap)
+	var btn := Button.new()
+	btn.text = label_text
+	btn.theme_type_variation = variation
+	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	btn.pressed.connect(handler)
+	box.add_child(btn)
+	return btn
+
+
+# ── Data ─────────────────────────────────────────────────────────────────────────────────
 
 func populate_data() -> void:
-	var game_state = get_node_or_null("/root/GameState")
-	if game_state and artifact_data.is_empty():
-		artifact_data = game_state.get_artifact_data(artifact_id)
-	
+	var gs = get_node_or_null("/root/GameState")
+	if gs and artifact_data.is_empty():
+		artifact_data = gs.get_artifact_data(artifact_id)
 	if artifact_data.is_empty():
 		return
-	
-	var art_name = artifact_data.get("name", artifact_id)
-	var cat = artifact_data.get("category", "Scientific Discoveries")
-	var strat = artifact_data.get("stratigraphic_layer", "Compacted Regolith")
-	var depth = artifact_data.get("discovery_depth_cm", 12.0)
-	var geo = artifact_data.get("geological_context", "Lunar Surface")
-	var det = artifact_data.get("detection_signature", "Electromagnetic Anomaly")
-	var measured = artifact_data.get("measured_properties", "Conductive metallic matrix")
-	var estimated = artifact_data.get("estimated_properties", "Age: ~3.8 Ga")
-	var hist = artifact_data.get("history", "")
+	var d := artifact_data
 
-	if title_label:
-		title_label.text = art_name.to_upper()
-	if category_badge:
-		category_badge.text = "[%s]" % cat.to_upper()
-	if context_label:
-		context_label.text = "STRATIGRAPHY: %s  |  EXCAVATION DEPTH: %.1f cm\nLOCATION CONTEXT: %s\nDETECTION METHOD: %s" % [strat, depth, geo, det]
-	if measured_label:
-		measured_label.text = "• " + measured
-	if estimated_label:
-		estimated_label.text = "• " + estimated
-	if history_text:
-		history_text.text = "[b]Scientific & Mission Notes:[/b]\n" + hist
+	title_label.text = str(d.get("name", artifact_id))
+	category_badge.text = str(d.get("category", "Scientific Discoveries")).to_upper()
+	index_label.text = _entry_index(gs, d)
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("interact") or event.is_action_pressed("ui_accept"):
+	_put("mission", str(d.get("mission", "")))
+	_put("year", _format_year(d.get("year", "")))
+	_put("status", str(d.get("status", "")))
+
+	_put("purpose", str(d.get("purpose", "")))
+	_put("size", _size_text(d))
+	_put("history", str(d.get("history", "")))
+	var srcs: Array = d.get("sources", [])
+	var sources := _fields["sources"] as Label
+	sources.text = ("Sources: " + "; ".join(PackedStringArray(srcs))) if not srcs.is_empty() else ""
+	sources.visible = not srcs.is_empty()
+
+	_put("stratum", str(d.get("stratigraphic_layer", "")))
+	if d.has("discovery_depth_cm"):
+		_put("depth", "%.1f cm" % float(d["discovery_depth_cm"]))
+	else:
+		_put("depth", "")
+	_put("signal", str(d.get("detection_signature", "")))
+	_put("measured", str(d.get("measured_properties", "")))
+	_put("estimated", str(d.get("estimated_properties", "")))
+	_put("context", str(d.get("geological_context", "")))
+
+
+func _put(key: String, text: String) -> void:
+	var l := _fields[key] as Label
+	l.text = text
+	var pair = l.get_meta("pair", null)
+	if pair is Control:
+		(pair as Control).visible = text != ""
+
+
+## "MOON · 03 / 07" — same order and numbering as the journal, so the two always agree.
+func _entry_index(gs, d: Dictionary) -> String:
+	if gs == null:
+		return ""
+	var planet := str(d.get("location", ""))
+	var idx := 0
+	var total := 0
+	for id in gs.artifacts_data.keys():
+		if str(gs.artifacts_data[id].get("location", "")).to_lower() != planet.to_lower():
+			continue
+		total += 1
+		if id == artifact_id:
+			idx = total
+	if idx == 0:
+		return planet.to_upper()
+	return "%s · %02d / %02d" % [planet.to_upper(), idx, total]
+
+
+func _size_text(d: Dictionary) -> String:
+	var parts: PackedStringArray = []
+	if d.has("dimensions_cm"):
+		parts.append(str(d["dimensions_cm"]).replace(" x ", " × "))
+	if d.has("mass_kg"):
+		var m := float(d["mass_kg"])
+		parts.append(("%d kg" % int(m)) if is_equal_approx(m, roundf(m)) else ("%.1f kg" % m))
+	return "  ·  ".join(parts)
+
+
+# Years are floats in some JSON paths; never print "1971.0" (audit B3).
+func _format_year(v) -> String:
+	if v is float or v is int:
+		return str(int(v))
+	return str(v)
+
+
+# ── Motion ───────────────────────────────────────────────────────────────────────────────
+
+func _play_entrance() -> void:
+	var m := SettingsStore.motion_scale()
+	if m > 0.0:
+		panel_container.modulate.a = 0.0
+		var tw := create_tween()
+		tw.tween_property(panel_container, "modulate:a", 1.0, UITokens.DURATION_BASE * m)
+		tw.tween_interval(UITokens.DURATION_BASE * m)
+		tw.tween_callback(stamp.slam)
+	else:
+		stamp.slam()
+	get_tree().create_timer(ARM_DELAY).timeout.connect(func() -> void: _armed = true)
+
+
+# ── Input ────────────────────────────────────────────────────────────────────────────────
+# _input (not _unhandled_input): this modal must consume Esc / E / Enter BEFORE the HUD (pause),
+# the player (mouse release) and the artifact (interact) see them. One key, one meaning.
+
+func _input(event: InputEvent) -> void:
+	if _closing:
+		return
+	var is_cancel := event.is_action_pressed("ui_cancel")
+	var is_story := event.is_action_pressed("interact")
+	var is_accept := event.is_action_pressed("ui_accept")
+	if not (is_cancel or is_story or is_accept):
+		return
+	get_viewport().set_input_as_handled()
+	if not _armed:
+		return           # swallowed during the arm delay
+	if is_cancel:
 		_on_close_pressed()
-		get_viewport().set_input_as_handled()
+	elif is_story:
+		_on_story_pressed()
+	else:
+		# Enter / Space / gamepad A: activate whatever has focus (WATCH STORY by default).
+		var f := get_viewport().gui_get_focus_owner()
+		if f is Button:
+			(f as Button).pressed.emit()
+		else:
+			_on_story_pressed()
+
+
+func _on_story_pressed() -> void:
+	if _closing:
+		return
+	_closing = true
+	story_requested.emit(artifact_id)
+	_finish()
+
 
 func _on_close_pressed() -> void:
+	if _closing:
+		return
+	_closing = true
+	_finish()
+
+
+func _finish() -> void:
 	documentation_closed.emit(artifact_id)
 	queue_free()

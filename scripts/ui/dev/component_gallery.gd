@@ -41,7 +41,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _build_gallery() -> void:
 	_add_title("ECHOES BEYOND EARTH — COMPONENT GALLERY")
-	_add_subtitle("Phase 2 · Design System · Direction A: Declassified Archive")
+	_add_subtitle("Phase 2 · Design System · Direction A: Declassified Archive · IBM Plex Sans / Mono")
 	_spacer()
 
 	# ── PALETTE SWATCHES ───────────────────────────────────────
@@ -87,6 +87,31 @@ func _build_gallery() -> void:
 	# ── ARCHIVE CARDS ──────────────────────────────────────────
 	_section("ARCHIVE CARDS")
 	_add_cards()
+	_spacer()
+
+	# ── ICONS ──────────────────────────────────────────────────
+	_section("ICONS (SVG — shape carries meaning, not colour)")
+	_add_icons()
+	_spacer()
+
+	# ── BADGES ─────────────────────────────────────────────────
+	_section("BADGES")
+	_add_badges()
+	_spacer()
+
+	# ── TAB BAR ────────────────────────────────────────────────
+	_section("TAB BAR (selected = underline + gold)")
+	_add_tabs()
+	_spacer()
+
+	# ── LIST ROWS ──────────────────────────────────────────────
+	_section("LIST ROWS")
+	_add_rows()
+	_spacer()
+
+	# ── CONFIRM DIALOG ─────────────────────────────────────────
+	_section("CONFIRM DIALOG")
+	_add_dialog_demo()
 	_spacer()
 
 	# ── PROGRESS BAR ───────────────────────────────────────────
@@ -222,7 +247,7 @@ func _add_stat_readouts() -> void:
 		["HEART RATE", "82",     "BPM",        UITokens.SIGNAL_GOLD],
 		["HEADING",    "045°",   "NNE",         UITokens.PAPER_100],
 		["GRAVITY",    "1.62",   "m/s²",        UITokens.SIGNAL_CYAN],
-		["PLSS O2",    "98.4",   "%  SIM",      UITokens.SIGNAL_GREEN],
+		["PLSS O2",    "98.4",   "%",           UITokens.SIGNAL_CYAN],
 	]
 	for d in data:
 		var sr := StatReadout.new()
@@ -230,6 +255,7 @@ func _add_stat_readouts() -> void:
 		sr.value        = d[1]
 		sr.unit         = d[2]
 		sr.accent_color = d[3]
+		sr.simulated    = (d[0] == "PLSS O2")
 		row.add_child(sr)
 
 func _add_meters() -> void:
@@ -313,3 +339,84 @@ func _demo_toasts() -> void:
 		var col: Color  = m[1]
 		timer.timeout.connect(func(): Toast.notify(get_tree(), msg, col))
 		delay += 1.5
+
+
+# ── PHASE 2 ADDITIONS ────────────────────────────────────────
+
+func _add_icons() -> void:
+	var flow := HFlowContainer.new()
+	flow.add_theme_constant_override("h_separation", UITokens.SP_6)
+	flow.add_theme_constant_override("v_separation", UITokens.SP_4)
+	vbox.add_child(flow)
+	var names := ["signal_none", "signal_faint", "signal_moderate", "signal_strong", "signal_dig",
+		"scan", "dig", "brush", "journal", "pause", "settings", "play", "check", "close", "lock",
+		"moon", "mars", "chevron_left", "chevron_right", "warning", "sim", "archive", "stamp"]
+	for n in names:
+		var col := VBoxContainer.new()
+		col.add_theme_constant_override("separation", 4)
+		var ic := UITokens.make_icon(n, UITokens.PAPER_100, 24)
+		ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		col.add_child(ic)
+		var l := Label.new()
+		l.theme_type_variation = &"CaptionLabel"
+		l.text = n
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col.add_child(l)
+		flow.add_child(col)
+
+func _add_badges() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UITokens.SP_3)
+	vbox.add_child(row)
+	for k in [Badge.Kind.ARCHIVE, Badge.Kind.SIM, Badge.Kind.LIVE, Badge.Kind.OK, Badge.Kind.LOCKED]:
+		row.add_child(Badge.make(k))
+
+func _add_tabs() -> void:
+	var tabs := ArchiveTabs.new()
+	tabs.set_tabs(["Moon Artifacts", "Mars Artifacts", "Spacecraft"])
+	tabs.select(0, false)
+	vbox.add_child(tabs)
+
+func _add_rows() -> void:
+	var a := ListRow.new()
+	a.title = "Lunar Module descent stage"
+	a.subtitle = "Moon · Apollo 11 · Catalogued"
+	a.icon_name = "check"
+	a.trailing = "01/07"
+	a.selected = true
+	vbox.add_child(a)
+	var b := ListRow.new()
+	b.title = "Subsurface anomaly"
+	b.subtitle = "Moon · upper regolith"
+	b.icon_name = "signal_moderate"
+	b.trailing = "02/07"
+	vbox.add_child(b)
+	var c := ListRow.new()
+	c.title = "Locked specimen"
+	c.subtitle = "Survey the Moon first"
+	c.icon_name = "moon"
+	c.locked = true
+	c.trailing = "03/07"
+	vbox.add_child(c)
+
+func _add_dialog_demo() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UITokens.SP_3)
+	vbox.add_child(row)
+	var prim := Button.new()
+	prim.text = "Primary action"
+	prim.theme_type_variation = &"PrimaryButton"
+	row.add_child(prim)
+	var ghost := Button.new()
+	ghost.text = "Ghost action"
+	ghost.theme_type_variation = &"GhostButton"
+	row.add_child(ghost)
+	var ask := Button.new()
+	ask.text = "Open confirm dialog"
+	ask.pressed.connect(func():
+		ConfirmDialog.ask(get_tree(), "Quit to menu?", "Progress that has not been catalogued will be lost.", "Quit", true))
+	row.add_child(ask)
+	var mono := Label.new()
+	mono.theme_type_variation = &"StatLabelLarge"
+	mono.text = "22.7 m   1.62 m/s²   76 BPM   000°"
+	vbox.add_child(mono)

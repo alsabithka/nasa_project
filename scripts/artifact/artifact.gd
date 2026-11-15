@@ -57,6 +57,8 @@ var _glint_effect: Node3D = null
 var _excavation_menu: CanvasLayer = null
 var _inspector_hud: CanvasLayer = null
 var is_anomaly_confirmed: bool = false
+var _story_requested: bool = false   # Phase 5: player chose WATCH STORY in the catalogue entry
+var _prompt_shown: bool = false      # Phase 5: this artifact currently owns the HUD prompt
 
 func _get_player() -> CharacterBody3D:
 	if _interacting_player and is_instance_valid(_interacting_player):
@@ -201,6 +203,7 @@ func _on_body_entered(body: Node3D) -> void:
 		_interacting_player = body as CharacterBody3D
 		if current_state == ArtifactState.BURIED:
 			_set_state(ArtifactState.DIG_SITE)
+		_refresh_prompt()
 
 func _on_body_exited(body: Node3D) -> void:
 	if body.is_in_group("player"):
@@ -212,6 +215,7 @@ func _on_body_exited(body: Node3D) -> void:
 		elif current_state == ArtifactState.DIGGING:
 			_cancel_digging()
 		_interacting_player = null
+		_refresh_prompt()
 
 # ---- State machine ----
 func _set_state(new_state: ArtifactState) -> void:
@@ -220,6 +224,7 @@ func _set_state(new_state: ArtifactState) -> void:
 	_update_state_visuals()
 
 func _update_state_visuals() -> void:
+	_refresh_prompt()
 	if beacon_ring:
 		beacon_ring.visible = false
 	
@@ -253,10 +258,9 @@ func _update_state_visuals() -> void:
 		ArtifactState.EXPOSED:
 			visual_model.visible = true
 			visual_model.scale = Vector3.ONE
+			# Phase 5: the prompt is the HUD key-cap component (see _refresh_prompt), not a Label3D.
 			if prompt_label:
-				prompt_label.text = "[E] DELICATE BRUSHING & SAMPLE RECOVERY"
-				prompt_label.modulate = Color(0.85, 0.95, 1.0, 0.9)
-				prompt_label.visible = true
+				prompt_label.visible = false
 			if dig_progress_label:
 				dig_progress_label.visible = false
 		
@@ -271,12 +275,32 @@ func _update_state_visuals() -> void:
 			visual_model.visible = true
 			visual_model.scale = Vector3.ONE
 			if prompt_label:
-				prompt_label.text = "[E] INSPECT HARDWARE - " + artifact_name
-				prompt_label.modulate = Color(0.4, 1.0, 0.5, 0.8)
-				prompt_label.visible = true
+				prompt_label.visible = false
 			if dig_progress_label:
 				dig_progress_label.visible = false
 			is_recovered = true
+
+# Phase 5: contextual prompt = WorldHud key-cap + verb, shown only while the player stands in the
+# zone. Routed through the "world_hud" group so artifact.gd needs no reference to the HUD.
+func _refresh_prompt() -> void:
+	var verb := ""
+	if _is_player_in_zone:
+		match current_state:
+			ArtifactState.EXPOSED:
+				verb = "Brush and recover specimen"
+			ArtifactState.IDENTIFIED:
+				verb = "Inspect hardware: %s" % artifact_name
+	if verb != "":
+		get_tree().call_group("world_hud", "show_prompt", "interact", verb)
+		_prompt_shown = true
+	elif _prompt_shown:
+		get_tree().call_group("world_hud", "hide_prompt")
+		_prompt_shown = false
+
+func _exit_tree() -> void:
+	if _prompt_shown and is_inside_tree():
+		get_tree().call_group("world_hud", "hide_prompt")
+		_prompt_shown = false
 
 func _set_beacon_color(albedo: Color, emission: Color) -> void:
 	if not beacon_ring:
@@ -532,6 +556,8 @@ func _open_scientific_examination() -> void:
 	panel.set_script(exam_script)
 	panel.artifact_id = artifact_id
 	panel.documentation_closed.connect(_on_documentation_closed)
+	if panel.has_signal("story_requested"):
+		panel.story_requested.connect(func(_id: String) -> void: _story_requested = true)
 	add_child(panel)
 
 func _on_documentation_closed(done_id: String) -> void:
@@ -541,7 +567,16 @@ func _on_documentation_closed(done_id: String) -> void:
 		player.end_interaction()
 	if player and player.has_method("set_active_tool"):
 		player.set_active_tool(0) # RETURN TO DETECTOR
-	if player and player.has_method("capture_mouse"):
+	# Phase 5: WATCH STORY hands over to the HUD, which owns the story player and recaptures
+	# the mouse when the story ends. CONTINUE (or no HUD present) recaptures it right away.
+	var story_started := false
+	if _story_requested:
+		var huds := get_tree().get_nodes_in_group("hud")
+		if not huds.is_empty() and huds[0].has_method("play_artifact_story"):
+			huds[0].play_artifact_story(done_id)
+			story_started = true
+	_story_requested = false
+	if not story_started and player and player.has_method("capture_mouse"):
 		player.capture_mouse()
 
 func _identify_artifact() -> void:

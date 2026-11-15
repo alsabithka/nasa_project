@@ -1,44 +1,13 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/dig_clean_ui.gd" id="1_dig_clean"]
-
-[sub_resource type="StyleBoxFlat" id="Style_CleanCard"]
-bg_color = Color(0.08, 0.1, 0.14, 0.96)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.95, 0.75, 0.2, 0.9)
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
-content_margin_left = 32.0
-content_margin_top = 24.0
-content_margin_right = 32.0
-content_margin_bottom = 24.0
-
-[sub_resource type="StyleBoxFlat" id="Style_Preview"]
-bg_color = Color(0.04, 0.05, 0.08, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.25, 0.3, 0.4, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="Style_ProgressBarFill"]
-bg_color = Color(0.2, 0.85, 0.5, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+[ext_resource type="Script" path="res://scripts/ui/components/specimen_reveal.gd" id="2_reveal"]
+[ext_resource type="Script" path="res://scripts/ui/components/segmented_meter.gd" id="3_meter"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/key_cap.tscn" id="4_key"]
+[ext_resource type="Theme" path="res://ui/theme/ebe_theme.tres" id="5_theme"]
 
 [node name="DigCleanUI" type="CanvasLayer"]
-layer = 15
+layer = 20
 script = ExtResource("1_dig_clean")
 
 [node name="DimBackground" type="ColorRect" parent="."]
@@ -47,7 +16,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.02, 0.03, 0.06, 0.88)
+color = Color(0.027, 0.035, 0.051, 0.9)
 
 [node name="CenterContainer" type="CenterContainer" parent="."]
 anchors_preset = 15
@@ -55,11 +24,12 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("5_theme")
 
 [node name="PanelContainer" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(460, 0)
+custom_minimum_size = Vector2(500, 0)
 layout_mode = 2
-theme_override_styles/panel = SubResource("Style_CleanCard")
+theme_type_variation = &"ArchiveCard"
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer"]
 layout_mode = 2
@@ -67,52 +37,61 @@ theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.98, 0.78, 0.2, 1)
-theme_override_font_sizes/font_size = 22
+theme_type_variation = &"TitleLabel"
 text = "FIELD SPECIMEN CONSERVATION"
-horizontal_alignment = 1
 
 [node name="Subtitle" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.75, 0.85, 1)
-theme_override_font_sizes/font_size = 14
-text = "Target: Buried Lunar Surface Equipment"
-horizontal_alignment = 1
+theme_type_variation = &"CaptionLabel"
+text = "Remove the surface dust without damaging what lies beneath"
 
-[node name="PreviewBox" type="PanelContainer" parent="CenterContainer/PanelContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 180)
+[node name="PreviewBox" type="Control" parent="CenterContainer/PanelContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 190)
 layout_mode = 2
-theme_override_styles/panel = SubResource("Style_Preview")
 
-[node name="ObjectPreviewLabel" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer/PreviewBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.5, 0.85, 1, 1)
-theme_override_font_sizes/font_size = 16
-text = "[ Spacecraft Structure Emerging... ]"
-horizontal_alignment = 1
-vertical_alignment = 1
+[node name="Reveal" type="Control" parent="CenterContainer/PanelContainer/VBoxContainer/PreviewBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_reveal")
 
-[node name="DustOverlay" type="ColorRect" parent="CenterContainer/PanelContainer/VBoxContainer/PreviewBox"]
+[node name="ObjectPreviewLabel" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer"]
 layout_mode = 2
-color = Color(0.38, 0.4, 0.42, 0.95)
+theme_type_variation = &"LeadLabel"
+text = "Unidentified subsurface anomaly"
 
-[node name="ProgressBar" type="ProgressBar" parent="CenterContainer/PanelContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 18)
+[node name="MeterRow" type="HBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_styles/fill = SubResource("Style_ProgressBarFill")
-max_value = 100.0
-step = 1.0
-show_percentage = false
+theme_override_constants/separation = 12
 
-[node name="PercentLabel" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer"]
+[node name="Meter" type="Control" parent="CenterContainer/PanelContainer/VBoxContainer/MeterRow"]
+custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
-text = "0% Cleaned"
-horizontal_alignment = 1
+size_flags_horizontal = 3
+script = ExtResource("3_meter")
+segment_count = 20
+value = 0.0
 
-[node name="BrushHint" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer"]
+[node name="PercentLabel" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer/MeterRow"]
+custom_minimum_size = Vector2(64, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
-theme_override_font_sizes/font_size = 16
-text = "Hold [E] or Left Click to brush away dust"
-horizontal_alignment = 1
+theme_type_variation = &"StatLabel"
+text = "0%"
+horizontal_alignment = 2
+
+[node name="HintRow" type="HBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="KeyCap" parent="CenterContainer/PanelContainer/VBoxContainer/HintRow" instance=ExtResource("4_key")]
+layout_mode = 2
+action_name = "interact"
+
+[node name="BrushHint" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer/HintRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Hold to brush away dust, or hold the left mouse button"
+autowrap_mode = 3

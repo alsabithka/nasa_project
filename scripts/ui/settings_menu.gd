@@ -1,252 +1,168 @@
-extends CanvasLayer
+extends ModalShell
 
-# Echoes Beyond Earth — Settings Menu (Phase 3)
-# Persists to user://settings.cfg via ConfigFile
-# Layer: UITokens.LAYER_SYSTEM (40)
+# Echoes Beyond Earth — Settings (Phase 3)
+# Persists through SettingsStore (user://settings.cfg). GameState is not touched.
+# Rows: master volume, music/SFX volume (only when those audio buses exist),
+# mouse sensitivity (multiplier of the player's default), reduced motion.
+# Text scale and high contrast arrive in Phase 7 — they are not shown until they work.
 
 signal settings_closed
 
-const UITokens = preload("res://scripts/ui/ui_tokens.gd")
-const CFG_PATH := "user://settings.cfg"
-
-# Sliders / toggles (populated in _build_ui)
-var _master_slider: HSlider
-var _music_slider: HSlider
-var _sfx_slider: HSlider
-var _mouse_slider: HSlider
-var _text_scale_opts: OptionButton
-
-# Persistent settings
-var _settings := {
-	"master_volume": 1.0,
-	"music_volume": 0.8,
-	"sfx_volume": 0.9,
-	"mouse_sensitivity": 0.3,
-	"text_scale": 100,
-}
-
-var _overlay: ColorRect
-var _card: PanelContainer
+var _rows: Array[Dictionary] = []   # {slider, label, key, fmt}
+var _motion_btn: Button
+var _first_focus: Control = null
 
 
-func _ready() -> void:
-	layer = UITokens.LAYER_SYSTEM
-	_load_settings()
-	_build_ui()
-	visible = false
+func _init() -> void:
+	title_text = "Settings"
+	card_width = 600
 
 
-# ─── Persistence ───────────────────────────────────────────────────────────────
+func _build_content() -> void:
+	closed.connect(_on_closed)
 
-func _load_settings() -> void:
-	var cfg := ConfigFile.new()
-	if cfg.load(CFG_PATH) == OK:
-		for key in _settings.keys():
-			if cfg.has_section_key("settings", key):
-				_settings[key] = cfg.get_value("settings", key)
+	_add_section("AUDIO")
+	_add_slider_row("Master volume", "master_volume", 0.0, 1.0, 0.05, "pct")
+	if SettingsStore.has_bus("Music"):
+		_add_slider_row("Music volume", "music_volume", 0.0, 1.0, 0.05, "pct")
+	if SettingsStore.has_bus("SFX"):
+		_add_slider_row("Effects volume", "sfx_volume", 0.0, 1.0, 0.05, "pct")
 
+	_add_section("CONTROLS")
+	_add_slider_row("Mouse sensitivity", "mouse_sensitivity",
+		SettingsStore.MOUSE_MULT_MIN, SettingsStore.MOUSE_MULT_MAX, 0.05, "mult")
 
-func _save_settings() -> void:
-	var cfg := ConfigFile.new()
-	# Preserve any existing keys (e.g. first_run_shown)
-	cfg.load(CFG_PATH)
-	for key in _settings.keys():
-		cfg.set_value("settings", key, _settings[key])
-	cfg.save(CFG_PATH)
-	_apply_settings()
+	_add_section("ACCESSIBILITY")
+	_add_motion_row()
 
+	var rule := ColorRect.new()
+	rule.color = UITokens.INK_600
+	rule.custom_minimum_size = Vector2(0, 1)
+	body.add_child(rule)
 
-func _apply_settings() -> void:
-	# Audio buses  (graceful if fewer buses exist)
-	AudioServer.set_bus_volume_db(0, linear_to_db(_settings["master_volume"]))
-	if AudioServer.bus_count > 1:
-		AudioServer.set_bus_volume_db(1, linear_to_db(_settings["music_volume"]))
-	if AudioServer.bus_count > 2:
-		AudioServer.set_bus_volume_db(2, linear_to_db(_settings["sfx_volume"]))
-	# Mouse sensitivity — broadcast so player.gd can read it
-	var player = get_tree().get_first_node_in_group("player")
-	if player and "mouse_sensitivity" in player:
-		player.mouse_sensitivity = _settings["mouse_sensitivity"]
-
-
-# ─── UI construction ──────────────────────────────────────────────────────────
-
-func _build_ui() -> void:
-	_overlay = ColorRect.new()
-	_overlay.anchors_preset = Control.PRESET_FULL_RECT
-	_overlay.color = Color(UITokens.INK_900, 0.90)
-	_overlay.gui_input.connect(func(_e): pass)   # consume clicks on overlay
-	add_child(_overlay)
-
-	_card = PanelContainer.new()
-	_card.set_anchors_preset(Control.PRESET_CENTER)
-	_card.offset_left = -300.0
-	_card.offset_top = -260.0
-	_card.offset_right = 300.0
-	_card.offset_bottom = 260.0
-	_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_card.grow_vertical = Control.GROW_DIRECTION_BOTH
-
-	var sty := StyleBoxFlat.new()
-	sty.bg_color = UITokens.INK_800
-	sty.border_width_left = 3
-	sty.border_width_top = 3
-	sty.border_width_right = 3
-	sty.border_width_bottom = 3
-	sty.border_color = UITokens.PAPER_500
-	sty.content_margin_left = 36.0
-	sty.content_margin_top = 28.0
-	sty.content_margin_right = 36.0
-	sty.content_margin_bottom = 28.0
-	_card.add_theme_stylebox_override("panel", sty)
-	add_child(_card)
-
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 10)
-	_card.add_child(vbox)
-
-	# Title row
-	var title_row := HBoxContainer.new()
-	vbox.add_child(title_row)
-
-	var title := Label.new()
-	title.text = "SETTINGS"
-	title.add_theme_color_override("font_color", UITokens.SIGNAL_GOLD)
-	title.add_theme_font_size_override("font_size", UITokens.TEXT_TITLE)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_row.add_child(title)
-
-	var close_btn := Button.new()
-	close_btn.text = "[ CLOSE ]"
-	close_btn.flat = true
-	close_btn.add_theme_color_override("font_color", UITokens.PAPER_300)
-	close_btn.add_theme_font_size_override("font_size", UITokens.TEXT_CAPTION)
-	close_btn.pressed.connect(_on_close)
-	title_row.add_child(close_btn)
-
-	var sep := HSeparator.new()
-	vbox.add_child(sep)
-
-	# Audio section
-	_add_section_header(vbox, "AUDIO")
-	_master_slider = _add_slider_row(vbox, "Master Volume",
-		_settings["master_volume"], 0.0, 1.0, 0.05,
-		func(v): _settings["master_volume"] = v; _apply_settings())
-	_music_slider = _add_slider_row(vbox, "Music Volume",
-		_settings["music_volume"], 0.0, 1.0, 0.05,
-		func(v): _settings["music_volume"] = v; _apply_settings())
-	_sfx_slider = _add_slider_row(vbox, "SFX Volume",
-		_settings["sfx_volume"], 0.0, 1.0, 0.05,
-		func(v): _settings["sfx_volume"] = v; _apply_settings())
-
-	var sep2 := HSeparator.new()
-	vbox.add_child(sep2)
-
-	# Controls section
-	_add_section_header(vbox, "CONTROLS")
-	_mouse_slider = _add_slider_row(vbox, "Mouse Sensitivity",
-		_settings["mouse_sensitivity"], 0.05, 1.0, 0.05,
-		func(v): _settings["mouse_sensitivity"] = v; _apply_settings())
-
-	var sep3 := HSeparator.new()
-	vbox.add_child(sep3)
-
-	# Accessibility section
-	_add_section_header(vbox, "ACCESSIBILITY")
-
-	var scale_row := HBoxContainer.new()
-	scale_row.add_theme_constant_override("separation", 16)
-	vbox.add_child(scale_row)
-
-	var scale_lbl := Label.new()
-	scale_lbl.text = "Text Scale"
-	scale_lbl.add_theme_color_override("font_color", UITokens.PAPER_300)
-	scale_lbl.add_theme_font_size_override("font_size", UITokens.TEXT_BODY)
-	scale_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scale_row.add_child(scale_lbl)
-
-	_text_scale_opts = OptionButton.new()
-	_text_scale_opts.add_item("100%", 0)
-	_text_scale_opts.add_item("125%", 1)
-	_text_scale_opts.add_item("150%", 2)
-	match _settings["text_scale"]:
-		125: _text_scale_opts.selected = 1
-		150: _text_scale_opts.selected = 2
-		_:   _text_scale_opts.selected = 0
-	_text_scale_opts.item_selected.connect(_on_text_scale_selected)
-	scale_row.add_child(_text_scale_opts)
+	var foot := HBoxContainer.new()
+	foot.add_theme_constant_override("separation", UITokens.SP_3)
+	body.add_child(foot)
+	var reset := Button.new()
+	reset.text = "Reset to defaults"
+	reset.theme_type_variation = &"GhostButton"
+	reset.pressed.connect(_on_reset)
+	foot.add_child(reset)
 
 
-func _add_section_header(parent: VBoxContainer, text: String) -> void:
-	var lbl := Label.new()
-	lbl.text = text
-	lbl.add_theme_color_override("font_color", UITokens.PAPER_500)
-	lbl.add_theme_font_size_override("font_size", UITokens.TEXT_CAPTION)
-	parent.add_child(lbl)
+func _add_section(text: String) -> void:
+	var h := SectionHeader.new()
+	h.title = text
+	body.add_child(h)
 
 
-func _add_slider_row(parent: VBoxContainer, label_text: String,
-		init_val: float, min_val: float, max_val: float, step: float,
-		on_change: Callable) -> HSlider:
+func _fmt(kind: String, v: float) -> String:
+	return "%d%%" % int(round(v * 100.0)) if kind == "pct" else "%.2f×" % v
+
+
+func _add_slider_row(label_text: String, key: String, lo: float, hi: float, step: float, kind: String) -> void:
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
-	parent.add_child(row)
+	row.add_theme_constant_override("separation", UITokens.SP_4)
+	body.add_child(row)
 
 	var lbl := Label.new()
 	lbl.text = label_text
-	lbl.add_theme_color_override("font_color", UITokens.PAPER_300)
-	lbl.add_theme_font_size_override("font_size", UITokens.TEXT_BODY)
-	lbl.custom_minimum_size = Vector2(160, 0)
+	lbl.custom_minimum_size = Vector2(170, 0)
 	row.add_child(lbl)
 
-	var slider := HSlider.new()
-	slider.min_value = min_val
-	slider.max_value = max_val
-	slider.step = step
-	slider.value = init_val
-	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slider.value_changed.connect(on_change)
-	row.add_child(slider)
+	var s := HSlider.new()
+	s.min_value = lo
+	s.max_value = hi
+	s.step = step
+	s.value = float(SettingsStore.get_value(key))
+	s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ModalShell.style_slider(s)
+	row.add_child(s)
 
-	var val_lbl := Label.new()
-	val_lbl.add_theme_color_override("font_color", UITokens.SIGNAL_CYAN)
-	val_lbl.add_theme_font_size_override("font_size", UITokens.TEXT_BODY)
-	val_lbl.custom_minimum_size = Vector2(42, 0)
-	val_lbl.text = "%.0f%%" % (init_val * 100)
-	row.add_child(val_lbl)
+	var val := Label.new()
+	val.theme_type_variation = &"StatLabel"
+	val.custom_minimum_size = Vector2(64, 0)
+	val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	val.text = _fmt(kind, s.value)
+	row.add_child(val)
 
-	# Keep label in sync
-	slider.value_changed.connect(func(v): val_lbl.text = "%.0f%%" % (v * 100))
-	return slider
+	s.value_changed.connect(func(v: float) -> void:
+		SettingsStore.set_value(key, v)
+		val.text = _fmt(kind, v)
+		SettingsStore.apply(get_tree())
+	)
+	s.drag_ended.connect(func(_changed: bool) -> void: SettingsStore.save())
+	# Keyboard / gamepad changes do not emit drag_ended; save on focus loss too.
+	s.focus_exited.connect(SettingsStore.save)
 
-
-func _on_text_scale_selected(index: int) -> void:
-	match index:
-		1: _settings["text_scale"] = 125
-		2: _settings["text_scale"] = 150
-		_: _settings["text_scale"] = 100
-	# Theme font size scaling is applied in Phase 7; store for now.
-	_save_settings()
-
-
-func _on_close() -> void:
-	_save_settings()
-	visible = false
-	emit_signal("settings_closed")
+	_rows.append({"slider": s, "label": val, "key": key, "kind": kind})
+	if _first_focus == null:
+		_first_focus = s
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if not visible:
-		return
-	if event.is_action_pressed("ui_cancel"):
-		_on_close()
-		get_viewport().set_input_as_handled()
+func _add_motion_row() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UITokens.SP_4)
+	body.add_child(row)
+
+	var col := VBoxContainer.new()
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(col)
+	var lbl := Label.new()
+	lbl.text = "Reduced motion"
+	col.add_child(lbl)
+	var hint := Label.new()
+	hint.text = "Removes fades and slide-ins. Scene changes become instant cuts."
+	hint.theme_type_variation = &"CaptionLabel"
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(hint)
+
+	_motion_btn = Button.new()
+	_motion_btn.toggle_mode = true
+	_motion_btn.theme_type_variation = &"GhostButton"
+	_motion_btn.custom_minimum_size = Vector2(96, 0)
+	_motion_btn.button_pressed = bool(SettingsStore.get_value("reduced_motion"))
+	_motion_btn.toggled.connect(_on_motion_toggled)
+	row.add_child(_motion_btn)
+	_refresh_motion_button()
 
 
+func _refresh_motion_button() -> void:
+	var on: bool = _motion_btn.button_pressed
+	# State is carried by text AND icon, never colour alone.
+	_motion_btn.text = "On" if on else "Off"
+	_motion_btn.icon = UITokens.icon("check") if on else null
+
+
+func _on_motion_toggled(_pressed: bool) -> void:
+	SettingsStore.set_value("reduced_motion", _motion_btn.button_pressed)
+	SettingsStore.save()
+	_refresh_motion_button()
+
+
+func _on_reset() -> void:
+	for key in ["master_volume", "music_volume", "sfx_volume", "mouse_sensitivity", "reduced_motion"]:
+		SettingsStore.set_value(key, SettingsStore.DEFAULTS[key])
+	for r in _rows:
+		var s: HSlider = r["slider"]
+		s.value = float(SettingsStore.get_value(r["key"]))
+	_motion_btn.button_pressed = false
+	SettingsStore.save()
+	SettingsStore.apply(get_tree())
+
+
+func _on_closed() -> void:
+	SettingsStore.save()
+	settings_closed.emit()
+
+
+## Public entry point (kept from the earlier scaffold): refresh from disk and show.
 func show_settings() -> void:
-	_load_settings()
-	if _master_slider: _master_slider.value = _settings["master_volume"]
-	if _music_slider:  _music_slider.value  = _settings["music_volume"]
-	if _sfx_slider:    _sfx_slider.value    = _settings["sfx_volume"]
-	if _mouse_slider:  _mouse_slider.value  = _settings["mouse_sensitivity"]
-	visible = true
+	SettingsStore.reload()
+	for r in _rows:
+		var s: HSlider = r["slider"]
+		s.value = float(SettingsStore.get_value(r["key"]))
+	if _motion_btn != null:
+		_motion_btn.set_pressed_no_signal(bool(SettingsStore.get_value("reduced_motion")))
+		_refresh_motion_button()
+	open(_first_focus)

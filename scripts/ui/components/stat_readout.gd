@@ -13,9 +13,12 @@ extends VBoxContainer
 @export var value: String = "--"   : set = set_value
 @export var unit: String  = ""     : set = set_unit
 @export var accent_color: Color = Color(0.502, 0.8, 1.0) : set = set_accent  # SIGNAL_CYAN default
+## True for invented / simulated values — shows a SIM badge so players can tell simulation from fact.
+@export var simulated: bool = false : set = set_simulated
 
 var _title_label: Label
 var _value_label: Label
+var _sim_badge: Badge
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 2)
@@ -25,9 +28,17 @@ func _ready() -> void:
 	_title_label.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(_title_label)
 
+	var value_row := HBoxContainer.new()
+	value_row.add_theme_constant_override("separation", UITokens.SP_2)
+	value_row.mouse_filter = MOUSE_FILTER_IGNORE
+	add_child(value_row)
 	_value_label = Label.new()
+	_value_label.theme_type_variation = &"StatLabel"   # IBM Plex Mono — live numerals
 	_value_label.mouse_filter = MOUSE_FILTER_IGNORE
-	add_child(_value_label)
+	value_row.add_child(_value_label)
+	_sim_badge = Badge.make(Badge.Kind.SIM)
+	_sim_badge.visible = simulated
+	value_row.add_child(_sim_badge)
 
 	_refresh_all()
 
@@ -43,6 +54,10 @@ func set_unit(v: String) -> void:
 	unit = v
 	if _value_label:
 		_value_label.text = ("%s %s" % [value, v]).strip_edges()
+func set_simulated(v: bool) -> void:
+	simulated = v
+	if _sim_badge:
+		_sim_badge.visible = v
 func set_accent(c: Color) -> void:
 	accent_color = c
 	if _value_label:
@@ -50,11 +65,9 @@ func set_accent(c: Color) -> void:
 
 func _refresh_all() -> void:
 	_title_label.text = title
-	_title_label.add_theme_font_size_override("font_size", UITokens.TEXT_CAPTION)
-	_title_label.add_theme_color_override("font_color", UITokens.PAPER_500)
+	_title_label.theme_type_variation = &"CaptionLabel"
 
 	_value_label.text = ("%s %s" % [value, unit]).strip_edges()
-	_value_label.add_theme_font_size_override("font_size", UITokens.TEXT_BODY)
 	_value_label.add_theme_color_override("font_color", accent_color)
 
 ## Convenience setter used by HUD to update live values.

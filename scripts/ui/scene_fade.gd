@@ -1,45 +1,58 @@
+class_name SceneFade
 extends CanvasLayer
 
-# Echoes Beyond Earth — Scene Fade Transition (Phase 8)
-# A full-screen INK_900 overlay that fades in, calls the scene change,
-# then fades out in the new scene.
-# Usage:
+# Echoes Beyond Earth — Scene Fade Transition
+# Fades to INK_900, changes scene, then fades back out and frees itself.
+# Respects reduced motion (instant cut). Usage:
 #   SceneFade.go(get_tree(), "res://scenes/levels/moon.tscn")
-
-class_name SceneFade
-
-const UITokens = preload("res://scripts/ui/ui_tokens.gd")
 
 var _rect: ColorRect
 var _target_scene: String = ""
 
+
 func _ready() -> void:
-	layer = UITokens.LAYER_DEBUG  # 50 — topmost, covers everything
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	layer = UITokens.LAYER_DEBUG  # topmost, covers everything
 	_rect = ColorRect.new()
-	_rect.anchors_preset = Control.PRESET_FULL_RECT
+	_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_rect.color = Color(UITokens.INK_900, 0.0)
-	_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_rect.mouse_filter = Control.MOUSE_FILTER_STOP  # block clicks while fading
 	add_child(_rect)
 
 
 func run_transition(target: String) -> void:
 	_target_scene = target
+	get_tree().paused = false
+	var d: float = UITokens.DURATION_SLOW * SettingsStore.motion_scale()
+	if d <= 0.0:
+		_do_change()
+		return
 	var tw := create_tween()
-	tw.tween_property(_rect, "color:a", 1.0, UITokens.DURATION_SLOW).set_trans(Tween.TRANS_QUAD)
+	tw.tween_property(_rect, "color:a", 1.0, d).set_trans(Tween.TRANS_QUAD)
 	tw.tween_callback(_do_change)
 
 
 func _do_change() -> void:
-	get_tree().change_scene_to_file(_target_scene)
+	var tree := get_tree()
+	tree.change_scene_to_file(_target_scene)
+	# Let the new scene build, then reveal it and remove the overlay.
+	await tree.process_frame
+	await tree.process_frame
+	var d: float = UITokens.DURATION_BASE * SettingsStore.motion_scale()
+	if d > 0.0:
+		var tw := create_tween()
+		tw.tween_property(_rect, "color:a", 0.0, d).set_trans(Tween.TRANS_QUAD)
+		await tw.finished
+	queue_free()
 
 
-## Static convenience — fades current scene out, loads next, fades in.
+## Static convenience — fade out, load next scene, fade in.
 static func go(tree: SceneTree, target: String) -> void:
-	var fade_scene := load("res://scenes/ui/scene_fade.tscn")
-	if not fade_scene:
-		# Fallback: instant change
+	var fade_scene: PackedScene = load("res://scenes/ui/scene_fade.tscn") as PackedScene
+	if fade_scene == null:
+		tree.paused = false
 		tree.change_scene_to_file(target)
 		return
-	var fade: SceneFade = fade_scene.instantiate()
+	var fade: SceneFade = fade_scene.instantiate() as SceneFade
 	tree.root.add_child(fade)
 	fade.run_transition(target)

@@ -2,9 +2,16 @@ extends CanvasLayer
 class_name SpacecraftInspectorHUD
 
 # Echoes Beyond Earth - NASA Spacecraft Component Inspector HUD
-# Phase 7: input routed through InputMap actions; UITokens applied.
-# Displays historical mission context, engineering telemetry, and lets the player
-# cycle through and inspect individual mechanical subsystems in detail.
+# Phase 6: rebuilt from shared components (ArchiveCard, SegmentedMeter, KeyCap, Theme buttons).
+# No hard-coded colours, no glyph bullets. Input is action-based (no raw KEY_ literals).
+# Displays historical mission context, engineering notes, and lets the player cycle through
+# and inspect individual mechanical subsystems in detail.
+#
+# Public contract (test_historical_spacecraft_assets.gd depends on it):
+#   open_inspector(node, id)  close_inspector()  _on_prev_pressed()  _on_next_pressed()
+#   fields: _components, title_label, subtitle_label, comp_name_label, comp_desc_label,
+#           comp_spec_label (text always begins with "SPECIFICATIONS:"), counter_label
+#   signal inspection_closed
 
 signal inspection_closed()
 
@@ -23,6 +30,11 @@ var comp_name_label: Label
 var comp_desc_label: Label
 var comp_spec_label: Label
 var counter_label: Label
+var progress_meter: SegmentedMeter
+var next_button: Button
+var prev_button: Button
+var close_button: Button
+var panel: Control
 
 func open_inspector(target_node: Node3D, target_artifact_id: String) -> void:
 	spacecraft_root = target_node
@@ -30,6 +42,9 @@ func open_inspector(target_node: Node3D, target_artifact_id: String) -> void:
 	_scan_components()
 	_update_display()
 	show()
+	# Keyboard / gamepad: start on "Next component" so Enter / A steps through the parts.
+	if next_button != null and next_button.is_inside_tree():
+		next_button.grab_focus.call_deferred()
 
 func _ready() -> void:
 	layer = UITokens.LAYER_OVERLAYS  # 10
@@ -63,104 +78,133 @@ func _recursive_scan(node: Node) -> void:
 		_recursive_scan(child)
 
 func _build_ui() -> void:
-	var root = Control.new()
+	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.theme = UITokens.theme()
 	add_child(root)
 
-	# Bottom Center Inspection Panel
-	var panel = PanelContainer.new()
-	panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	panel.offset_left = 64
-	panel.offset_right = -64
-	panel.offset_bottom = -24
-	panel.offset_top = -220
-	root.add_child(panel)
+	# Bottom panel: same ArchiveCard language as the gallery and the journal.
+	var card := ArchiveCard.new()
+	card.show_offset_shadow = true
+	card.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	card.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	card.offset_left = UITokens.SP_6
+	card.offset_right = -UITokens.SP_6
+	card.offset_bottom = -UITokens.SP_6
+	root.add_child(card)
+	panel = card
 
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.08, 0.12, 0.90)
-	style.border_color = Color(0.24, 0.58, 0.88, 0.85)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(6)
-	style.content_margin_left = 24
-	style.content_margin_right = 24
-	style.content_margin_top = 16
-	style.content_margin_bottom = 16
-	panel.add_theme_stylebox_override("panel", style)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", UITokens.SP_2)
+	card.add_child(col)
 
-	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 8)
-	panel.add_child(vbox)
+	# Header: craft (left) · counter + meter (right)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", UITokens.SP_4)
+	col.add_child(head)
 
-	# Header HBox
-	var header_hbox = HBoxContainer.new()
-	vbox.add_child(header_hbox)
-
-	var title_box = VBoxContainer.new()
+	var title_box := VBoxContainer.new()
 	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header_hbox.add_child(title_box)
+	title_box.add_theme_constant_override("separation", 0)
+	head.add_child(title_box)
 
 	title_label = Label.new()
-	title_label.text = "NASA HISTORICAL HARDWARE INSPECTION"
-	title_label.add_theme_font_size_override("font_size", 18)
-	title_label.add_theme_color_override("font_color", Color(0.95, 0.82, 0.35))
+	title_label.text = "COMPONENT INSPECTION"
+	title_label.theme_type_variation = &"TitleLabel"
+	title_label.add_theme_color_override("font_color", UITokens.SIGNAL_GOLD)
 	title_box.add_child(title_label)
 
 	subtitle_label = Label.new()
-	subtitle_label.text = "Geographical Surface Telemetry: Active"
-	subtitle_label.add_theme_font_size_override("font_size", 13)
-	subtitle_label.add_theme_color_override("font_color", Color(0.65, 0.75, 0.85))
+	subtitle_label.text = ""
+	subtitle_label.theme_type_variation = &"CaptionLabel"
+	subtitle_label.add_theme_color_override("font_color", UITokens.PAPER_300)
+	subtitle_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title_box.add_child(subtitle_label)
 
+	var count_box := VBoxContainer.new()
+	count_box.add_theme_constant_override("separation", UITokens.SP_1)
+	head.add_child(count_box)
 	counter_label = Label.new()
-	counter_label.text = "COMPONENT [1/1]"
-	counter_label.add_theme_font_size_override("font_size", 14)
-	counter_label.add_theme_color_override("font_color", Color(0.3, 0.85, 1.0))
-	header_hbox.add_child(counter_label)
+	counter_label.text = "COMPONENT 01 / 01"
+	counter_label.theme_type_variation = &"StatLabel"
+	counter_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	count_box.add_child(counter_label)
+	progress_meter = SegmentedMeter.new()
+	progress_meter.accent = UITokens.SIGNAL_CYAN
+	progress_meter.custom_minimum_size = Vector2(160, 10)
+	count_box.add_child(progress_meter)
 
-	var h_sep = HSeparator.new()
-	vbox.add_child(h_sep)
+	var rule := ColorRect.new()
+	rule.color = UITokens.INK_600
+	rule.custom_minimum_size = Vector2(0, 1)
+	col.add_child(rule)
 
-	# Component Details
+	# Component details
 	comp_name_label = Label.new()
-	comp_name_label.text = "COMPONENT NAME"
-	comp_name_label.add_theme_font_size_override("font_size", 16)
-	comp_name_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
-	vbox.add_child(comp_name_label)
+	comp_name_label.text = "Component"
+	comp_name_label.theme_type_variation = &"LeadLabel"
+	col.add_child(comp_name_label)
 
 	comp_desc_label = Label.new()
-	comp_desc_label.text = "Component description and engineering function..."
+	comp_desc_label.text = ""
 	comp_desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	comp_desc_label.add_theme_font_size_override("font_size", 13)
-	comp_desc_label.add_theme_color_override("font_color", Color(0.85, 0.90, 0.95))
-	vbox.add_child(comp_desc_label)
+	comp_desc_label.add_theme_color_override("font_color", UITokens.PAPER_100)
+	col.add_child(comp_desc_label)
 
 	comp_spec_label = Label.new()
-	comp_spec_label.text = "Technical Specifications: -"
-	comp_spec_label.add_theme_font_size_override("font_size", 12)
-	comp_spec_label.add_theme_color_override("font_color", Color(0.4, 0.95, 0.65))
-	vbox.add_child(comp_spec_label)
+	comp_spec_label.text = "SPECIFICATIONS: -"
+	comp_spec_label.theme_type_variation = &"StatLabel"
+	comp_spec_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	comp_spec_label.add_theme_color_override("font_color", UITokens.SIGNAL_CYAN)
+	col.add_child(comp_spec_label)
 
-	# Navigation Controls HBox
-	var nav_hbox = HBoxContainer.new()
-	nav_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	nav_hbox.add_theme_constant_override("separation", 16)
-	vbox.add_child(nav_hbox)
+	# Navigation: [cap] Previous · [cap] Next · .... · [Esc] Resume exploration
+	var nav := HBoxContainer.new()
+	nav.add_theme_constant_override("separation", UITokens.SP_3)
+	col.add_child(nav)
 
-	var prev_btn = Button.new()
-	prev_btn.text = "< Previous Component [Q / Left]"
-	prev_btn.pressed.connect(_on_prev_pressed)
-	nav_hbox.add_child(prev_btn)
+	var prev_row := _nav_button("Previous component", "chevron_left", "gallery_prev", _on_prev_pressed, &"GhostButton")
+	nav.add_child(prev_row)
+	prev_button = prev_row.get_child(1) as Button
+	var next_row := _nav_button("Next component", "chevron_right", "gallery_next", _on_next_pressed, &"GhostButton")
+	nav.add_child(next_row)
+	next_button = next_row.get_child(1) as Button
 
-	var next_btn = Button.new()
-	next_btn.text = "Next Component [E / Right] >"
-	next_btn.pressed.connect(_on_next_pressed)
-	nav_hbox.add_child(next_btn)
+	var grow := Control.new()
+	grow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	nav.add_child(grow)
 
-	var close_btn = Button.new()
-	close_btn.text = "Resume Exploration [ESC / Space]"
-	close_btn.pressed.connect(close_inspector)
-	nav_hbox.add_child(close_btn)
+	var close_row := HBoxContainer.new()
+	close_row.add_theme_constant_override("separation", UITokens.SP_2)
+	var esc_cap := KeyCap.new()
+	esc_cap.label_override = "Esc"
+	esc_cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	close_row.add_child(esc_cap)
+	close_button = Button.new()
+	close_button.text = "Resume exploration"
+	close_button.icon = UITokens.icon("close")
+	close_button.theme_type_variation = &"PrimaryButton"
+	close_button.pressed.connect(close_inspector)
+	close_row.add_child(close_button)
+	nav.add_child(close_row)
+
+## [KeyCap] [Button] pair. The cap reads the InputMap, so rebinding shows up automatically.
+func _nav_button(text: String, icon_name: String, action: String, cb: Callable, variation: StringName) -> HBoxContainer:
+	var holder := HBoxContainer.new()
+	holder.add_theme_constant_override("separation", UITokens.SP_2)
+	var cap := KeyCap.new()
+	cap.action_name = action
+	cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	holder.add_child(cap)
+	var b := Button.new()
+	b.text = text
+	b.icon = UITokens.icon(icon_name)
+	b.theme_type_variation = variation
+	b.pressed.connect(cb)
+	holder.add_child(b)
+	return holder
 
 func _update_display() -> void:
 	if _components.is_empty():
@@ -170,11 +214,12 @@ func _update_display() -> void:
 	var comp = _components[_current_idx]
 
 	if spacecraft_root and spacecraft_root.has_meta("component_name"):
-		title_label.text = spacecraft_root.get_meta("component_name").to_upper()
-		subtitle_label.text = spacecraft_root.get_meta("component_desc")
+		title_label.text = str(spacecraft_root.get_meta("component_name")).to_upper()
+		subtitle_label.text = str(spacecraft_root.get_meta("component_desc", ""))
 
-	counter_label.text = "COMPONENT [%d / %d]" % [_current_idx + 1, _components.size()]
-	comp_name_label.text = "• " + str(comp.get("name", "Component"))
+	counter_label.text = "COMPONENT %02d / %02d" % [_current_idx + 1, _components.size()]
+	progress_meter.value = float(_current_idx + 1) / float(_components.size())
+	comp_name_label.text = str(comp.get("name", "Component"))
 	comp_desc_label.text = str(comp.get("desc", ""))
 	comp_spec_label.text = "SPECIFICATIONS: " + str(comp.get("spec", "Standard NASA Flight Hardware"))
 
@@ -191,14 +236,14 @@ func _on_next_pressed() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return
-	# Phase 7: pure action-based input — no raw KEY_ literals
+	# Pure action-based input — no raw KEY_ literals
 	if event.is_action_pressed("ui_cancel"):
 		close_inspector()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("ui_left") or event.is_action_pressed("gallery_prev"):
+	elif event.is_action_pressed("gallery_prev"):
 		_on_prev_pressed()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("ui_right") or event.is_action_pressed("gallery_next"):
+	elif event.is_action_pressed("gallery_next"):
 		_on_next_pressed()
 		get_viewport().set_input_as_handled()
 

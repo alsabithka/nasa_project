@@ -29,7 +29,7 @@ func _apply_style() -> void:
 
 	if show_offset_shadow:
 		sb.shadow_color  = UITokens.INK_900
-		sb.shadow_size   = 0
+		sb.shadow_size   = 1
 		sb.shadow_offset = Vector2(4, 4)
 
 	add_theme_stylebox_override("panel", sb)
