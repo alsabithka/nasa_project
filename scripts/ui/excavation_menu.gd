@@ -1,16 +1,16 @@
 extends CanvasLayer
 
 # Echoes Beyond Earth - Minimalist Lunar Excavation Direction Menu
+# Phase 7: hard-coded KEY_* replaced with InputMap actions.
 # Appears unobtrusively near lower screen when an anomaly is verified by the detector.
-# Requirements:
-# - Minimal interface, small typography
-# - Subtle translucent dark background, crisp light-grey text
-# - Direct keyboard triggers: [E] Excavate, [Q] Inspect, [ESC] Cancel
-# - No oversized buttons or bright yellow circles
 
 signal begin_excavation_requested()
 signal inspect_signal_requested()
 signal menu_cancelled()
+
+const UITokens = preload("res://scripts/ui/ui_tokens.gd")
+
+const InputSetup = preload("res://scripts/input/input_setup.gd")
 
 var site_name: String = "Unidentified Anomaly"
 var depth_cm: float = 14.0
@@ -24,7 +24,8 @@ var _btn_inspect: Button
 var _btn_cancel: Button
 
 func _ready() -> void:
-	layer = 110
+	layer = UITokens.LAYER_SYSTEM  # 40 — above pause menu, below debug
+	InputSetup.ensure()
 	_build_minimalist_menu()
 
 func _build_minimalist_menu() -> void:
@@ -65,16 +66,16 @@ func _build_minimalist_menu() -> void:
 	_title_label = Label.new()
 	_title_label.text = "EXCAVATION SITE CONFIRMED"
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title_label.add_theme_font_size_override("font_size", 12)
-	_title_label.modulate = Color(0.88, 0.93, 1.0)
+	_title_label.add_theme_font_size_override("font_size", UITokens.TEXT_CAPTION)
+	_title_label.add_theme_color_override("font_color", UITokens.PAPER_100)
 	vb.add_child(_title_label)
 
 	# Subtitle: Depth & Signal
 	_details_label = Label.new()
 	_details_label.text = "Estimated Depth: ~%.1f cm  •  Signal: %s" % [depth_cm, signal_type]
 	_details_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_details_label.add_theme_font_size_override("font_size", 10)
-	_details_label.modulate = Color(0.65, 0.72, 0.82)
+	_details_label.add_theme_font_size_override("font_size", UITokens.TEXT_CAPTION)  # A4: min 12px
+	_details_label.add_theme_color_override("font_color", UITokens.PAPER_500)
 	vb.add_child(_details_label)
 
 	var sep = HSeparator.new()
@@ -87,24 +88,33 @@ func _build_minimalist_menu() -> void:
 	action_row.add_theme_constant_override("separation", 14)
 	vb.add_child(action_row)
 
-	_btn_excavate = _create_action_label(action_row, "[ E ]", "Begin Excavation", Color(0.4, 0.9, 0.5))
-	_btn_inspect = _create_action_label(action_row, "[ Q ]", "Inspect Signal", Color(0.5, 0.8, 1.0))
-	_btn_cancel = _create_action_label(action_row, "[ ESC ]", "Cancel", Color(0.7, 0.75, 0.8))
+	_btn_excavate = _create_action_label(action_row, "interact",      "Begin Excavation", UITokens.SIGNAL_GREEN)
+	_btn_inspect  = _create_action_label(action_row, "inspect_signal","Inspect Signal",   UITokens.SIGNAL_CYAN)
+	_btn_cancel   = _create_action_label(action_row, "ui_cancel",     "Cancel",           UITokens.PAPER_500)
 
-func _create_action_label(parent: Node, key_tag: String, label_text: String, col: Color) -> Button:
+func _key_hint(action: String) -> String:
+	if InputMap.has_action(action):
+		for ev in InputMap.action_get_events(action):
+			if ev is InputEventKey:
+				return "[ %s ]" % OS.get_keycode_string(ev.physical_keycode if ev.physical_keycode != KEY_NONE else ev.keycode)
+	return "[ ? ]"
+
+func _create_action_label(parent: Node, action: String, label_text: String, col: Color) -> Button:
 	var btn = Button.new()
 	btn.flat = true
-	btn.text = "%s %s" % [key_tag, label_text]
-	btn.add_theme_font_size_override("font_size", 11)
-	btn.modulate = col
+	# Phase 7: resolve key hint from InputMap at runtime
+	btn.text = "%s %s" % [_key_hint(action), label_text]
+	btn.add_theme_font_size_override("font_size", UITokens.TEXT_CAPTION)
+	btn.add_theme_color_override("font_color", col)
 	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	
-	if key_tag == "[ E ]":
-		btn.pressed.connect(func(): _on_excavate_pressed())
-	elif key_tag == "[ Q ]":
-		btn.pressed.connect(func(): _on_inspect_pressed())
-	elif key_tag == "[ ESC ]":
-		btn.pressed.connect(func(): _on_cancel_pressed())
+	match action:
+		"interact":
+			btn.pressed.connect(func(): _on_excavate_pressed())
+		"inspect_signal":
+			btn.pressed.connect(func(): _on_inspect_pressed())
+		"ui_cancel":
+			btn.pressed.connect(func(): _on_cancel_pressed())
 	
 	parent.add_child(btn)
 	return btn
@@ -117,13 +127,14 @@ func set_anomaly_details(title: String, depth: float, sig: String) -> void:
 		_details_label.text = "Estimated Depth: ~%.1f cm  •  Signal: %s" % [depth_cm, signal_type]
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("interact") or (event is InputEventKey and event.pressed and event.keycode == KEY_E):
+	# Phase 7: use InputMap actions instead of raw KEY_ checks
+	if event.is_action_pressed("interact"):
 		_on_excavate_pressed()
 		get_viewport().set_input_as_handled()
-	elif event is InputEventKey and event.pressed and event.keycode == KEY_Q:
+	elif event.is_action_pressed("inspect_signal"):
 		_on_inspect_pressed()
 		get_viewport().set_input_as_handled()
-	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+	elif event.is_action_pressed("ui_cancel"):
 		_on_cancel_pressed()
 		get_viewport().set_input_as_handled()
 

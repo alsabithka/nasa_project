@@ -2,10 +2,14 @@ extends CanvasLayer
 class_name SpacecraftInspectorHUD
 
 # Echoes Beyond Earth - NASA Spacecraft Component Inspector HUD
+# Phase 7: input routed through InputMap actions; UITokens applied.
 # Displays historical mission context, engineering telemetry, and lets the player
 # cycle through and inspect individual mechanical subsystems in detail.
 
 signal inspection_closed()
+
+const UITokens    = preload("res://scripts/ui/ui_tokens.gd")
+const InputSetup  = preload("res://scripts/input/input_setup.gd")
 
 var spacecraft_root: Node3D = null
 var artifact_id: String = ""
@@ -28,7 +32,8 @@ func open_inspector(target_node: Node3D, target_artifact_id: String) -> void:
 	show()
 
 func _ready() -> void:
-	layer = 12
+	layer = UITokens.LAYER_OVERLAYS  # 10
+	InputSetup.ensure()
 	_build_ui()
 
 func _scan_components() -> void:
@@ -186,14 +191,14 @@ func _on_next_pressed() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return
-
-	if event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE):
+	# Phase 7: pure action-based input — no raw KEY_ literals
+	if event.is_action_pressed("ui_cancel"):
 		close_inspector()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("ui_left") or (event is InputEventKey and event.pressed and (event.keycode == KEY_Q or event.keycode == KEY_LEFT)):
+	elif event.is_action_pressed("ui_left") or event.is_action_pressed("gallery_prev"):
 		_on_prev_pressed()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("ui_right") or (event is InputEventKey and event.pressed and (event.keycode == KEY_E or event.keycode == KEY_RIGHT)):
+	elif event.is_action_pressed("ui_right") or event.is_action_pressed("gallery_next"):
 		_on_next_pressed()
 		get_viewport().set_input_as_handled()
 

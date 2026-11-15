@@ -92,7 +92,10 @@ func end_interaction() -> void:
 func is_in_interaction() -> bool:
 	return is_interacting
 
+const InputSetup = preload("res://scripts/input/input_setup.gd")
+
 func _ready() -> void:
+	InputSetup.ensure()
 	capture_mouse()
 	_setup_third_person_camera()
 	call_deferred("_connect_subsystems")
@@ -213,14 +216,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		spring_arm.rotate_x(-event.relative.y * mouse_sensitivity)
 		spring_arm.rotation.x = clamp(spring_arm.rotation.x, min_pitch, max_pitch)
 	
-	# Toggle Gait mode (Walk vs Loping) with [C]
-	if event is InputEventKey and event.pressed and event.physical_keycode == KEY_C:
+	# Toggle Gait mode (Walk vs Loping) — Phase 7: use action instead of raw KEY_C
+	if event.is_action_pressed("gait_toggle"):
 		is_loping_mode = not is_loping_mode
 		if audio_system and audio_system.has_method("play_comm_click"):
 			audio_system.play_comm_click()
 	
-	# View mode toggle [V]
-	if event is InputEventKey and event.pressed and event.physical_keycode == KEY_V:
+	# View mode toggle — Phase 7: use action instead of raw KEY_V
+	if event.is_action_pressed("view_toggle"):
 		is_first_person = not is_first_person
 		if is_first_person:
 			spring_arm.spring_length = 0.0
@@ -312,7 +315,7 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		return
 
-	# Check gait modifier (Shift key activates loping)
+	# Check gait modifier (Shift key activates loping) — Phase 7: keep KEY_SHIFT (modifier, not rebindable)
 	var active_loping = is_loping_mode or Input.is_key_pressed(KEY_SHIFT)
 	var current_max_speed = lope_speed if active_loping else walk_speed
 
