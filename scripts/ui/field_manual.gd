@@ -214,7 +214,7 @@ func _build_ui() -> void:
 # ─── Page logic ───────────────────────────────────────────────────────────────
 
 func _refresh_page() -> void:
-	var p := _pages[_current_page]
+	var p = _pages[_current_page]
 
 	_glyph_label.text = p["glyph"]
 	_step_label.text  = "STEP %s / %02d" % [p["step"], _pages.size()]

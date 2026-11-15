@@ -352,9 +352,9 @@ func _show_artifact_detail(artifact_id: String) -> void:
 	
 	if is_rec:
 		journal_detail_name.text = data.get("name", artifact_id)
-		journal_detail_name.modulate = Color(1.0, 0.9, 0.3)
+		journal_detail_name.add_theme_color_override("font_color", UITokens.SIGNAL_GOLD)
 		var sources_str = ", ".join(data.get("sources", []))
-	var journal_detail_text_str = "[b]Mission:[/b] %s\n[b]Year:[/b] %s\n[b]Location:[/b] %s\n[b]Status:[/b] %s\n\n[b]Purpose:[/b]\n%s\n\n[b]Historical Narrative:[/b]\n%s\n\n[b]Sources:[/b] %s" % [
+		var detail_text = "[b]Mission:[/b] %s\n[b]Year:[/b] %s\n[b]Location:[/b] %s\n[b]Status:[/b] %s\n\n[b]Purpose:[/b]\n%s\n\n[b]Historical Narrative:[/b]\n%s\n\n[b]Sources:[/b] %s" % [
 			str(data.get("mission", "")),
 			_format_year(data.get("year", "")),
 			str(data.get("location", "")),
@@ -363,10 +363,10 @@ func _show_artifact_detail(artifact_id: String) -> void:
 			str(data.get("history", "")),
 			sources_str
 		]
-		journal_detail_text.text = journal_detail_text_str
+		journal_detail_text.text = detail_text
 	else:
 		journal_detail_name.text = "Unidentified Anomaly"
-		journal_detail_name.modulate = Color(0.7, 0.7, 0.7)
+		journal_detail_name.add_theme_color_override("font_color", UITokens.PAPER_500)
 		journal_detail_text.text = "[i]This historical object remains buried beneath the lunar dust.\n\nFollow your handheld survey scanner signal to locate, excavate, and clean the artifact to uncover its identity and mission history![/i]"
 
 func _on_menu_pressed() -> void:
