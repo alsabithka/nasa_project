@@ -19,16 +19,26 @@ extends Control
 @export var warn_color: Color = Color(1.0, 0.353, 0.302)                 # SIGNAL_RED
 @export_range(0.0, 1.0) var warn_below: float = 0.0
 @export var gap_px: int = 2
+## Vertical meters fill bottom-to-top (merge P6: dig depth gauge).
+@export var vertical: bool = false : set = set_vertical
 
 var _rects: Array[ColorRect] = []
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(120, 14)
+	if vertical:
+		custom_minimum_size = Vector2(14, maxf(120.0, custom_minimum_size.y))
+	else:
+		custom_minimum_size = Vector2(120, 14)
 	mouse_filter = MOUSE_FILTER_IGNORE
 	_build_segments()
 
 func set_segments(n: int) -> void:
 	segment_count = max(1, n)
+	if is_inside_tree():
+		_build_segments()
+
+func set_vertical(v: bool) -> void:
+	vertical = v
 	if is_inside_tree():
 		_build_segments()
 
@@ -42,7 +52,8 @@ func _build_segments() -> void:
 		c.queue_free()
 	_rects.clear()
 
-	var container := HBoxContainer.new()
+	var container := BoxContainer.new()
+	container.vertical = vertical
 	container.set_anchors_preset(PRESET_FULL_RECT)
 	container.add_theme_constant_override("separation", gap_px)
 	container.mouse_filter = MOUSE_FILTER_IGNORE
@@ -51,6 +62,7 @@ func _build_segments() -> void:
 	for i in range(segment_count):
 		var r := ColorRect.new()
 		r.size_flags_horizontal = SIZE_EXPAND_FILL
+		r.size_flags_vertical = SIZE_EXPAND_FILL
 		r.mouse_filter = MOUSE_FILTER_IGNORE
 		container.add_child(r)
 		_rects.append(r)
@@ -66,4 +78,6 @@ func _refresh_colors() -> void:
 	var lit := int(ceil(value * segment_count))
 	var lit_color := warn_color if (warn_below > 0.0 and value < warn_below) else accent
 	for i in range(_rects.size()):
-		_rects[i].color = lit_color if i < lit else UITokens.INK_700
+		# vertical meters fill from the bottom (last child), horizontal from the left (first child)
+		var rank := (_rects.size() - 1 - i) if vertical else i
+		_rects[i].color = lit_color if rank < lit else UITokens.INK_700

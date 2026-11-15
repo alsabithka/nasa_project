@@ -19,6 +19,7 @@ func _ready() -> void:
 	_preallocate_pool()
 
 func _init_materials_and_mesh() -> void:
+	# Material: Darker compressed regolith with high roughness
 	var is_mars = false
 	var gs = get_node_or_null("/root/GameState")
 	if gs and gs.current_planet == "Mars":
@@ -26,7 +27,6 @@ func _init_materials_and_mesh() -> void:
 	elif get_tree() and get_tree().current_scene and "Mars" in get_tree().current_scene.name:
 		is_mars = true
 
-	# Material: Darker compressed regolith with high roughness
 	_print_mat = StandardMaterial3D.new()
 	if is_mars:
 		_print_mat.albedo_color = Color(0.46, 0.22, 0.12) # Compacted dark Martian soil

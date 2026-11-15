@@ -2,6 +2,12 @@
 **Direction A — Declassified Archive**
 _Version 1.0 · Phase 0 baseline · Engine: Godot 4.x · Language: GDScript_
 
+
+> **Merge note (Phase 9).** This plan is harsh's original. In the merged project the design direction is unchanged, but
+> §4.5 Gallery and Phase 7 "Gallery & Artifacts" cover only the **Journal**: the spacecraft gallery / inspector, the video
+> player and the excavation menu were not ported. A bottom-right **radar** (`RadarDial`) was added to the scanner. See
+> `documentation/MERGE_LOG.md` and `INTERFACES.md` §6.
+
 ---
 
 ## 1. Design Direction Overview

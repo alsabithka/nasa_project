@@ -16,7 +16,7 @@ const PAGES := [
 	{
 		"icon": "dig", "title": "Excavate",
 		"body": "When the scanner reads an anomaly directly beneath you, begin excavation, then clean the find with the brush.",
-		"actions": [["interact", "Begin excavation"], ["inspect_signal", "Inspect signal"]],
+		"actions": [["interact", "Excavate / recover the find"], ["inspect_geology", "Examine a rock sample"]],
 	},
 	{
 		"icon": "journal", "title": "Catalogue",
@@ -28,8 +28,8 @@ const PAGES := [
 		"body": "",
 		"actions": [
 			["move_forward", "Forward"], ["move_backward", "Back"], ["move_left", "Left"], ["move_right", "Right"],
-			["jump", "Jump"], ["gait_toggle", "Walk / bound"], ["view_toggle", "Camera view"],
-			["inspect_geology", "Inspect geology"], ["toggle_journal", "Journal"],
+			["jump", "Jump"], ["gait_toggle", "Walk / lope"], ["view_toggle", "Camera view"],
+			["inspect_geology", "Examine sample"], ["toggle_journal", "Journal"],
 		],
 	},
 ]
@@ -142,7 +142,7 @@ func _refresh() -> void:
 		grid.add_child(row)
 	if _page == PAGES.size() - 1:
 		var look := Label.new()
-		look.text = "Mouse: look around.  Esc: pause."
+		look.text = "Mouse: look and orbit.  Wheel: zoom.  Hold Shift: lope.  Esc: pause."
 		look.theme_type_variation = &"CaptionLabel"
 		_actions.add_child(look)
 

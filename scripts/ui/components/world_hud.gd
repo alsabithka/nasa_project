@@ -18,6 +18,9 @@ const MARGIN := 24
 
 var location_label: Label
 var counter_label: Label
+var site_label: Label        ## quiet sub-line under the planet name (Moon only)
+var energy_readout: StatReadout
+var minerals_readout: StatReadout
 var scanner: ScannerInstrument
 var journal_button: Button
 var menu_button: Button
@@ -32,7 +35,7 @@ var _player: Node = null
 
 func _ready() -> void:
 	add_to_group("world_hud")   # Phase 5: artifacts show/hide the contextual prompt through this group
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)   # merge: was set_anchors_preset, which left a 0x0 rect on Godot 4.7
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	theme = UITokens.theme()
 	_build_mission_zone()
@@ -54,6 +57,11 @@ func _build_mission_zone() -> void:
 	location_label.theme_type_variation = &"LeadLabel"
 	location_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(location_label)
+	site_label = Label.new()
+	site_label.theme_type_variation = &"CaptionLabel"
+	site_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	site_label.visible = false
+	col.add_child(site_label)
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_theme_constant_override("separation", UITokens.SP_3)
@@ -68,6 +76,21 @@ func _build_mission_zone() -> void:
 	_progress_meter.custom_minimum_size = Vector2(96, 10)
 	_progress_meter.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(_progress_meter)
+	# Merge P3: gameplay resources (integrated1). Both are invented values, so both carry the SIM badge.
+	var res := HBoxContainer.new()
+	res.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	res.add_theme_constant_override("separation", UITokens.SP_6)
+	col.add_child(res)
+	energy_readout = StatReadout.new()
+	energy_readout.title = "ENERGY"
+	energy_readout.simulated = true
+	energy_readout.accent_color = UITokens.SIGNAL_CYAN
+	res.add_child(energy_readout)
+	minerals_readout = StatReadout.new()
+	minerals_readout.title = "MINERALS"
+	minerals_readout.simulated = true
+	minerals_readout.accent_color = UITokens.PAPER_100
+	res.add_child(minerals_readout)
 	add_child(panel)
 	panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT, Control.PRESET_MODE_MINSIZE, MARGIN)
 
@@ -141,6 +164,34 @@ func set_progress(planet: String, found: int, total: int) -> void:
 	counter_label.text = "%d / %d" % [found, total]
 	_progress_meter.segment_count = maxi(1, total)
 	_progress_meter.value = float(found) / float(maxi(1, total))
+
+
+## Quiet site line under the planet name ("" hides it).
+func set_site(text: String) -> void:
+	site_label.text = text
+	site_label.visible = text != ""
+
+
+## Gameplay resources. Low energy is stated in words ("LOW") as well as colour, never colour alone.
+func set_resources(energy: float, max_energy: float, minerals: int) -> void:
+	var pct: int = int(round(energy / maxf(1.0, max_energy) * 100.0))
+	var low: bool = pct < 20
+	energy_readout.title = "ENERGY · LOW" if low else "ENERGY"
+	energy_readout.accent_color = UITokens.SIGNAL_RED if low else UITokens.SIGNAL_CYAN
+	energy_readout.update("%d" % pct, "%")
+	minerals_readout.update(_thousands(minerals), "kg")
+
+
+static func _thousands(n: int) -> String:
+	var txt: String = str(absi(n))
+	var out: String = ""
+	var count: int = 0
+	for i in range(txt.length() - 1, -1, -1):
+		out = txt[i] + out
+		count += 1
+		if count % 3 == 0 and i > 0:
+			out = "," + out
+	return ("-" if n < 0 else "") + out
 
 
 ## Contextual prompt: a key-cap read from the InputMap plus a verb ("Begin excavation").

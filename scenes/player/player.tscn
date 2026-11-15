@@ -1,10 +1,24 @@
-[gd_scene load_steps=32 format=3]
+[gd_scene load_steps=55 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/player.gd" id="1_player"]
+[ext_resource type="ArrayMesh" path="res://scenes/player/curved_goggle_strap.tres" id="2_curved_strap"]
+[ext_resource type="ArrayMesh" path="res://scenes/player/side_strap_connector.tres" id="3_side_connector"]
+[ext_resource type="Shader" path="res://scenes/player/minion_eyelid.gdshader" id="4_minion_eyelid_shader"]
+[ext_resource type="ArrayMesh" path="res://scenes/player/minion_mouth.tres" id="5_minion_mouth"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_Minion"]
-radius = 0.42
-height = 1.30
+radius = 0.44
+height = 1.38
+
+[sub_resource type="StandardMaterial3D" id="Mat_MinionMouth"]
+albedo_color = Color(0.18, 0.12, 0.12, 1)
+roughness = 0.7
+
+[sub_resource type="StandardMaterial3D" id="Mat_StatusAmber"]
+albedo_color = Color(1, 0.65, 0.1, 1)
+emission_enabled = true
+emission = Color(1, 0.65, 0.1, 1)
+emission_energy_multiplier = 2.0
 
 [sub_resource type="StandardMaterial3D" id="Mat_MinionYellow"]
 albedo_color = Color(0.98, 0.82, 0.15, 1)
@@ -12,48 +26,65 @@ roughness = 0.45
 metallic = 0.02
 
 [sub_resource type="StandardMaterial3D" id="Mat_GoggleSilver"]
-albedo_color = Color(0.82, 0.84, 0.86, 1)
-metallic = 0.88
-roughness = 0.18
+albedo_color = Color(0.85, 0.88, 0.92, 1)
+metallic = 0.9
+roughness = 0.16
 
 [sub_resource type="StandardMaterial3D" id="Mat_GoggleStrap"]
 albedo_color = Color(0.12, 0.12, 0.14, 1)
 roughness = 0.85
 
 [sub_resource type="StandardMaterial3D" id="Mat_EyeWhite"]
-albedo_color = Color(0.96, 0.96, 0.98, 1)
-roughness = 0.25
+albedo_color = Color(0.97, 0.97, 0.98, 1)
+roughness = 0.2
 
 [sub_resource type="StandardMaterial3D" id="Mat_EyeIris"]
-albedo_color = Color(0.46, 0.28, 0.14, 1)
-roughness = 0.35
+albedo_color = Color(0.52, 0.24, 0.10, 1)
+roughness = 0.2
 
 [sub_resource type="StandardMaterial3D" id="Mat_EyePupil"]
-albedo_color = Color(0.04, 0.04, 0.05, 1)
-roughness = 0.1
+albedo_color = Color(0.02, 0.02, 0.02, 1)
+roughness = 0.05
+
+[sub_resource type="StandardMaterial3D" id="Mat_EyeSparkle"]
+albedo_color = Color(1, 1, 1, 1)
+emission_enabled = true
+emission = Color(1, 1, 1, 1)
+emission_energy_multiplier = 1.2
 
 [sub_resource type="StandardMaterial3D" id="Mat_TransparentVisor"]
 transparency = 1
-albedo_color = Color(0.82, 0.92, 1, 0.26)
-metallic = 0.15
-roughness = 0.04
+cull_mode = 0
+depth_draw_mode = 0
+render_priority = 2
+albedo_color = Color(0.92, 0.97, 1, 0.14)
+metallic = 0.08
+roughness = 0.02
+clearcoat_enabled = true
+clearcoat = 1.0
+clearcoat_roughness = 0.03
 
 [sub_resource type="StandardMaterial3D" id="Mat_SuitWhite"]
-albedo_color = Color(0.93, 0.94, 0.96, 1)
-roughness = 0.62
-metallic = 0.04
+albedo_color = Color(0.94, 0.95, 0.96, 1)
+roughness = 0.55
+metallic = 0.02
+
+[sub_resource type="StandardMaterial3D" id="Mat_SilverMetallic"]
+albedo_color = Color(0.85, 0.88, 0.92, 1)
+metallic = 0.88
+roughness = 0.18
+
+[sub_resource type="StandardMaterial3D" id="Mat_ShoulderStrap"]
+albedo_color = Color(0.76, 0.80, 0.86, 1)
+roughness = 0.65
 
 [sub_resource type="StandardMaterial3D" id="Mat_BlueConnector"]
 albedo_color = Color(0.15, 0.45, 0.88, 1)
 metallic = 0.75
 roughness = 0.25
 
-[sub_resource type="StandardMaterial3D" id="Mat_RedStripe"]
-albedo_color = Color(0.85, 0.18, 0.18, 1)
-roughness = 0.5
-
 [sub_resource type="StandardMaterial3D" id="Mat_DarkRubber"]
-albedo_color = Color(0.2, 0.22, 0.24, 1)
+albedo_color = Color(0.14, 0.14, 0.16, 1)
 roughness = 0.85
 
 [sub_resource type="StandardMaterial3D" id="Mat_ScannerBody"]
@@ -73,12 +104,21 @@ top_radius = 0.38
 bottom_radius = 0.38
 height = 0.55
 radial_segments = 24
+cap_top = false
+cap_bottom = false
 
-[sub_resource type="SphereMesh" id="Mesh_MinionHead"]
-material = SubResource("Mat_MinionYellow")
-radius = 0.37
-height = 0.62
+[sub_resource type="SphereMesh" id="Mesh_TorsoBottom"]
+material = SubResource("Mat_SuitWhite")
+radius = 0.38
+height = 0.38
 radial_segments = 24
+rings = 8
+
+[sub_resource type="CapsuleMesh" id="Mesh_MinionHead"]
+material = SubResource("Mat_MinionYellow")
+radius = 0.395
+height = 0.82
+radial_segments = 28
 rings = 16
 
 [sub_resource type="TorusMesh" id="Mesh_GoggleRing"]
@@ -88,71 +128,101 @@ outer_radius = 0.14
 rings = 20
 ring_segments = 12
 
+[sub_resource type="BoxMesh" id="Mesh_GoggleBridge"]
+material = SubResource("Mat_GoggleSilver")
+size = Vector3(0.08, 0.038, 0.032)
+
 [sub_resource type="SphereMesh" id="Mesh_Sclera"]
 material = SubResource("Mat_EyeWhite")
-radius = 0.09
-height = 0.14
-radial_segments = 16
-rings = 8
+radius = 0.108
+height = 0.07
+radial_segments = 24
+rings = 12
 
 [sub_resource type="SphereMesh" id="Mesh_Iris"]
 material = SubResource("Mat_EyeIris")
-radius = 0.045
-height = 0.06
-radial_segments = 12
-rings = 6
+radius = 0.058
+height = 0.016
+radial_segments = 20
+rings = 10
 
 [sub_resource type="SphereMesh" id="Mesh_Pupil"]
 material = SubResource("Mat_EyePupil")
-radius = 0.024
-height = 0.03
-radial_segments = 10
+radius = 0.035
+height = 0.016
+radial_segments = 20
+rings = 10
+
+[sub_resource type="SphereMesh" id="Mesh_Sparkle"]
+material = SubResource("Mat_EyeSparkle")
+radius = 0.011
+height = 0.014
+radial_segments = 8
 rings = 4
 
-[sub_resource type="CylinderMesh" id="Mesh_GoggleStrap"]
-material = SubResource("Mat_GoggleStrap")
-top_radius = 0.375
-bottom_radius = 0.375
-height = 0.055
-radial_segments = 24
+[sub_resource type="SphereMesh" id="Mesh_Eyelid"]
+radius = 0.112
+height = 0.09
+radial_segments = 28
+rings = 14
+
+[sub_resource type="ShaderMaterial" id="Mat_LeftEyelid"]
+shader = ExtResource("4_minion_eyelid_shader")
+shader_parameter/albedo_color = Color(0.98, 0.82, 0.15, 1)
+shader_parameter/roughness = 0.45
+shader_parameter/coverage = 0.0
+shader_parameter/curve = 0.04
+shader_parameter/lens_radius = 0.09
+
+[sub_resource type="ShaderMaterial" id="Mat_RightEyelid"]
+shader = ExtResource("4_minion_eyelid_shader")
+shader_parameter/albedo_color = Color(0.98, 0.82, 0.15, 1)
+shader_parameter/roughness = 0.45
+shader_parameter/coverage = 0.0
+shader_parameter/curve = 0.04
+shader_parameter/lens_radius = 0.09
 
 [sub_resource type="SphereMesh" id="Mesh_TransparentVisor"]
 material = SubResource("Mat_TransparentVisor")
-radius = 0.43
-height = 0.74
-radial_segments = 28
-rings = 16
+radius = 0.46
+height = 0.92
+radial_segments = 32
+rings = 20
 
 [sub_resource type="CylinderMesh" id="Mesh_NeckRing"]
-material = SubResource("Mat_BlueConnector")
-top_radius = 0.38
-bottom_radius = 0.38
-height = 0.06
+material = SubResource("Mat_SilverMetallic")
+top_radius = 0.392
+bottom_radius = 0.392
+height = 0.024
 radial_segments = 24
 
-[sub_resource type="BoxMesh" id="Mesh_ChestPack"]
-material = SubResource("Mat_DarkRubber")
-size = Vector3(0.28, 0.22, 0.1)
-
-[sub_resource type="BoxMesh" id="Mesh_MissionPatch"]
-material = SubResource("Mat_BlueConnector")
-size = Vector3(0.12, 0.08, 0.02)
+[sub_resource type="BoxMesh" id="Mesh_ShoulderStrap"]
+material = SubResource("Mat_ShoulderStrap")
+size = Vector3(0.07, 0.02, 0.38)
 
 [sub_resource type="BoxMesh" id="Mesh_PLSS"]
 material = SubResource("Mat_SuitWhite")
 size = Vector3(0.5, 0.58, 0.24)
 
 [sub_resource type="CylinderMesh" id="Mesh_OxygenTank"]
-material = SubResource("Mat_BlueConnector")
+material = SubResource("Mat_SilverMetallic")
 top_radius = 0.1
 bottom_radius = 0.1
 height = 0.44
+radial_segments = 16
 
 [sub_resource type="CylinderMesh" id="Mesh_ArmSleeve"]
 material = SubResource("Mat_SuitWhite")
 top_radius = 0.11
-bottom_radius = 0.1
+bottom_radius = 0.10
 height = 0.28
+radial_segments = 16
+
+[sub_resource type="CylinderMesh" id="Mesh_WristCuff"]
+material = SubResource("Mat_SilverMetallic")
+top_radius = 0.115
+bottom_radius = 0.115
+height = 0.05
 radial_segments = 16
 
 [sub_resource type="SphereMesh" id="Mesh_MinionGlove"]
@@ -170,16 +240,236 @@ height = 0.26
 radial_segments = 16
 
 [sub_resource type="BoxMesh" id="Mesh_MinionBoot"]
+material = SubResource("Mat_SuitWhite")
+size = Vector3(0.24, 0.12, 0.34)
+
+[sub_resource type="BoxMesh" id="Mesh_BootSole"]
 material = SubResource("Mat_DarkRubber")
-size = Vector3(0.24, 0.15, 0.34)
+size = Vector3(0.25, 0.05, 0.35)
+
+[sub_resource type="CylinderMesh" id="Mesh_ScannerHandle"]
+material = SubResource("Mat_DarkRubber")
+top_radius = 0.02
+bottom_radius = 0.02
+height = 0.12
+radial_segments = 16
 
 [sub_resource type="BoxMesh" id="Mesh_ScannerBox"]
 material = SubResource("Mat_ScannerBody")
-size = Vector3(0.14, 0.2, 0.18)
+size = Vector3(0.065, 0.05, 0.22)
+
+[sub_resource type="CylinderMesh" id="Mesh_ScannerSensorHead"]
+material = SubResource("Mat_SilverMetallic")
+top_radius = 0.016
+bottom_radius = 0.026
+height = 0.05
+radial_segments = 16
+
+[sub_resource type="SphereMesh" id="Mesh_ScannerAperture"]
+material = SubResource("Mat_ScannerScreen")
+radius = 0.014
+height = 0.02
+radial_segments = 12
+rings = 6
+
+[sub_resource type="CylinderMesh" id="Mesh_ScannerAntenna"]
+material = SubResource("Mat_SilverMetallic")
+top_radius = 0.003
+bottom_radius = 0.004
+height = 0.06
+radial_segments = 8
 
 [sub_resource type="BoxMesh" id="Mesh_ScreenQuad"]
 material = SubResource("Mat_ScannerScreen")
-size = Vector3(0.1, 0.1, 0.02)
+size = Vector3(0.052, 0.006, 0.065)
+
+[sub_resource type="BoxMesh" id="Mesh_ScannerButtons"]
+material = SubResource("Mat_SilverMetallic")
+size = Vector3(0.04, 0.012, 0.025)
+
+[sub_resource type="SphereMesh" id="Mesh_ScannerStatusLED"]
+material = SubResource("Mat_StatusAmber")
+radius = 0.006
+height = 0.012
+radial_segments = 8
+rings = 4
+
+[sub_resource type="Animation" id="Animation_idle"]
+resource_name = "idle"
+length = 2.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Visuals/Torso:position")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1, 2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0, 0.65, 0), Vector3(0, 0.67, 0), Vector3(0, 0.65, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Visuals/Torso/LeftArm:rotation")
+tracks/1/interp = 2
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 1, 2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.02, 0, -0.16), Vector3(-0.04, 0, -0.19), Vector3(0.02, 0, -0.16)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Visuals/Torso/RightArm:rotation")
+tracks/2/interp = 2
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 1, 2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.02, 0, 0.16), Vector3(-0.04, 0, 0.19), Vector3(0.02, 0, 0.16)]
+}
+
+[sub_resource type="Animation" id="Animation_walk"]
+resource_name = "walk"
+length = 0.8
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Visuals/Torso:position")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4, 0.6, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0, 0.65, 0), Vector3(0, 0.70, 0), Vector3(0, 0.65, 0), Vector3(0, 0.70, 0), Vector3(0, 0.65, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Visuals/Torso/LeftLeg:rotation")
+tracks/1/interp = 2
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.4, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.45, 0, 0), Vector3(0.45, 0, 0), Vector3(-0.45, 0, 0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Visuals/Torso/RightLeg:rotation")
+tracks/2/interp = 2
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.4, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.45, 0, 0), Vector3(-0.45, 0, 0), Vector3(0.45, 0, 0)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Visuals/Torso/LeftArm:rotation")
+tracks/3/interp = 2
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.4, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.50, 0, -0.22), Vector3(-0.50, 0, -0.22), Vector3(0.50, 0, -0.22)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Visuals/Torso/RightArm:rotation")
+tracks/4/interp = 2
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 0.4, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.45, 0, 0.22), Vector3(0.45, 0, 0.22), Vector3(-0.45, 0, 0.22)]
+}
+
+[sub_resource type="Animation" id="Animation_jump"]
+resource_name = "jump"
+length = 1.2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Visuals/Torso:position")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.6, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0, 0.62, 0), Vector3(0, 0.68, 0), Vector3(0, 0.69, 0), Vector3(0, 0.65, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Visuals/Torso/LeftLeg:rotation")
+tracks/1/interp = 2
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.3, 0.8, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0.1, 0, 0), Vector3(-0.35, 0, 0), Vector3(0.15, 0, 0), Vector3(0, 0, 0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Visuals/Torso/RightLeg:rotation")
+tracks/2/interp = 2
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.3, 0.8, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0.1, 0, 0), Vector3(-0.30, 0, 0), Vector3(0.15, 0, 0), Vector3(0, 0, 0)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Visuals/Torso/LeftArm:rotation")
+tracks/3/interp = 2
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.3, 0.8, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0, 0, -0.15), Vector3(-0.65, 0, -0.42), Vector3(-0.30, 0, -0.35), Vector3(0, 0, -0.15)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Visuals/Torso/RightArm:rotation")
+tracks/4/interp = 2
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 0.3, 0.8, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0, 0, 0.15), Vector3(-0.65, 0, 0.42), Vector3(-0.30, 0, 0.35), Vector3(0, 0, 0.15)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_Minion"]
+_data = {
+"idle": SubResource("Animation_idle"),
+"jump": SubResource("Animation_jump"),
+"walk": SubResource("Animation_walk")
+}
 
 [node name="Player" type="CharacterBody3D" groups=["player"]]
 collision_layer = 2
@@ -198,13 +488,17 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 0)
 [node name="TorsoMesh" type="MeshInstance3D" parent="Visuals/Torso"]
 mesh = SubResource("Mesh_MinionTorso")
 
-[node name="ChestPack" type="MeshInstance3D" parent="Visuals/Torso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0.36)
-mesh = SubResource("Mesh_ChestPack")
+[node name="TorsoBottom" type="MeshInstance3D" parent="Visuals/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.22, 0)
+mesh = SubResource("Mesh_TorsoBottom")
 
-[node name="MissionPatch" type="MeshInstance3D" parent="Visuals/Torso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.16, 0.16, 0.35)
-mesh = SubResource("Mesh_MissionPatch")
+[node name="LeftShoulderStrap" type="MeshInstance3D" parent="Visuals/Torso"]
+transform = Transform3D(1, 0, 0, 0, 0.965926, -0.258819, 0, 0.258819, 0.965926, -0.2, 0.24, 0.02)
+mesh = SubResource("Mesh_ShoulderStrap")
+
+[node name="RightShoulderStrap" type="MeshInstance3D" parent="Visuals/Torso"]
+transform = Transform3D(1, 0, 0, 0, 0.965926, -0.258819, 0, 0.258819, 0.965926, 0.2, 0.24, 0.02)
+mesh = SubResource("Mesh_ShoulderStrap")
 
 [node name="BackpackPLSS" type="MeshInstance3D" parent="Visuals/Torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, -0.28)
@@ -219,53 +513,95 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.14, 0.18, -0.04)
 mesh = SubResource("Mesh_OxygenTank")
 
 [node name="Head" type="Node3D" parent="Visuals/Torso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.32, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.42, 0)
 
 [node name="MinionHeadMesh" type="MeshInstance3D" parent="Visuals/Torso/Head"]
 mesh = SubResource("Mesh_MinionHead")
 
-[node name="GoggleStrap" type="MeshInstance3D" parent="Visuals/Torso/Head"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.08, 0)
-mesh = SubResource("Mesh_GoggleStrap")
+[node name="GoggleStrap" type="Node3D" parent="Visuals/Torso/Head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.10, 0)
+
+[node name="CurvedStrap" type="MeshInstance3D" parent="Visuals/Torso/Head/GoggleStrap"]
+mesh = ExtResource("2_curved_strap")
+surface_material_override/0 = SubResource("Mat_GoggleStrap")
+
+[node name="LeftConnector" type="MeshInstance3D" parent="Visuals/Torso/Head/GoggleStrap"]
+transform = Transform3D(0.798636, 0, 0.601815, 0, 1, 0, -0.601815, 0, 0.798636, -0.25, 0, 0.35)
+mesh = ExtResource("3_side_connector")
+surface_material_override/0 = SubResource("Mat_SilverMetallic")
+
+[node name="RightConnector" type="MeshInstance3D" parent="Visuals/Torso/Head/GoggleStrap"]
+transform = Transform3D(0.798636, 0, -0.601815, 0, 1, 0, 0.601815, 0, 0.798636, 0.25, 0, 0.35)
+mesh = ExtResource("3_side_connector")
+surface_material_override/0 = SubResource("Mat_SilverMetallic")
+
+[node name="GoggleBridge" type="MeshInstance3D" parent="Visuals/Torso/Head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.10, 0.39)
+mesh = SubResource("Mesh_GoggleBridge")
 
 [node name="LeftGoggleRing" type="MeshInstance3D" parent="Visuals/Torso/Head"]
-transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, -0.12, 0.08, 0.35)
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, -0.12, 0.10, 0.38)
 mesh = SubResource("Mesh_GoggleRing")
 
 [node name="LeftEyeSclera" type="MeshInstance3D" parent="Visuals/Torso/Head/LeftGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.02, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.005, 0)
 mesh = SubResource("Mesh_Sclera")
 
 [node name="LeftEyeIris" type="MeshInstance3D" parent="Visuals/Torso/Head/LeftGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.07, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.024, 0)
 mesh = SubResource("Mesh_Iris")
 
 [node name="LeftEyePupil" type="MeshInstance3D" parent="Visuals/Torso/Head/LeftGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.085, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.033, 0)
 mesh = SubResource("Mesh_Pupil")
 
+[node name="LeftEyeSparkle" type="MeshInstance3D" parent="Visuals/Torso/Head/LeftGoggleRing"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.014, 0.04, -0.014)
+mesh = SubResource("Mesh_Sparkle")
+
+[node name="LeftEyelid" type="MeshInstance3D" parent="Visuals/Torso/Head/LeftGoggleRing"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.005, 0)
+visible = false
+mesh = SubResource("Mesh_Eyelid")
+surface_material_override/0 = SubResource("Mat_LeftEyelid")
+
 [node name="RightGoggleRing" type="MeshInstance3D" parent="Visuals/Torso/Head"]
-transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0.12, 0.08, 0.35)
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0.12, 0.10, 0.38)
 mesh = SubResource("Mesh_GoggleRing")
 
 [node name="RightEyeSclera" type="MeshInstance3D" parent="Visuals/Torso/Head/RightGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.02, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.005, 0)
 mesh = SubResource("Mesh_Sclera")
 
 [node name="RightEyeIris" type="MeshInstance3D" parent="Visuals/Torso/Head/RightGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.07, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.024, 0)
 mesh = SubResource("Mesh_Iris")
 
 [node name="RightEyePupil" type="MeshInstance3D" parent="Visuals/Torso/Head/RightGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.085, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.033, 0)
 mesh = SubResource("Mesh_Pupil")
 
+[node name="RightEyeSparkle" type="MeshInstance3D" parent="Visuals/Torso/Head/RightGoggleRing"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.014, 0.04, -0.014)
+mesh = SubResource("Mesh_Sparkle")
+
+[node name="RightEyelid" type="MeshInstance3D" parent="Visuals/Torso/Head/RightGoggleRing"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.005, 0)
+visible = false
+mesh = SubResource("Mesh_Eyelid")
+surface_material_override/0 = SubResource("Mat_RightEyelid")
+
+[node name="Mouth" type="MeshInstance3D" parent="Visuals/Torso/Head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.065, 0)
+mesh = ExtResource("5_minion_mouth")
+surface_material_override/0 = SubResource("Mat_MinionMouth")
+
 [node name="TransparentVisor" type="MeshInstance3D" parent="Visuals/Torso/Head"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0.02)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.08, 0.02)
 mesh = SubResource("Mesh_TransparentVisor")
 
 [node name="NeckRing" type="MeshInstance3D" parent="Visuals/Torso/Head"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.28, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.145, 0)
 mesh = SubResource("Mesh_NeckRing")
 
 [node name="LeftArm" type="Node3D" parent="Visuals/Torso"]
@@ -274,6 +610,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.44, 0.12, 0)
 [node name="Sleeve" type="MeshInstance3D" parent="Visuals/Torso/LeftArm"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.14, 0)
 mesh = SubResource("Mesh_ArmSleeve")
+
+[node name="WristCuff" type="MeshInstance3D" parent="Visuals/Torso/LeftArm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.24, 0)
+mesh = SubResource("Mesh_WristCuff")
 
 [node name="Glove" type="MeshInstance3D" parent="Visuals/Torso/LeftArm"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.32, 0)
@@ -286,19 +626,51 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.44, 0.12, 0)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.14, 0)
 mesh = SubResource("Mesh_ArmSleeve")
 
+[node name="WristCuff" type="MeshInstance3D" parent="Visuals/Torso/RightArm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.24, 0)
+mesh = SubResource("Mesh_WristCuff")
+
 [node name="Glove" type="MeshInstance3D" parent="Visuals/Torso/RightArm"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.32, 0)
 mesh = SubResource("Mesh_MinionGlove")
 
 [node name="ScannerDevice" type="Node3D" parent="Visuals/Torso/RightArm"]
-transform = Transform3D(1, 0, 0, 0, 0.866025, 0.5, 0, -0.5, 0.866025, 0, -0.38, 0.14)
+transform = Transform3D(0.965926, 0.183013, 0.183013, -0.258819, 0.683013, 0.683013, 0, -0.707107, 0.707107, 0.06, -0.24, 0.12)
+
+[node name="Handle" type="MeshInstance3D" parent="Visuals/Torso/RightArm/ScannerDevice"]
+mesh = SubResource("Mesh_ScannerHandle")
 
 [node name="ScannerChassis" type="MeshInstance3D" parent="Visuals/Torso/RightArm/ScannerDevice"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.055, 0.05)
 mesh = SubResource("Mesh_ScannerBox")
 
+[node name="SensorHead" type="MeshInstance3D" parent="Visuals/Torso/RightArm/ScannerDevice"]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0.055, 0.18)
+mesh = SubResource("Mesh_ScannerSensorHead")
+
+[node name="SensorAperture" type="MeshInstance3D" parent="Visuals/Torso/RightArm/ScannerDevice"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.055, 0.205)
+mesh = SubResource("Mesh_ScannerAperture")
+
+[node name="AntennaLeft" type="MeshInstance3D" parent="Visuals/Torso/RightArm/ScannerDevice"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.026, 0.065, 0.18)
+mesh = SubResource("Mesh_ScannerAntenna")
+
+[node name="AntennaRight" type="MeshInstance3D" parent="Visuals/Torso/RightArm/ScannerDevice"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.026, 0.065, 0.18)
+mesh = SubResource("Mesh_ScannerAntenna")
+
 [node name="Screen" type="MeshInstance3D" parent="Visuals/Torso/RightArm/ScannerDevice"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0.1)
+transform = Transform3D(1, 0, 0, 0, 0.866025, 0.5, 0, -0.5, 0.866025, 0, 0.09, 0.01)
 mesh = SubResource("Mesh_ScreenQuad")
+
+[node name="ControlButtons" type="MeshInstance3D" parent="Visuals/Torso/RightArm/ScannerDevice"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.085, -0.035)
+mesh = SubResource("Mesh_ScannerButtons")
+
+[node name="StatusLED" type="MeshInstance3D" parent="Visuals/Torso/RightArm/ScannerDevice"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.028, 0.085, 0.025)
+mesh = SubResource("Mesh_ScannerStatusLED")
 
 [node name="LeftLeg" type="Node3D" parent="Visuals/Torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.18, -0.28, 0)
@@ -311,6 +683,10 @@ mesh = SubResource("Mesh_LegSleeve")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.28, 0.04)
 mesh = SubResource("Mesh_MinionBoot")
 
+[node name="BootSole" type="MeshInstance3D" parent="Visuals/Torso/LeftLeg/Boot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.065, 0)
+mesh = SubResource("Mesh_BootSole")
+
 [node name="RightLeg" type="Node3D" parent="Visuals/Torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.18, -0.28, 0)
 
@@ -321,6 +697,15 @@ mesh = SubResource("Mesh_LegSleeve")
 [node name="Boot" type="MeshInstance3D" parent="Visuals/Torso/RightLeg"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.28, 0.04)
 mesh = SubResource("Mesh_MinionBoot")
+
+[node name="BootSole" type="MeshInstance3D" parent="Visuals/Torso/RightLeg/Boot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.065, 0)
+mesh = SubResource("Mesh_BootSole")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+"": SubResource("AnimationLibrary_Minion")
+}
 
 [node name="CameraPivot" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)

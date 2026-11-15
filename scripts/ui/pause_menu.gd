@@ -4,6 +4,7 @@ extends CanvasLayer
 # Left-aligned archive panel over a dimmed world. One Esc policy for the whole game:
 #   close the top modal first, otherwise open pause; Esc inside pause resumes.
 # Runs while the tree is paused. Key hints come from the InputMap via KeyCap.
+# Restart mission (confirm, danger) reloads the current scene; Quit returns to the main menu.
 # Signals kept for the HUD: resume_requested, open_journal_requested.
 # (Settings, controls and quit are handled here, so open_settings_requested is no longer emitted.)
 
@@ -86,6 +87,7 @@ func _build_ui() -> void:
 	grow.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	col.add_child(grow)
 
+	_add_item(col, "Restart mission", "restart", "", "", _on_restart)
 	_add_item(col, "Quit to menu", "close", "", "", _on_quit)
 
 
@@ -182,6 +184,7 @@ func _on_settings() -> void:
 			return
 		_settings = scene.instantiate()
 		add_child(_settings)
+		_settings.layer = UITokens.LAYER_SYSTEM + 1  # same layer as this menu would draw behind it
 		_settings.settings_closed.connect(_on_child_closed)
 	_begin_child_modal()
 	_settings.show_settings()
@@ -194,6 +197,7 @@ func _on_controls() -> void:
 			return
 		_manual = scene.instantiate()
 		add_child(_manual)
+		_manual.layer = UITokens.LAYER_SYSTEM + 1  # the manual defaults to a layer below the pause menu
 		_manual.manual_closed.connect(_on_child_closed)
 	_begin_child_modal()
 	_manual.show_manual()
@@ -210,6 +214,20 @@ func _on_child_closed() -> void:
 
 func _clear_child_flag() -> void:
 	_child_modal_open = false
+
+
+func _on_restart() -> void:
+	_child_modal_open = true
+	var d: ConfirmDialog = ConfirmDialog.ask(get_tree(), "Restart mission?",
+		"The level restarts from the landing site. Specimens already catalogued stay in your journal.", "Restart", true)
+	d.confirmed.connect(func() -> void:
+		# Unpause before reloading, otherwise the new scene would start frozen.
+		_set_visible_state(false)
+		get_tree().paused = false
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		get_tree().reload_current_scene())
+	d.cancelled.connect(_on_child_closed)
+	d.confirmed.connect(_on_child_closed)
 
 
 func _on_quit() -> void:

@@ -65,7 +65,11 @@ func _build_hud_elements() -> void:
 	var c3: Array = _cell(grid, "HEART RATE", "82 BPM", UITokens.SIGNAL_GOLD, false)
 	_hr_title = c3[0]
 	heart_rate_label = c3[1]
-	gait_label = _cell(grid, "GAIT", "LUNAR LOPE", UITokens.PAPER_100, false)[1]
+	var c4: Array = _cell(grid, "GAIT", "LUNAR LOPE", UITokens.PAPER_100, false)
+	gait_label = c4[1]
+	var gait_cap := KeyCap.new()          # the real gait key, read from the InputMap
+	gait_cap.action_name = "gait_toggle"
+	gait_label.get_parent().add_child(gait_cap)
 	gravity_label = _cell(grid, "GRAVITY", "1.62 m/s²", UITokens.SIGNAL_CYAN, false)[1]
 	compass_label = _cell(grid, "HEADING", "045°", UITokens.PAPER_100, false)[1]
 
@@ -171,7 +175,7 @@ func _process(delta: float) -> void:
 
 	if "camera_pivot" in _player_ref and _player_ref.camera_pivot:
 		var yaw_deg: int = int(fmod(rad_to_deg(_player_ref.camera_pivot.rotation.y) + 360.0, 360.0))
-		compass_label.text = "%03d°" % yaw_deg
+		compass_label.text = "%03d° %s" % [yaw_deg, _cardinal(yaw_deg)]
 
 	if "gravity" in _player_ref and gravity_label:
 		gravity_label.text = "%.2f m/s²" % float(_player_ref.gravity)
@@ -180,3 +184,8 @@ func _process(delta: float) -> void:
 	if "is_first_person" in _player_ref:
 		fp = _player_ref.is_first_person
 	view_mode_label.text = "VIEW: 1ST-PERSON VISOR" if fp else "VIEW: 3RD-PERSON CHASE"
+
+
+static func _cardinal(deg: int) -> String:
+	var names := ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+	return names[int(round(float(deg) / 45.0)) % 8]

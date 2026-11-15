@@ -12,7 +12,6 @@ extends SceneTree
 #  6. HUD scene no longer contains a DiscoveryPopup and exposes play_artifact_story().
 
 const ENTRY_SCRIPT := "res://scripts/ui/scientific_examination_panel.gd"
-const MENU_SCRIPT := "res://scripts/ui/excavation_menu.gd"
 
 var failures := 0
 
@@ -141,26 +140,8 @@ func _run() -> void:
 	SettingsStore.set_value("reduced_motion", had)
 	await _frames(1)
 
-	# ── 5. Excavation prompt ──────────────────────────────────────────────────────────────
-	print("\n--- 5. Excavation prompt ---")
-	var menu = CanvasLayer.new()
-	menu.set_script(load(MENU_SCRIPT))
-	var got: Array = []
-	menu.begin_excavation_requested.connect(func(): got.append("begin"))
-	root.add_child(menu)
-	await _frames(4)
-	menu.set_anomaly_details("X", 6.5, "Conductive Metal")
-	_check(menu._title_label.text == "EXCAVATION SITE CONFIRMED", "title text contract kept")
-	_check(menu._details_label.text.contains("6.5"), "details show depth: " + menu._details_label.text)
-	for b in [menu._btn_excavate, menu._btn_inspect, menu._btn_cancel]:
-		_check(b.get_theme_font_size("font_size") >= 14, "%s font >= 14 px" % b.text)
-	_check(menu._title_label.get_theme_font_size("font_size") >= 14, "title font >= 14 px")
-	menu._on_excavate_pressed()
-	_check(got == ["begin"], "begin_excavation_requested emitted")
-	await _frames(2)
-
-	# ── 6. HUD ────────────────────────────────────────────────────────────────────────────
-	print("\n--- 6. HUD scene ---")
+	# ── 5. HUD ────────────────────────────────────────────────────────────────────────────
+	print("\n--- 5. HUD scene ---")
 	var hud = (load("res://scenes/ui/hud.tscn") as PackedScene).instantiate()
 	root.add_child(hud)
 	await _frames(3)
@@ -169,8 +150,8 @@ func _run() -> void:
 	_check(hud.is_in_group("hud"), "HUD is in group 'hud'")
 	hud.play_artifact_story("alsep")
 	await _frames(2)
-	var story := hud.get_children().filter(func(n): return n.get_script() != null and "artifact_video_player" in n.get_script().resource_path)
-	_check(story.size() == 1, "play_artifact_story spawns the story player")
+	var story := hud.get_children().filter(func(n): return n.is_in_group("blocking_modal") and n.get_script() != null and "flashback" in n.get_script().resource_path)
+	_check(story.size() == 1, "play_artifact_story spawns the flashback story (merge D5)")
 	hud.queue_free()
 	await _frames(2)
 

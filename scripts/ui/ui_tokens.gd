@@ -22,6 +22,9 @@ static var SIGNAL_CYAN  := Color("#80CCFF")
 static var SIGNAL_RED   := Color("#FF5A4D")
 static var SIGNAL_GREEN := Color("#5FE08A")
 
+# Regolith highlight (lighter dust grain; the dark grain is INK_600). Used by SpecimenReveal + cleaning mask.
+static var DUST_LIGHT := Color(0.36, 0.40, 0.46)
+
 ## ── TYPOGRAPHY ───────────────────────────────────────────────
 ## Font sizes in pixels. Use IBM Plex Sans (UI) / IBM Plex Mono (numerals).
 static var TEXT_CAPTION := 12

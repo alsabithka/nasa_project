@@ -4,10 +4,10 @@ extends Control
 # Archive register: drawn hero backdrop, left-aligned column on the grid, planets as chapters with
 # progress, Mars locked with its reason (never a clickable contradiction), full keyboard/gamepad focus.
 # Built in code from Theme + components; the scene file only holds the root node.
+# Merge P5: harsh menu + integrated1 rules (Mars locked until the Moon mission is complete; no gallery, D6).
 
 const MOON_SCENE := "res://scenes/levels/moon.tscn"
 const MARS_SCENE := "res://scenes/levels/mars.tscn"
-const GALLERY_SCENE := "res://scenes/spacecraft/spacecraft_gallery.tscn"
 const COLUMN_WIDTH := 480
 
 var _moon_btn: ChapterButton
@@ -17,6 +17,7 @@ var _manual: Node = null
 
 
 func _ready() -> void:
+	InputSetup.ensure()  # KeyCap hints (field manual) need gait_toggle / view_toggle
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	get_tree().paused = false
 	theme = UITokens.theme()
@@ -71,7 +72,7 @@ func _build() -> void:
 	col.add_child(_mars_btn)
 	_update_chapters()
 	_moon_btn.pressed.connect(func() -> void: SceneFade.go(get_tree(), MOON_SCENE))
-	_mars_btn.pressed.connect(func() -> void: SceneFade.go(get_tree(), MARS_SCENE))
+	_mars_btn.pressed.connect(_on_mars_pressed)
 
 	col.add_child(_spacer(UITokens.SP_4))
 
@@ -81,7 +82,6 @@ func _build() -> void:
 	grid.add_theme_constant_override("h_separation", UITokens.SP_2)
 	grid.add_theme_constant_override("v_separation", UITokens.SP_2)
 	col.add_child(grid)
-	_add_secondary(grid, "Spacecraft gallery", "archive", func() -> void: SceneFade.go(get_tree(), GALLERY_SCENE))
 	_add_secondary(grid, "Field manual", "scan", _show_field_manual)
 	_add_secondary(grid, "Settings", "settings", _show_settings)
 	_add_secondary(grid, "Credits", "stamp", _show_credits)
@@ -104,6 +104,13 @@ func _add_secondary(parent: Control, text: String, icon_name: String, cb: Callab
 	b.custom_minimum_size = Vector2(float(COLUMN_WIDTH - UITokens.SP_2) / 2.0, 40)
 	b.pressed.connect(cb)
 	parent.add_child(b)
+
+
+func _on_mars_pressed() -> void:
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs != null and not bool(gs.call("is_planet_unlocked", "Mars")):
+		return  # locked: the button is disabled too, this is the belt to its braces
+	SceneFade.go(get_tree(), MARS_SCENE)
 
 
 # ── Chapters ───────────────────────────────────────────────────────────────────────────

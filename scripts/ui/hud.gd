@@ -6,9 +6,6 @@ extends Control
 # Phase 5: the discovery popup is gone — the Catalogue Entry (scientific_examination_panel.gd)
 # replaces it. WATCH STORY arrives via play_artifact_story() (group "hud").
 
-const UITokens = preload("res://scripts/ui/ui_tokens.gd")
-const Toast    = preload("res://scripts/ui/components/toast.gd")
-
 @export var current_planet: String = "Moon"
 
 # UI Nodes
@@ -51,7 +48,27 @@ func _ready() -> void:
 	completion_modal.visible = false
 	selected_journal_planet = current_planet
 
+## Merge §9: dig / clean / catalogue / flashback layers join group "blocking_modal". While any is
+## visible, the journal and pause hotkeys are inert (those screens consume Esc themselves).
+func is_modal_blocking() -> bool:
+	for n in get_tree().get_nodes_in_group("blocking_modal"):
+		if not is_instance_valid(n):
+			continue
+		# CanvasLayer (dig / clean / catalogue / ModalShell) and CanvasItem both expose `visible`.
+		if "visible" in n and bool(n.get("visible")):
+			return true
+	return false
+
+## Geology inspection closes on Esc itself (it also consumes the event); never open pause on the same press.
+func _is_geology_inspecting() -> bool:
+	for n in get_tree().get_nodes_in_group("geology_system"):
+		if is_instance_valid(n) and "is_inspecting" in n and bool(n.get("is_inspecting")):
+			return true
+	return false
+
 func _unhandled_input(event: InputEvent) -> void:
+	if is_modal_blocking():
+		return
 	if event.is_action_pressed("toggle_journal"):
 		toggle_journal()
 	elif event.is_action_pressed("ui_cancel"):
@@ -60,8 +77,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if journal.is_open():
 			journal.close()
 			get_viewport().set_input_as_handled()
-		elif completion_modal.visible:
-			pass  # don't dismiss mission complete
+		elif completion_modal.visible or _is_geology_inspecting():
+			pass  # mission complete is not dismissable; inspection closes itself
 		else:
 			_open_pause()
 			get_viewport().set_input_as_handled()
@@ -104,6 +121,9 @@ func _connect_gamestate() -> void:
 	
 	gs.artifact_recovered.connect(_on_artifact_recovered)
 	gs.mission_completed.connect(_on_mission_completed)
+	if gs.has_signal("resources_updated"):
+		gs.resources_updated.connect(_on_resources_updated)
+	_on_resources_updated(gs.get_energy(), gs.max_energy, gs.get_minerals())
 	gs.planet_unlocked.connect(func(planet: String) -> void:
 		Toast.notify(get_tree(), "%s UNLOCKED" % planet.to_upper(), UITokens.SIGNAL_GREEN))
 	_update_header()
@@ -121,6 +141,9 @@ func _on_scan_updated(target_id: String, distance: float, signal_strength: float
 	if target_id != "" and distance <= world_hud.scanner.MAX_RANGE and not _signal_toasted.has(target_id):
 		_signal_toasted[target_id] = true
 		Toast.notify(get_tree(), "SIGNAL ACQUIRED", UITokens.SIGNAL_CYAN)
+
+func _on_resources_updated(energy_val: float, max_energy_val: float, minerals_val: int) -> void:
+	world_hud.set_resources(energy_val, max_energy_val, minerals_val)
 
 func _on_artifact_recovered(artifact_id: String) -> void:
 	_last_discovered_id = artifact_id
@@ -148,28 +171,17 @@ func _on_popup_closed() -> void:
 	if _last_discovered_id != "":
 		_trigger_flashback(_last_discovered_id)
 
-# Starts the artifact documentary. The player scene plays the artifact's video when
-# data/artifact_videos.json has a playable entry, and otherwise runs the original text
-# flashback (data/flashbacks.json) itself, so every artifact still gets a story.
+# Starts the artifact story: the text flashback (data/flashbacks.json). Merge D5: the video
+# documentary system of the harsh project is intentionally not ported.
 func _trigger_flashback(artifact_id: String) -> void:
-	var player_scene = load("res://scenes/ui/artifact_video_player.tscn")
-	if player_scene:
-		var story = player_scene.instantiate()
-		story.artifact_id = artifact_id
-		story.playback_complete.connect(_on_artifact_story_complete)
-		add_child(story)
-	else:
-		# Safety net: the player scene is missing, use the original text flashback directly
-		var flashback_scene = load("res://scenes/ui/flashback.tscn")
-		if flashback_scene:
-			var fb = flashback_scene.instantiate()
-			fb.artifact_id = artifact_id
-			if fb.has_signal("flashback_complete"):
-				fb.flashback_complete.connect(_on_flashback_complete)
-			add_child(fb)
-
-func _on_artifact_story_complete(_artifact_id: String, _result: String) -> void:
-	_on_flashback_complete()
+	var flashback_scene = load("res://scenes/ui/flashback.tscn")
+	if flashback_scene:
+		var fb = flashback_scene.instantiate()
+		fb.artifact_id = artifact_id
+		fb.add_to_group("blocking_modal")  # flashback_system.gd itself stays untouched
+		if fb.has_signal("flashback_complete"):
+			fb.flashback_complete.connect(_on_flashback_complete)
+		add_child(fb)
 
 func _on_flashback_complete() -> void:
 	if not journal.is_open() and not completion_modal.visible:
@@ -184,11 +196,11 @@ func _on_mission_completed(planet: String) -> void:
 		# so the buttons of this modal can be clicked.
 		call_deferred("_show_mouse")
 		if planet == "Moon":
-			completion_desc.text = "You have excavated, restored, and cataloged all historical Apollo lunar equipment! Mars exploration coordinates are now unlocked."
+			completion_desc.text = "All Apollo lunar artifacts cataloged and preserved! Deep space trajectory to Mars unlocked."
 			if travel_mars_btn:
 				travel_mars_btn.visible = true
 		else:
-			completion_desc.text = "Congratulations! You have successfully surveyed all historical Martian exploration artifacts!"
+			completion_desc.text = "Mission complete! All historical Martian survey equipment successfully cataloged."
 			if travel_mars_btn:
 				travel_mars_btn.visible = false
 
@@ -205,10 +217,14 @@ func _update_header() -> void:
 		var rec = gs.get_recovered_count(current_planet)
 		var total = gs.get_total_count(current_planet)
 		world_hud.set_progress(current_planet, rec, total)
+		world_hud.set_site("TAURUS-LITTROW · EVA-1" if current_planet == "Moon" else "")
+		world_hud.set_resources(gs.get_energy(), gs.max_energy, gs.get_minerals())
 	else:
 		world_hud.set_progress(current_planet, 0, 0)
 
 func toggle_journal() -> void:
+	if is_modal_blocking() and not journal.is_open():
+		return
 	if journal.is_open():
 		journal.close()      # _on_journal_closed restores scanner + mouse
 		return
@@ -223,6 +239,8 @@ func _populate_journal(planet: String) -> void:
 	journal.show_planet(planet)
 
 func _on_menu_pressed() -> void:
+	if is_modal_blocking():
+		return
 	_open_pause()
 
 # ─── Pause Menu helpers ──────────────────────────────────────────────────────

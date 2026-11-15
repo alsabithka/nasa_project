@@ -31,7 +31,8 @@ func _ready() -> void:
 	focus_mode = Control.FOCUS_ALL
 	alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_apply_styles()
-	_rebuild()
+	if _title != "":  # setup() may come after add_child; it rebuilds itself
+		_rebuild()
 
 
 func _box(bg: Color, border: Color, bw: int) -> StyleBoxFlat:

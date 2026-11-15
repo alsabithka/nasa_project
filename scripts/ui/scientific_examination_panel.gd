@@ -45,6 +45,7 @@ var _fields := {}               # Label per data key, filled by populate_data()
 
 func _ready() -> void:
 	layer = UITokens.LAYER_MODALS  # 20 — above overlays, below cinema
+	add_to_group("blocking_modal")
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_build_ui()
 	populate_data()
@@ -312,9 +313,10 @@ func populate_data() -> void:
 func _put(key: String, text: String) -> void:
 	var l := _fields[key] as Label
 	l.text = text
-	var pair = l.get_meta("pair", null)
-	if pair is Control:
-		(pair as Control).visible = text != ""
+	if l.has_meta("pair"):  # 4.7 logs an error for get_meta() on a missing key even with a default
+		var pair = l.get_meta("pair")
+		if pair is Control:
+			(pair as Control).visible = text != ""
 
 
 ## "MOON · 03 / 07" — same order and numbering as the journal, so the two always agree.

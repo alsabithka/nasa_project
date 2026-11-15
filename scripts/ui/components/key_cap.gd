@@ -15,6 +15,7 @@ extends PanelContainer
 var _key_label: Label
 
 func _ready() -> void:
+	InputSetup.ensure()   # merge: gait_toggle / view_toggle must exist even if the player's _ready has not run yet
 	# Works both when instanced from key_cap.tscn and when created with KeyCap.new()
 	_key_label = get_node_or_null("Label") as Label
 	if _key_label == null:

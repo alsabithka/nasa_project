@@ -216,3 +216,14 @@ The collection screens now use one language (ArchiveCard, Badge, KeyCap, Segment
 - No real specimen imagery yet: silhouettes are generic shapes by category, not per-artifact drawings.
 - Component gallery (`component_gallery.tscn`) does not yet list `JournalSlot`.
 - Sound for tab / filter / selection changes belongs to Phase 8.
+
+
+## Merge (integrated1 gameplay + this design system)
+Harsh's phases above are history and are kept as written. What changed when the design system moved onto integrated1:
+- **Added:** `RadarDial` inside `ScannerInstrument` (phase 3), fullscreen toggle + restart mission (phase 4), flashback skin (phase 8).
+- **Replaced by integrated1 behaviour:** harsh's hold-to-brush cleaning timer -> manual mouse scrubbing on a dirt mask, with harsh's `SpecimenReveal` probe as the image underneath; harsh's excavation menu -> integrated1's one-press `[E]` dig mini-game.
+- **Not ported:** documentary video player, spacecraft gallery + inspector (phase 6 gallery rows), Phase 8 sound work (stamp / brush loop; `CREDITS.md` still lists no UI sounds).
+- **Thresholds:** scanner uses 65 / 4 / 15 / 35 m (harsh: 60 / 4 / 12 / 25).
+- **Bugs found while merging** (all fixed, details per phase in `MERGE_LOG.md`): Settings / Field manual drawn behind pause; `is_modal_blocking()` counting every CanvasLayer; Mars button shortcut removed; WorldHud anchors; `get_meta` error spam; mouse not released after mission-complete.
+- **Open:** HUD area is over the ~15 % target at 1280x720 (20.9 %) and 1366x768 (18.3 %); decide whether to shrink further.
+

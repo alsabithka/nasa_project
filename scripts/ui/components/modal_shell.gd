@@ -33,6 +33,7 @@ var _preferred_focus: Control = null
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	layer = layer_id
+	add_to_group("blocking_modal")  # HUD journal / pause hotkeys are inert while visible (merge §9.2)
 	_build_shell()
 	_build_content()
 	visible = false

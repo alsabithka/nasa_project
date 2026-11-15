@@ -2,7 +2,7 @@
 ##   xvfb-run -a godot --rendering-driver opengl3 --path . --script res://scripts/qa/phase6_screens.gd -- \
 ##       1280 720 /tmp/p6
 ## Writes: journal_empty, journal_partial, journal_full, journal_mars, journal_filter, journal_locked_detail,
-##         gallery, gallery_inspector  (.png)
+##         (the gallery and inspector shots were removed in the merge, D6)
 extends SceneTree
 
 func _initialize() -> void:
@@ -68,9 +68,4 @@ func _run(out: String) -> void:
 	gs.reset_progress()
 	await process_frame
 
-	var gal = (load("res://scenes/spacecraft/spacecraft_gallery.tscn") as PackedScene).instantiate()
-	root.add_child(gal)
-	await _shot(out + "/gallery.png")
-	gal.toggle_component_inspector()
-	await _shot(out + "/gallery_inspector.png")
 	quit(0)

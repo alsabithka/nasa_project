@@ -12,6 +12,12 @@ extends Control
 @export var cols: int = 28
 @export var rows: int = 11
 @export var seed_value: int = 7
+## Merge P6 (cleaning screen): when false the 28x11 dust cells are not drawn, so an external
+## dirt mask (the player's manual scrubbing) is the only thing covering the specimen.
+@export var show_dust: bool = true : set = set_show_dust
+## Optional raster picture drawn between the ink plate and the specimen (merge plan §2.4 hook:
+## drop a real satellite photo in here without code changes). null = vector probe only.
+@export var backdrop: Texture2D = null : set = set_backdrop
 
 var _thr: PackedFloat32Array = PackedFloat32Array()
 var _tone: PackedFloat32Array = PackedFloat32Array()
@@ -24,6 +30,14 @@ func _ready() -> void:
 
 func set_progress(v: float) -> void:
 	progress = clampf(v, 0.0, 1.0)
+	queue_redraw()
+
+func set_show_dust(v: bool) -> void:
+	show_dust = v
+	queue_redraw()
+
+func set_backdrop(t: Texture2D) -> void:
+	backdrop = t
 	queue_redraw()
 
 func set_brushing(v: bool) -> void:
@@ -53,8 +67,11 @@ func _draw() -> void:
 	var w := size.x
 	var h := size.y
 	draw_rect(Rect2(Vector2.ZERO, size), UITokens.INK_900, true)
+	if backdrop != null:
+		draw_texture_rect(backdrop, Rect2(Vector2.ZERO, size), false)
 	_draw_specimen(w, h)
-	_draw_dust(w, h)
+	if show_dust:
+		_draw_dust(w, h)
 	draw_rect(Rect2(Vector2.ZERO, size), UITokens.PAPER_500, false, 1.0)
 
 func _draw_specimen(w: float, h: float) -> void:
@@ -91,7 +108,7 @@ func _draw_dust(w: float, h: float) -> void:
 	var cw := w / float(cols)
 	var ch := h / float(rows)
 	var dust_a := UITokens.INK_600
-	var dust_b := Color(0.36, 0.40, 0.46)
+	var dust_b := UITokens.DUST_LIGHT
 	for y in rows:
 		for x in cols:
 			var i := y * cols + x

@@ -12,7 +12,11 @@ signal state_changed(new_state: int)
 
 enum State { NONE, FAINT, MODERATE, STRONG, DIG }
 
-const MAX_RANGE := 60.0
+## Merge D8: thresholds follow integrated1 (radar range 65 m; DIG <= 4; STRONG < 15; MODERATE < 35).
+const MAX_RANGE := 65.0
+const DIG_RANGE := 4.0
+const STRONG_RANGE := 15.0
+const MODERATE_RANGE := 35.0
 const STATE_TEXT := {
 	State.NONE: "Searching for signals",
 	State.FAINT: "Faint signal",
@@ -28,6 +32,8 @@ const STATE_ICON := {
 	State.DIG: "signal_dig",
 }
 
+var radar: RadarDial
+var _pos_label: Label
 var _distance: Label
 var _meter: SegmentedMeter
 var _icon: TextureRect
@@ -55,6 +61,18 @@ func _ready() -> void:
 	head.add_child(title)
 	head.add_child(Badge.make(Badge.Kind.LIVE))
 
+	radar = RadarDial.new()
+	radar.radar_range = MAX_RANGE
+	radar.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	col.add_child(radar)
+
+	_pos_label = Label.new()
+	_pos_label.theme_type_variation = &"CaptionLabel"
+	_pos_label.add_theme_color_override("font_color", UITokens.PAPER_300)
+	_pos_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_pos_label.text = "POS  --  --"
+	col.add_child(_pos_label)
+
 	_distance = Label.new()
 	_distance.theme_type_variation = &"StatLabelLarge"
 	_distance.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -73,10 +91,17 @@ func _ready() -> void:
 	_state_label = Label.new()
 	_state_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_state_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_state_label.custom_minimum_size = Vector2(190, 22)   # merge: stops autowrap collapsing to a 1-char column; one line by default, grows only if text wraps
 	_state_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(_state_label)
 
 	reset()
+
+
+func _process(_delta: float) -> void:
+	if radar != null and radar.visible:
+		var p: Vector3 = radar.get_player_position()
+		_pos_label.text = "POS  %+06.1f  %+06.1f" % [p.x, p.z]
 
 
 func get_state() -> int:
@@ -93,11 +118,11 @@ func update_reading(target_id: String, distance: float, strength: float) -> void
 		_apply(State.NONE, -1.0, 0.0)
 		return
 	var s: int = State.FAINT
-	if distance <= 4.0:
+	if distance <= DIG_RANGE:
 		s = State.DIG
-	elif distance < 12.0:
+	elif distance < STRONG_RANGE:
 		s = State.STRONG
-	elif distance < 25.0:
+	elif distance < MODERATE_RANGE:
 		s = State.MODERATE
 	_apply(s, distance, strength)
 

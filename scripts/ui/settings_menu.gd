@@ -3,13 +3,14 @@ extends ModalShell
 # Echoes Beyond Earth — Settings (Phase 3)
 # Persists through SettingsStore (user://settings.cfg). GameState is not touched.
 # Rows: master volume, music/SFX volume (only when those audio buses exist),
-# mouse sensitivity (multiplier of the player's default), reduced motion.
+# mouse sensitivity (multiplier of the player's default), fullscreen, reduced motion.
 # Text scale and high contrast arrive in Phase 7 — they are not shown until they work.
 
 signal settings_closed
 
 var _rows: Array[Dictionary] = []   # {slider, label, key, fmt}
 var _motion_btn: Button
+var _fullscreen_btn: Button
 var _first_focus: Control = null
 
 
@@ -27,6 +28,9 @@ func _build_content() -> void:
 		_add_slider_row("Music volume", "music_volume", 0.0, 1.0, 0.05, "pct")
 	if SettingsStore.has_bus("SFX"):
 		_add_slider_row("Effects volume", "sfx_volume", 0.0, 1.0, 0.05, "pct")
+
+	_add_section("DISPLAY")
+	_fullscreen_btn = _add_toggle_row("Fullscreen", "Fill the whole screen. Takes effect immediately.", "fullscreen")
 
 	_add_section("CONTROLS")
 	_add_slider_row("Mouse sensitivity", "mouse_sensitivity",
@@ -101,6 +105,11 @@ func _add_slider_row(label_text: String, key: String, lo: float, hi: float, step
 
 
 func _add_motion_row() -> void:
+	_motion_btn = _add_toggle_row("Reduced motion", "Removes fades and slide-ins. Scene changes become instant cuts.", "reduced_motion")
+
+
+## Label + hint on the left, On/Off toggle on the right. State is carried by text AND icon.
+func _add_toggle_row(label_text: String, hint_text: String, key: String) -> Button:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", UITokens.SP_4)
 	body.add_child(row)
@@ -109,44 +118,44 @@ func _add_motion_row() -> void:
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(col)
 	var lbl := Label.new()
-	lbl.text = "Reduced motion"
+	lbl.text = label_text
 	col.add_child(lbl)
 	var hint := Label.new()
-	hint.text = "Removes fades and slide-ins. Scene changes become instant cuts."
+	hint.text = hint_text
 	hint.theme_type_variation = &"CaptionLabel"
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(hint)
 
-	_motion_btn = Button.new()
-	_motion_btn.toggle_mode = true
-	_motion_btn.theme_type_variation = &"GhostButton"
-	_motion_btn.custom_minimum_size = Vector2(96, 0)
-	_motion_btn.button_pressed = bool(SettingsStore.get_value("reduced_motion"))
-	_motion_btn.toggled.connect(_on_motion_toggled)
-	row.add_child(_motion_btn)
-	_refresh_motion_button()
+	var b := Button.new()
+	b.toggle_mode = true
+	b.theme_type_variation = &"GhostButton"
+	b.custom_minimum_size = Vector2(96, 0)
+	b.button_pressed = bool(SettingsStore.get_value(key))
+	b.toggled.connect(func(_p: bool) -> void:
+		SettingsStore.set_value(key, b.button_pressed)
+		SettingsStore.save()
+		SettingsStore.apply(get_tree())
+		_refresh_toggle(b)
+	)
+	row.add_child(b)
+	_refresh_toggle(b)
+	return b
 
 
-func _refresh_motion_button() -> void:
-	var on: bool = _motion_btn.button_pressed
-	# State is carried by text AND icon, never colour alone.
-	_motion_btn.text = "On" if on else "Off"
-	_motion_btn.icon = UITokens.icon("check") if on else null
-
-
-func _on_motion_toggled(_pressed: bool) -> void:
-	SettingsStore.set_value("reduced_motion", _motion_btn.button_pressed)
-	SettingsStore.save()
-	_refresh_motion_button()
+func _refresh_toggle(b: Button) -> void:
+	var on: bool = b.button_pressed
+	b.text = "On" if on else "Off"
+	b.icon = UITokens.icon("check") if on else null
 
 
 func _on_reset() -> void:
-	for key in ["master_volume", "music_volume", "sfx_volume", "mouse_sensitivity", "reduced_motion"]:
+	for key in ["master_volume", "music_volume", "sfx_volume", "mouse_sensitivity", "reduced_motion", "fullscreen"]:
 		SettingsStore.set_value(key, SettingsStore.DEFAULTS[key])
 	for r in _rows:
 		var s: HSlider = r["slider"]
 		s.value = float(SettingsStore.get_value(r["key"]))
 	_motion_btn.button_pressed = false
+	_fullscreen_btn.button_pressed = false
 	SettingsStore.save()
 	SettingsStore.apply(get_tree())
 
@@ -164,5 +173,8 @@ func show_settings() -> void:
 		s.value = float(SettingsStore.get_value(r["key"]))
 	if _motion_btn != null:
 		_motion_btn.set_pressed_no_signal(bool(SettingsStore.get_value("reduced_motion")))
-		_refresh_motion_button()
+		_refresh_toggle(_motion_btn)
+	if _fullscreen_btn != null:
+		_fullscreen_btn.set_pressed_no_signal(bool(SettingsStore.get_value("fullscreen")))
+		_refresh_toggle(_fullscreen_btn)
 	open(_first_focus)

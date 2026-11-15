@@ -22,6 +22,7 @@ const DEFAULTS := {
 	"sfx_volume": 0.9,
 	"mouse_sensitivity": 1.0,
 	"reduced_motion": false,
+	"fullscreen": false,
 	"first_run_shown": false,
 }
 
@@ -98,10 +99,21 @@ static func apply(tree: SceneTree) -> void:
 	_set_bus_linear("Master", float(get_value("master_volume")))
 	_set_bus_linear("Music", float(get_value("music_volume")))
 	_set_bus_linear("SFX", float(get_value("sfx_volume")))
+	_apply_fullscreen()
 	if tree != null:
 		var player: Node = tree.get_first_node_in_group("player")
 		if player != null and "mouse_sensitivity" in player:
 			player.set("mouse_sensitivity", mouse_sensitivity_value())
+
+
+## Window mode from the stored "fullscreen" flag. No-op on headless / when already in that mode.
+static func _apply_fullscreen() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var want: bool = bool(get_value("fullscreen"))
+	var is_fs: bool = DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+	if want != is_fs:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if want else DisplayServer.WINDOW_MODE_WINDOWED)
 
 
 ## First-run flag shared with the Field Manual.

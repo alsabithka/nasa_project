@@ -29,7 +29,7 @@ static func ask(tree: SceneTree, title: String, message: String, confirm_label: 
 	return d
 
 func _ready() -> void:
-	layer = UITokens.LAYER_SYSTEM
+	layer = UITokens.LAYER_SYSTEM + 2  # above pause (40) and its child modals (41)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)

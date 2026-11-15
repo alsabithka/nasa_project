@@ -1,6 +1,6 @@
 extends SceneTree
 
-# Phase 6 verification — collection screens (journal drawer, gallery rail, component inspector).
+# Phase 6 verification — collection screens (journal drawer). Gallery + inspector were not ported (merge D6).
 # Run:  godot --headless --path . --script res://scripts/test_phase6_collection_ui.gd
 # Checks:
 #  1. JournalSlot shape mapping (pure function).
@@ -12,11 +12,7 @@ extends SceneTree
 #     locked detail never leaks the artifact name.
 #  5. Full state (every Moon artifact found) and Esc handling / closed signal.
 #  6. HUD scene: JournalModal gone, drawer opens and closes through toggle_journal().
-#  7. Gallery: header / info / rail fit 1280x720 and 1366x768; inspector hides rail + info; no raw KEY_.
-#  8. Inspector contract used by test_historical_spacecraft_assets.gd.
-#  9. Source hygiene: no font-size or colour literals in the new components.
-
-const GALLERY_SCENE := "res://scenes/spacecraft/spacecraft_gallery.tscn"
+#  7. Source hygiene: no font-size or colour literals in the journal components.
 
 var failures := 0
 
@@ -221,79 +217,9 @@ func _run() -> void:
 	hud.queue_free()
 	await _frames(2)
 
-	# ── 7. Gallery ────────────────────────────────────────────────────────────────────────
-	print("\n--- 7. Gallery ---")
-	for sz in [Vector2i(1280, 720), Vector2i(1366, 768)]:
-		root.size = sz
-		var gal = (load(GALLERY_SCENE) as PackedScene).instantiate()
-		root.add_child(gal)
-		await _frames(4)
-		var v := Vector2(sz)
-		_check(_fits(gal.rail_panel, v), "%s: rail fits (%s)" % [str(sz), str(gal.rail_panel.get_global_rect())])
-		_check(_fits(gal.info_panel, v), "%s: info panel fits" % str(sz))
-		for b in gal._craft_buttons:
-			_check(_fits(b, v), "%s: rail button '%s' on screen" % [str(sz), b.text])
-		_check(not gal.rail_panel.get_global_rect().intersects(gal.info_panel.get_global_rect()), "%s: rail and info do not overlap" % str(sz))
-		if sz.x == 1280:
-			_check(gal.title_label.text == "Dawn Spacecraft", "header shows the craft name")
-			gal.select_next_spacecraft()
-			await _frames(2)
-			_check(gal.current_craft_index == 1 and gal.title_label.text == "NEAR Shoemaker", "next craft updates the header")
-			_check(gal._craft_buttons[1].button_pressed, "rail shows the selected craft")
-			gal.toggle_component_inspector()
-			await _frames(3)
-			_check(gal.inspector_hud != null, "inspector opens")
-			_check(not gal.rail_panel.visible and not gal.info_panel.visible, "rail and info step aside for the inspector")
-			gal.inspector_hud.close_inspector()
-			await _frames(2)
-			_check(gal.rail_panel.visible and gal.info_panel.visible, "rail and info return after the inspector closes")
-		gal.queue_free()
-		await _frames(2)
-	root.size = Vector2i(1280, 720)
-	var gsrc := _source("res://scripts/spacecraft/spacecraft_gallery.gd")
-	var raw_keys := 0
-	for line in gsrc.split("\n"):
-		var t := line.strip_edges()
-		if not t.begins_with("#") and t.contains("KEY_"):
-			raw_keys += 1
-	_check(raw_keys == 0, "gallery has no raw KEY_ literals (%d)" % raw_keys)
-
-	# ── 8. Inspector contract ─────────────────────────────────────────────────────────────
-	print("\n--- 8. Inspector ---")
-	var target := Node3D.new()
-	target.set_meta("component_name", "Test Craft")
-	target.set_meta("component_desc", "A test craft.")
-	for i in 3:
-		var c := Node3D.new()
-		c.set_meta("component_name", "Part %d" % i)
-		c.set_meta("component_desc", "Description %d" % i)
-		c.set_meta("component_spec", "Spec %d" % i)
-		target.add_child(c)
-	root.add_child(target)
-	var insp := SpacecraftInspectorHUD.new()
-	root.add_child(insp)
-	insp.open_inspector(target, "test")
-	await _frames(3)
-	_check(insp._components.size() == 4, "components scanned (%d)" % insp._components.size())
-	_check(insp.comp_spec_label.text.begins_with("SPECIFICATIONS:"), "spec label contract kept")
-	var n0 := insp.comp_name_label.text
-	insp._on_next_pressed()
-	_check(insp.comp_name_label.text != n0, "next changes component")
-	insp._on_prev_pressed()
-	_check(insp.comp_name_label.text == n0, "prev returns")
-	_check(insp.counter_label.text.begins_with("COMPONENT 01 / 04"), "counter format: " + insp.counter_label.text)
-	_check(not insp.comp_name_label.text.begins_with("•"), "no glyph bullet in the component name")
-	_check(_fits(insp.panel, Vector2(1280, 720)), "inspector panel fits 1280x720 (%s)" % str(insp.panel.get_global_rect()))
-	var closed := [false]
-	insp.inspection_closed.connect(func() -> void: closed[0] = true)
-	insp.close_inspector()
-	_check(closed[0], "inspection_closed emitted")
-	target.queue_free()
-	await _frames(2)
-
-	# ── 9. Source hygiene ─────────────────────────────────────────────────────────────────
-	print("\n--- 9. Source hygiene (tokens only) ---")
-	for path in ["res://scripts/ui/components/journal_drawer.gd", "res://scripts/ui/components/journal_slot.gd", "res://scripts/ui/spacecraft_inspector_hud.gd"]:
+	# ── 7. Source hygiene ─────────────────────────────────────────────────────────────────
+	print("\n--- 7. Source hygiene (tokens only) ---")
+	for path in ["res://scripts/ui/components/journal_drawer.gd", "res://scripts/ui/components/journal_slot.gd"]:
 		var src := _source(path)
 		_check(not src.contains("add_theme_font_size_override"), "%s: no font-size overrides" % path.get_file())
 		_check(not src.contains("Color(0.") and not src.contains("Color(1."), "%s: no colour literals" % path.get_file())
