@@ -115,23 +115,27 @@ func _run_audit() -> void:
 		quit(1)
 		return
 	
+	var left_mat = left_eyelid.get_surface_override_material(0) as ShaderMaterial
+	
 	# Test Open state
 	player.set_expression(player.FacialExpression.NEUTRAL)
 	player._current_calm = 0.0
 	player._is_blinking = false
 	player._update_eye_blinking(0.01)
-	if left_eyelid.visible and left_eyelid.scale.z > 0.05:
+	var cov_open = left_mat.get_shader_parameter("coverage") if left_mat else left_eyelid.scale.z
+	if left_eyelid.visible and cov_open > 0.05:
 		printerr("FAIL: Eyelid should be hidden/retracted when fully open")
 		quit(1)
 		return
-	print("[Eyelids] Open state: retracted (visible=%s, scale.z=%.3f)" % [left_eyelid.visible, left_eyelid.scale.z])
+	print("[Eyelids] Open state: retracted (visible=%s, coverage=%.3f)" % [left_eyelid.visible, cov_open])
 	
 	# Test Calm expression (half-closed eyelids)
 	player.set_expression(player.FacialExpression.CALM)
 	player._current_calm = 0.50
 	player._update_eye_blinking(0.01)
-	print("[Eyelids] Calm expression: visible=%s, scale.z=%.3f, pos.z=%.3f" % [left_eyelid.visible, left_eyelid.scale.z, left_eyelid.position.z])
-	if not left_eyelid.visible or abs(left_eyelid.scale.z - 0.50) > 0.05:
+	var cov_calm = left_mat.get_shader_parameter("coverage") if left_mat else left_eyelid.scale.z
+	print("[Eyelids] Calm expression: visible=%s, coverage=%.3f" % [left_eyelid.visible, cov_calm])
+	if not left_eyelid.visible or abs(cov_calm - 0.50) > 0.05:
 		printerr("FAIL: Calm expression should lower eyelids to ~50% coverage")
 		quit(1)
 		return
@@ -140,15 +144,17 @@ func _run_audit() -> void:
 	# Test Blink over calm expression
 	player._trigger_blink()
 	player._update_eye_blinking(0.05) # closing
-	player._update_eye_blinking(0.025) # closed hold (0.075s)
-	if not left_eyelid.visible or abs(left_eyelid.scale.z - 1.0) > 0.01:
-		printerr("FAIL: Blink should fully close eyelids (scale.z = 1.0)")
+	player._update_eye_blinking(0.035) # closed hold
+	var cov_blink = left_mat.get_shader_parameter("coverage") if left_mat else left_eyelid.scale.z
+	if not left_eyelid.visible or abs(cov_blink - 1.0) > 0.01:
+		printerr("FAIL: Blink should fully close eyelids (coverage = 1.0)")
 		quit(1)
 		return
-	print("[Eyelids] Full blink: covers eyeball (scale.z=%.2f, right_scale.z=%.2f)" % [left_eyelid.scale.z, right_eyelid.scale.z])
+	print("[Eyelids] Full blink: covers eyeball (coverage=%.2f)" % cov_blink)
 	
-	player._update_eye_blinking(0.09) # reopening completes
-	if left_eyelid.scale.z > 0.55: # returns to calm level 0.50
+	player._update_eye_blinking(0.12) # reopening completes
+	var cov_reopen = left_mat.get_shader_parameter("coverage") if left_mat else left_eyelid.scale.z
+	if cov_reopen > 0.55: # returns to calm level 0.50
 		printerr("FAIL: Eyelid did not return to calm expression level after blink")
 		quit(1)
 		return
@@ -188,36 +194,29 @@ func _run_audit() -> void:
 		quit(1)
 		return
 	
-	# --- 5. Testing Redesigned Handheld Scientific Scanner ---
-	print("\n--- 5. Testing Handheld Scientific Scanner Design ---")
+	# --- 5. Testing Metal Detector Design ---
+	print("\n--- 5. Testing Handheld Metal Detector Design ---")
 	var scanner_dev = player.get_node_or_null("Visuals/Torso/RightArm/ScannerDevice")
-	var sc_handle = player.get_node_or_null("Visuals/Torso/RightArm/ScannerDevice/Handle")
-	var sc_chassis = player.get_node_or_null("Visuals/Torso/RightArm/ScannerDevice/ScannerChassis")
-	var sc_sensor = player.get_node_or_null("Visuals/Torso/RightArm/ScannerDevice/SensorHead")
-	var sc_aperture = player.get_node_or_null("Visuals/Torso/RightArm/ScannerDevice/SensorAperture")
-	var sc_antenna_l = player.get_node_or_null("Visuals/Torso/RightArm/ScannerDevice/AntennaLeft")
-	var sc_screen = player.get_node_or_null("Visuals/Torso/RightArm/ScannerDevice/Screen")
-	var sc_buttons = player.get_node_or_null("Visuals/Torso/RightArm/ScannerDevice/ControlButtons")
-	var sc_led = player.get_node_or_null("Visuals/Torso/RightArm/ScannerDevice/StatusLED")
+	var detector = player.detector_visual if player.detector_visual else (scanner_dev.get_node_or_null("DetectorVisual") if scanner_dev else null)
+	var md_shaft = detector.get_node_or_null("UpperShaft") if detector else null
+	var md_grip = detector.get_node_or_null("Grip") if detector else null
+	var md_box = detector.get_node_or_null("ControlBox") if detector else null
+	var md_screen = detector.get_node_or_null("Screen") if detector else null
+	var md_led = detector.get_node_or_null("StatusLED") if detector else null
+	var md_pivot = detector.get_node_or_null("CoilPivot") if detector else null
+	var md_disc = md_pivot.get_node_or_null("CoilDisc") if md_pivot else null
+	var md_ring = md_pivot.get_node_or_null("CoilRing") if md_pivot else null
 	
-	if not scanner_dev or not sc_handle or not sc_chassis or not sc_sensor or not sc_screen:
-		printerr("FAIL: Redesigned scanner components missing!")
+	if not scanner_dev or not detector or not md_shaft or not md_grip or not md_box or not md_screen or not md_led or not md_pivot or not md_disc:
+		printerr("FAIL: Metal detector components missing! scanner_dev: %s, detector: %s, shaft: %s, grip: %s, box: %s, screen: %s, led: %s, pivot: %s, disc: %s" % [scanner_dev, detector, md_shaft, md_grip, md_box, md_screen, md_led, md_pivot, md_disc])
 		quit(1)
 		return
 	
-	var box = sc_chassis.mesh as BoxMesh
-	print("[Scanner] Chassis length Z: %.3f m" % box.size.z)
-	if box.size.z >= 0.20:
-		print("PASS: Elongated scientific scanner chassis verified (length >= 0.20m).")
+	print("[MetalDetector] Upper shaft length: %.3f m, Coil ring present: %s" % [detector.shaft_length, md_ring != null])
+	if detector.shaft_length >= 0.50:
+		print("PASS: Metal detector shaft, control box, LCD screen and angled coil verified!")
 	else:
-		printerr("FAIL: Scanner chassis too short: ", box.size.z)
-		quit(1)
-		return
-	
-	if sc_aperture and sc_antenna_l and sc_buttons and sc_led:
-		print("PASS: Ergonomic handle, sensor aperture, dual antennae, buttons and status LED verified!")
-	else:
-		printerr("FAIL: Detailed scanner scientific components missing")
+		printerr("FAIL: Detector shaft invalid length")
 		quit(1)
 		return
 	
@@ -238,12 +237,12 @@ func _run_audit() -> void:
 		quit(1)
 		return
 	
-	# Verify PLSS hum is subdued 16-bit whisper
+	# Verify PLSS hum is silenced
 	print("[Audio] PLSS hum volume: %.1f dB, is_playing: %s" % [audio_sys.plss_hum_player.volume_db, audio_sys.plss_hum_player.playing])
-	if audio_sys.plss_hum_player.playing and audio_sys.plss_hum_player.volume_db <= -35.0:
-		print("PASS: PLSS hum is subtle sub-audible suit resonance (16-bit, -36.0 dB).")
+	if not audio_sys.plss_hum_player.playing or audio_sys.plss_hum_player.volume_db <= -70.0:
+		print("PASS: Annoying PLSS hum completely silenced/stopped.")
 	else:
-		printerr("FAIL: PLSS hum invalid: playing=%s, vol=%.1f" % [audio_sys.plss_hum_player.playing, audio_sys.plss_hum_player.volume_db])
+		printerr("FAIL: PLSS hum still audible: playing=%s, vol=%.1f" % [audio_sys.plss_hum_player.playing, audio_sys.plss_hum_player.volume_db])
 		quit(1)
 		return
 	

@@ -47,6 +47,7 @@ var dig_particles_active: bool = false
 var is_recovered: bool = false
 var artifact_name: String = ""
 var _beacon_phase: float = 0.0
+var _dig_minigame: CanvasLayer = null
 var _clean_ui: CanvasLayer = null
 var _scanner_ref: Node = null
 var _is_player_in_zone: bool = false
@@ -319,77 +320,68 @@ func _process(delta: float) -> void:
 			_:
 				beacon_ring.scale = Vector3.ONE
 	
-	# Digging progress
-	if current_state == ArtifactState.DIGGING:
-		if is_player_holding_e:
-			dig_progress += delta / dig_duration
-			dig_progress = clamp(dig_progress, 0.0, 1.0)
-			
-			# Update progress label
-			if dig_progress_label:
-				dig_progress_label.text = "EXCAVATING REGOLITH: %d%%" % int(dig_progress * 100.0)
-			
-			# Progressively emerge visual model vertically from beneath the lunar ground
-			if visual_model:
-				visual_model.visible = true
-				visual_model.scale = Vector3.ONE
-				visual_model.position.y = lerp(-buried_depth, 0.0, dig_progress)
-			
-			# Activate dust and excavation audio
-			if dust_particles and not dust_particles.emitting:
-				dust_particles.emitting = true
-			_play_excavation_audio()
-			
-			if dig_progress >= 1.0:
-				_complete_digging()
-		else:
-			# Pause digging: stop particles and audio
-			if dust_particles and dust_particles.emitting:
-				dust_particles.emitting = false
-			_stop_excavation_audio()
-
 # ---- Input ----
 func _unhandled_input(event: InputEvent) -> void:
-	if not _is_player_in_zone and current_state != ArtifactState.CLEANING:
+	if not _is_player_in_zone and current_state != ArtifactState.CLEANING and current_state != ArtifactState.DIGGING:
 		return
 	
 	if event.is_action_pressed("interact"):
-		is_player_holding_e = true
 		match current_state:
 			ArtifactState.DIG_SITE:
-				_start_digging()
+				_start_digging_minigame()
 			ArtifactState.EXPOSED:
 				_start_cleaning()
-	elif event.is_action_released("interact"):
-		is_player_holding_e = false
-		if current_state == ArtifactState.DIGGING:
-			_pause_digging()
 
-func _start_digging() -> void:
+func _start_digging_minigame() -> void:
 	_set_state(ArtifactState.DIGGING)
 	dig_started.emit()
 	var player = _get_player()
 	if player and player.has_method("begin_interaction"):
 		var anchor = get_interaction_anchor(player.global_position)
 		player.begin_interaction(anchor, global_position)
+	
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	
+	var minigame_scene = load("res://scenes/ui/dig_minigame.tscn")
+	if not minigame_scene:
+		_complete_digging()
+		return
+	
+	_dig_minigame = minigame_scene.instantiate()
+	if "artifact_id" in _dig_minigame:
+		_dig_minigame.artifact_id = artifact_id
+	_dig_minigame.dig_finished.connect(_on_dig_minigame_finished)
+	_dig_minigame.dig_cancelled.connect(_on_dig_minigame_cancelled)
+	add_child(_dig_minigame)
+
+func _on_dig_minigame_finished() -> void:
+	if _dig_minigame:
+		_dig_minigame.queue_free()
+		_dig_minigame = null
+	_complete_digging()
+	var player = _get_player()
+	if player and player.has_method("capture_mouse"):
+		player.capture_mouse()
+
+func _on_dig_minigame_cancelled() -> void:
+	if _dig_minigame:
+		_dig_minigame.queue_free()
+		_dig_minigame = null
+	_set_state(ArtifactState.DIG_SITE)
+	var player = _get_player()
+	if player and player.has_method("end_interaction"):
+		player.end_interaction()
+	if player and player.has_method("capture_mouse"):
+		player.capture_mouse()
+
+func _start_digging() -> void:
+	_start_digging_minigame()
 
 func _pause_digging() -> void:
-	if dust_particles and dust_particles.emitting:
-		dust_particles.emitting = false
-	_stop_excavation_audio()
-	var player = _get_player()
-	if player and player.has_method("end_interaction"):
-		player.end_interaction()
+	pass
 
 func _cancel_digging() -> void:
-	is_player_holding_e = false
-	if dust_particles and dust_particles.emitting:
-		dust_particles.emitting = false
-	_stop_excavation_audio()
-	var player = _get_player()
-	if player and player.has_method("end_interaction"):
-		player.end_interaction()
-	_set_state(ArtifactState.BURIED)
+	_on_dig_minigame_cancelled()
 
 # ---- Dig completion ----
 func _complete_digging() -> void:
@@ -400,7 +392,9 @@ func _complete_digging() -> void:
 	if visual_model:
 		visual_model.visible = true
 		visual_model.scale = Vector3.ONE
-		visual_model.position.y = 0.0
+		visual_model.position.y = -buried_depth
+		var tw = create_tween()
+		tw.tween_property(visual_model, "position:y", 0.0, 1.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	dig_completed.emit()
 	_set_state(ArtifactState.EXPOSED)
 	var player = _get_player()

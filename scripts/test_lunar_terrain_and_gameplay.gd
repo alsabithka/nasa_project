@@ -165,16 +165,23 @@ func _run_verification() -> void:
 	lrv.dig_duration = 0.2
 	lrv.clean_duration = 0.2
 	
-	# Press interact to finish dig
+	# Press interact to start dig minigame
 	var ev_e = InputEventAction.new()
 	ev_e.action = "interact"
 	ev_e.pressed = true
 	Input.parse_input_event(ev_e)
+	await process_frame
+	await process_frame
 	
-	var dig_timeout = 120
-	while lrv.current_state == 2 and dig_timeout > 0: # DIGGING
-		dig_timeout -= 1
+	if lrv._dig_minigame:
+		lrv._on_dig_minigame_finished()
 		await process_frame
+		await process_frame
+	else:
+		var dig_timeout = 120
+		while lrv.current_state == 2 and dig_timeout > 0: # DIGGING
+			dig_timeout -= 1
+			await process_frame
 	
 	print("[Workflow] Excavation state: ", lrv.current_state, " (Expected 3 = EXPOSED)")
 	if lrv.current_state != 3:

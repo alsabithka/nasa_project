@@ -23,6 +23,7 @@ var current_distance: float = 999.0
 var current_signal_strength: float = 0.0
 var target_direction: Vector3 = Vector3.ZERO
 var is_locked_on: bool = false
+var beep_interval_near: float = 0.38
 
 var _scan_timer: float = 0.0
 var _audio_timer: float = 0.0
@@ -70,23 +71,8 @@ func _process(delta: float) -> void:
 		_scan_timer = 0.0
 		_perform_scan()
 	
-	# Handle proximity beep cadence: purposeful feedback only when close (>= 0.35)
-	# Capped cadence ensures clean distinct pings, avoiding continuous buzzing
-	if current_signal_strength >= 0.35:
-		_audio_timer += delta
-		var beep_interval: float
-		if is_locked_on and current_signal_strength >= 0.85:
-			beep_interval = 0.38
-		else:
-			beep_interval = lerp(1.4, 0.45, (current_signal_strength - 0.35) / 0.65)
-		
-		if _audio_timer >= beep_interval:
-			_audio_timer = 0.0
-			if _audio_player and not _audio_player.playing:
-				_audio_player.pitch_scale = lerp(0.95, 1.25, current_signal_strength)
-				_audio_player.play()
-	else:
-		_audio_timer = 0.0
+	# Proximity audio ping disabled per Task 2 (visual screen/LED pulse provides feedback)
+	_audio_timer = 0.0
 
 func _perform_scan() -> void:
 	var player = _get_player()

@@ -6,7 +6,7 @@ extends Node3D
 @export var planet_name: String = "Moon"
 @export var level_gravity: float = 1.62
 @export var background_music_path: String = "res://audio/music/lunar_ambient_exploration.wav"
-@export var music_volume_db: float = -20.0
+@export var music_volume_db: float = -22.0
 
 var _music_player: AudioStreamPlayer = null
 var _music_fade_tween: Tween = null
@@ -33,7 +33,8 @@ func _ready() -> void:
 func _start_background_music() -> void:
 	if background_music_path.is_empty():
 		return
-	if not FileAccess.file_exists(background_music_path):
+	if not ResourceLoader.exists(background_music_path):
+		push_warning("[Level] Music track not found: " + background_music_path)
 		return
 	
 	_music_player = AudioStreamPlayer.new()
@@ -42,6 +43,9 @@ func _start_background_music() -> void:
 	add_child(_music_player)
 	
 	var stream = load(background_music_path)
+	if not stream:
+		push_warning("[Level] Failed to load music stream: " + background_music_path)
+		return
 	if stream is AudioStreamWAV:
 		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		if stream.loop_end <= 0:
@@ -51,6 +55,7 @@ func _start_background_music() -> void:
 	_music_player.stream = stream
 	_music_player.volume_db = -80.0
 	_music_player.play()
+	print("[Level] Music started: ", background_music_path)
 	
 	# Smooth fade-in on level entry (3.5s)
 	_music_fade_tween = create_tween()

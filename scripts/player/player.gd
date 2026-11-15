@@ -1,5 +1,7 @@
 extends CharacterBody3D
 
+const MetalDetectorVisual = preload("res://scripts/player/metal_detector_visual.gd")
+
 # Echoes Beyond Earth - Photorealistic Third-Person Astronaut Minion Simulator
 # Controls a recognizable Minion astronaut wearing an authentic NASA EVA spacesuit:
 # 1. Third-Person Camera with smooth orbit, terrain collision, and zoom (1.8m - 6.5m)
@@ -30,6 +32,8 @@ extends CharacterBody3D
 @onready var right_leg: Node3D = $Visuals/Torso/RightLeg
 @onready var scanner_device: Node3D = $Visuals/Torso/RightArm/ScannerDevice
 @onready var scanner_screen: MeshInstance3D = $Visuals/Torso/RightArm/ScannerDevice/Screen
+var status_led: MeshInstance3D = null
+var detector_visual: MetalDetectorVisual = null
 @onready var anim_player: AnimationPlayer = get_node_or_null("AnimationPlayer")
 @onready var left_eyelid: MeshInstance3D = get_node_or_null("Visuals/Torso/Head/LeftGoggleRing/LeftEyelid")
 @onready var right_eyelid: MeshInstance3D = get_node_or_null("Visuals/Torso/Head/RightGoggleRing/RightEyelid")
@@ -52,10 +56,12 @@ var _current_calm: float = 0.0
 var _blink_timer: float = 3.2
 var _is_blinking: bool = false
 var _blink_elapsed: float = 0.0
-const BLINK_CLOSE_TIME: float = 0.06
-const BLINK_HOLD_TIME: float = 0.02
-const BLINK_OPEN_TIME: float = 0.07
+const BLINK_CLOSE_TIME: float = 0.08
+const BLINK_HOLD_TIME: float = 0.03
+const BLINK_OPEN_TIME: float = 0.10
 const BLINK_TOTAL_TIME: float = BLINK_CLOSE_TIME + BLINK_HOLD_TIME + BLINK_OPEN_TIME
+var _left_eyelid_mat: ShaderMaterial = null
+var _right_eyelid_mat: ShaderMaterial = null
 
 # Locomotion, Animation & Camera States
 var is_first_person: bool = false # Third-person exploration default
@@ -114,7 +120,24 @@ func _ready() -> void:
 	capture_mouse()
 	_setup_third_person_camera()
 	_setup_eyelids()
+	_setup_metal_detector()
 	call_deferred("_connect_subsystems")
+
+func _setup_metal_detector() -> void:
+	if not scanner_device:
+		return
+	scanner_device.position = Vector3(0.02, -0.28, 0.06)
+	scanner_device.rotation = Vector3.ZERO
+	for child in scanner_device.get_children():
+		child.queue_free()
+	
+	detector_visual = MetalDetectorVisual.new()
+	detector_visual.name = "DetectorVisual"
+	scanner_device.add_child(detector_visual)
+	detector_visual.build()
+	
+	scanner_screen = detector_visual.screen_mesh
+	status_led = detector_visual.status_led
 
 func _setup_eyelids() -> void:
 	_apply_eyelid_coverage(0.0)
@@ -150,7 +173,7 @@ func set_expression(expr: FacialExpression) -> void:
 			_target_smile = 1.0
 			_target_calm = 0.0
 		FacialExpression.CALM:
-			_target_smile = 0.0
+			_target_smile = 0.60
 			_target_calm = 0.50
 
 func _update_eye_blinking(delta: float) -> void:
@@ -167,16 +190,16 @@ func _update_eye_blinking(delta: float) -> void:
 	
 	_blink_elapsed += delta
 	if _blink_elapsed <= BLINK_CLOSE_TIME:
-		# Closing phase (0 to 60ms): eyelids drop down to cover eyeball
+		# Closing phase (0 to BLINK_CLOSE_TIME): eyelids drop down to cover eyeball
 		var t = _blink_elapsed / BLINK_CLOSE_TIME
 		var curve = sin(t * PI * 0.5)
 		var coverage = lerp(_current_calm, 1.0, curve)
 		_apply_eyelid_coverage(coverage)
 	elif _blink_elapsed <= BLINK_CLOSE_TIME + BLINK_HOLD_TIME:
-		# Eyes fully closed (20ms hold)
+		# Eyes fully closed
 		_apply_eyelid_coverage(1.0)
 	elif _blink_elapsed <= BLINK_TOTAL_TIME:
-		# Reopening phase (70ms reopen)
+		# Reopening phase
 		var t = (_blink_elapsed - BLINK_CLOSE_TIME - BLINK_HOLD_TIME) / BLINK_OPEN_TIME
 		var curve = sin(t * PI * 0.5)
 		var coverage = lerp(1.0, _current_calm, curve)
@@ -192,18 +215,23 @@ func _update_eye_blinking(delta: float) -> void:
 		else:
 			_blink_timer = randf_range(3.0, 5.5)
 
+func _cache_eyelid_materials() -> void:
+	if left_eyelid and not _left_eyelid_mat:
+		_left_eyelid_mat = left_eyelid.get_surface_override_material(0) as ShaderMaterial
+	if right_eyelid and not _right_eyelid_mat:
+		_right_eyelid_mat = right_eyelid.get_surface_override_material(0) as ShaderMaterial
+
 func _apply_eyelid_coverage(c: float) -> void:
 	if not left_eyelid or not right_eyelid:
 		return
-	var p_z = lerp(-0.088, 0.0, c)
-	var s_z = max(0.001, c)
-	var is_vis = (c > 0.02)
+	_cache_eyelid_materials()
+	var is_vis: bool = (c > 0.02)
 	left_eyelid.visible = is_vis
 	right_eyelid.visible = is_vis
-	left_eyelid.position.z = p_z
-	right_eyelid.position.z = p_z
-	left_eyelid.scale.z = s_z
-	right_eyelid.scale.z = s_z
+	if _left_eyelid_mat:
+		_left_eyelid_mat.set_shader_parameter("coverage", c)
+	if _right_eyelid_mat:
+		_right_eyelid_mat.set_shader_parameter("coverage", c)
 
 func _trigger_blink() -> void:
 	if not left_eyelid or not right_eyelid:
@@ -552,6 +580,8 @@ func _animate_astronaut(delta: float, is_moving: bool, is_loping: bool) -> void:
 	# Excavation / interaction pose when digging, cleaning, or inspecting samples
 	if is_interacting:
 		current_anim_state = "interacting"
+		if scanner_device:
+			scanner_device.visible = false
 		torso.position.y = lerp(torso.position.y, 0.62, 8.0 * delta)
 		visuals.rotation.x = lerp(visuals.rotation.x, 0.12, 8.0 * delta)
 		visuals.rotation.z = lerp(visuals.rotation.z, 0.0, 8.0 * delta)
@@ -569,6 +599,17 @@ func _animate_astronaut(delta: float, is_moving: bool, is_loping: bool) -> void:
 			right_leg.position.y = lerp(right_leg.position.y, -0.28, 10.0 * delta)
 		_update_scanner_screen(signal_strength)
 		return
+	
+	if scanner_device:
+		scanner_device.visible = true
+	
+	# Metal detector sweep dynamics: 0.7 Hz base pendulum, ±25° yaw, slows/narrows with signal
+	var sweep_time = Time.get_ticks_msec() * 0.001
+	var sweep_freq = lerp(4.4, 1.8, signal_strength)
+	var sweep_amp = lerp(deg_to_rad(25.0), deg_to_rad(8.0), signal_strength)
+	var sweep_yaw = sin(sweep_time * sweep_freq) * sweep_amp
+	var sweep_roll = cos(sweep_time * sweep_freq) * 0.04
+	var base_detector_arm_x = lerp(-0.52, -0.38, signal_strength)
 	
 	# Animation Branch: Airborne vs Walking vs Idle
 	# Truly airborne: actively jumping, or falling freely off terrain dips for more than coyote grace
@@ -609,17 +650,9 @@ func _animate_astronaut(delta: float, is_moving: bool, is_loping: bool) -> void:
 			left_arm.rotation.z = lerp(left_arm.rotation.z, arm_z, 7.0 * delta)
 		
 		if right_arm:
-			if scanner_raise_weight > 0.05:
-				var scan_angle = -0.90 - (signal_strength * 0.25)
-				right_arm.rotation.x = lerp(right_arm.rotation.x, scan_angle, 6.0 * delta)
-				right_arm.rotation.y = lerp(right_arm.rotation.y, -0.20, 6.0 * delta)
-				right_arm.rotation.z = lerp(right_arm.rotation.z, 0.08, 6.0 * delta)
-			else:
-				var arm_x = -0.68 if is_rising else -0.32
-				var arm_z = 0.42 if is_rising else 0.35
-				right_arm.rotation.x = lerp(right_arm.rotation.x, arm_x, 7.0 * delta)
-				right_arm.rotation.y = lerp(right_arm.rotation.y, -0.1, 7.0 * delta)
-				right_arm.rotation.z = lerp(right_arm.rotation.z, arm_z, 7.0 * delta)
+			right_arm.rotation.x = lerp(right_arm.rotation.x, -0.58, 6.0 * delta)
+			right_arm.rotation.y = lerp(right_arm.rotation.y, -0.16 + sweep_yaw * 0.4, 6.0 * delta)
+			right_arm.rotation.z = lerp(right_arm.rotation.z, 0.16, 6.0 * delta)
 		
 		# Head tilts toward apex
 		if head:
@@ -667,16 +700,10 @@ func _animate_astronaut(delta: float, is_moving: bool, is_loping: bool) -> void:
 			left_arm.rotation.z = lerp(left_arm.rotation.z, -0.22 - abs(sin(walk_cycle)) * 0.06, 10.0 * delta)
 		
 		if right_arm:
-			if scanner_raise_weight > 0.05:
-				var scan_angle = -0.90 - (signal_strength * 0.25)
-				var sweep = sin(Time.get_ticks_msec() * 0.003) * 0.08 * (1.0 - signal_strength)
-				right_arm.rotation.x = lerp(right_arm.rotation.x, scan_angle, 6.0 * delta)
-				right_arm.rotation.y = lerp(right_arm.rotation.y, -0.20 + sweep, 6.0 * delta)
-				right_arm.rotation.z = lerp(right_arm.rotation.z, 0.10, 6.0 * delta)
-			else:
-				right_arm.rotation.x = lerp(right_arm.rotation.x, -stride_angle * 0.85, 12.0 * delta)
-				right_arm.rotation.y = lerp(right_arm.rotation.y, 0.0, 8.0 * delta)
-				right_arm.rotation.z = lerp(right_arm.rotation.z, 0.22 + abs(sin(walk_cycle)) * 0.06, 10.0 * delta)
+			var walk_bob = sin(walk_cycle * 2.0) * 0.03
+			right_arm.rotation.x = lerp(right_arm.rotation.x, base_detector_arm_x + walk_bob, 8.0 * delta)
+			right_arm.rotation.y = lerp(right_arm.rotation.y, -0.16 + sweep_yaw, 8.0 * delta)
+			right_arm.rotation.z = lerp(right_arm.rotation.z, 0.16 + sweep_roll, 8.0 * delta)
 		
 		# Head bobs subtly with walk
 		if head:
@@ -718,18 +745,9 @@ func _animate_astronaut(delta: float, is_moving: bool, is_loping: bool) -> void:
 			left_arm.rotation.z = lerp(left_arm.rotation.z, idle_arm_z, 6.0 * delta)
 			
 		if right_arm:
-			if scanner_raise_weight > 0.05:
-				var scan_angle = -0.90 - (signal_strength * 0.25)
-				var sweep = sin(Time.get_ticks_msec() * 0.003) * 0.08 * (1.0 - signal_strength)
-				right_arm.rotation.x = lerp(right_arm.rotation.x, scan_angle, 6.0 * delta)
-				right_arm.rotation.y = lerp(right_arm.rotation.y, -0.20 + sweep, 6.0 * delta)
-				right_arm.rotation.z = lerp(right_arm.rotation.z, 0.10, 6.0 * delta)
-			else:
-				var idle_arm_x = sin(idle_time + 0.4) * 0.035
-				var idle_arm_z = 0.16 - cos(idle_time * 0.5) * 0.02
-				right_arm.rotation.x = lerp(right_arm.rotation.x, idle_arm_x, 6.0 * delta)
-				right_arm.rotation.y = lerp(right_arm.rotation.y, 0.0, 6.0 * delta)
-				right_arm.rotation.z = lerp(right_arm.rotation.z, idle_arm_z, 6.0 * delta)
+			right_arm.rotation.x = lerp(right_arm.rotation.x, base_detector_arm_x, 6.0 * delta)
+			right_arm.rotation.y = lerp(right_arm.rotation.y, -0.16 + sweep_yaw, 7.0 * delta)
+			right_arm.rotation.z = lerp(right_arm.rotation.z, 0.16 + sweep_roll, 7.0 * delta)
 		
 		# Head: subtle curious scan of lunar horizon
 		if head:
@@ -742,8 +760,33 @@ func _animate_astronaut(delta: float, is_moving: bool, is_loping: bool) -> void:
 	_update_scanner_screen(signal_strength)
 
 func _update_scanner_screen(signal_strength: float) -> void:
-	if scanner_screen and signal_strength > 0.05:
-		var pulse = (sin(Time.get_ticks_msec() * (0.005 + signal_strength * 0.02)) + 1.0) * 0.5
-		var mat = scanner_screen.get_active_material(0)
-		if mat is StandardMaterial3D:
-			mat.emission_energy_multiplier = 1.2 + pulse * 2.0 * signal_strength
+	if not scanner_screen:
+		return
+	
+	var pulse_freq = 1.5 + signal_strength * 10.0
+	var pulse = (sin(Time.get_ticks_msec() * 0.001 * pulse_freq * TAU) + 1.0) * 0.5
+	
+	# Color gradient follows proximity: Green -> Amber -> Red
+	var display_color: Color
+	if signal_strength < 0.4:
+		var t = signal_strength / 0.4
+		display_color = Color(0.1, 0.9, 0.4).lerp(Color(0.2, 0.95, 0.7), t)
+	elif signal_strength < 0.75:
+		var t = (signal_strength - 0.4) / 0.35
+		display_color = Color(0.2, 0.95, 0.7).lerp(Color(1.0, 0.65, 0.1), t)
+	else:
+		var t = (signal_strength - 0.75) / 0.25
+		display_color = Color(1.0, 0.65, 0.1).lerp(Color(1.0, 0.18, 0.15), t)
+	
+	var energy = 1.0 + pulse * (1.2 + 3.0 * signal_strength)
+	
+	var scr_mat = scanner_screen.get_active_material(0)
+	if scr_mat is StandardMaterial3D:
+		scr_mat.emission = display_color
+		scr_mat.emission_energy_multiplier = energy
+	
+	if status_led:
+		var led_mat = status_led.get_active_material(0)
+		if led_mat is StandardMaterial3D:
+			led_mat.emission = display_color
+			led_mat.emission_energy_multiplier = energy * 1.5

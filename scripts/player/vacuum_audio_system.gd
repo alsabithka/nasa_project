@@ -24,8 +24,6 @@ var exertion: float = 0.0 # 0.0 (resting) to 1.0 (heavy loping/jumping)
 func _ready() -> void:
 	name = "VacuumAudioSystem"
 	_setup_audio_players()
-	_start_plss_hum()
-	_start_breathing()
 
 func _setup_audio_players() -> void:
 	breathing_player = AudioStreamPlayer.new()
@@ -37,7 +35,7 @@ func _setup_audio_players() -> void:
 	plss_hum_player = AudioStreamPlayer.new()
 	plss_hum_player.name = "PLSSHumAudio"
 	plss_hum_player.bus = &"Master"
-	plss_hum_player.volume_db = -36.0
+	plss_hum_player.volume_db = -80.0
 	add_child(plss_hum_player)
 	
 	footstep_player = AudioStreamPlayer.new()
@@ -58,22 +56,39 @@ func _setup_audio_players() -> void:
 	comm_player.volume_db = -18.0
 	add_child(comm_player)
 
-# Generates soft, low-pass filtered, very quiet ambient murmur (replaces harsh 8-bit motor buzz)
 func _start_plss_hum() -> void:
-	if not plss_hum_player:
-		return
+	if plss_hum_player:
+		plss_hum_player.stop()
+
+func _start_breathing() -> void:
+	if breathing_player:
+		breathing_player.stop()
+
+func _process(delta: float) -> void:
+	exertion = move_toward(exertion, 0.0, 0.15 * delta)
+	target_breathing_period = lerp(4.4, 2.1, exertion)
+
+func _play_breath_phase(_inhale: bool) -> void:
+	pass
+
+# Called by player controller when physical exertion occurs
+func report_exertion(amount: float) -> void:
+	exertion = clampf(exertion + amount, 0.0, 1.0)
+
+# Muffled suit-conducted footstep vibration thud (clean 16-bit signed PCM)
+func play_footstep(is_loping: bool) -> void:
 	var sample_rate = 22050
-	var duration = 2.0 # Exact integer cycle alignment for seamless loop
+	var duration = 0.12 if not is_loping else 0.16
 	var num_samples = int(sample_rate * duration)
 	var data = PackedByteArray()
-	data.resize(num_samples * 2) # 16-bit
+	data.resize(num_samples * 2)
 	
 	for i in range(num_samples):
 		var t = float(i) / float(sample_rate)
-		# 45 Hz (90 cycles) + 65 Hz (130 cycles) gentle low-frequency acoustic warmth
-		var s1 = sin(t * 45.0 * TAU) * 0.12
-		var s2 = sin(t * 65.0 * TAU) * 0.04
-		var wave = (s1 + s2) * 0.4
+		# Deep mechanical thud: 55Hz pitch dropping exponentially to 25Hz
+		var freq = lerp(55.0, 25.0, t / duration)
+		var env = exp(-t * 28.0)
+		var wave = sin(t * freq * TAU) * env * (0.6 if is_loping else 0.4)
 		var sample_val = clampi(int(wave * 32767.0), -32767, 32767)
 		var u16 = sample_val if sample_val >= 0 else (sample_val + 65536)
 		data[i * 2] = u16 & 0xFF
@@ -83,75 +98,6 @@ func _start_plss_hum() -> void:
 	wav.format = AudioStreamWAV.FORMAT_16_BITS
 	wav.mix_rate = sample_rate
 	wav.stereo = false
-	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	wav.loop_begin = 0
-	wav.loop_end = num_samples
-	wav.data = data
-	
-	plss_hum_player.stream = wav
-	plss_hum_player.volume_db = -36.0
-	plss_hum_player.play()
-
-func _start_breathing() -> void:
-	# Persistent recurring 8-bit noise breathing loop removed to eliminate harsh audio buzz
-	if breathing_player:
-		breathing_player.stop()
-
-func _process(delta: float) -> void:
-	# Update exertion level and smoothly decay back to resting state
-	exertion = move_toward(exertion, 0.0, 0.15 * delta)
-	target_breathing_period = lerp(4.4, 2.1, exertion)
-
-func _play_breath_phase(inhale: bool) -> void:
-	var sample_rate = 22050
-	var duration = breathing_period * 0.42
-	var num_samples = int(sample_rate * duration)
-	var data = PackedByteArray()
-	data.resize(num_samples)
-	
-	# Pink/filtered white noise contour matching inhalation / exhalation air flow
-	for i in range(num_samples):
-		var t = float(i) / float(num_samples)
-		# Smooth bell curve envelope
-		var envelope = sin(t * PI)
-		var freq_bias = 0.85 if inhale else 0.65
-		var noise = (randf() * 2.0 - 1.0) * envelope * freq_bias * (0.25 + exertion * 0.35)
-		data[i] = clampi(int((noise + 1.0) * 0.5 * 255.0), 0, 255)
-	
-	var wav = AudioStreamWAV.new()
-	wav.format = AudioStreamWAV.FORMAT_8_BITS
-	wav.mix_rate = sample_rate
-	wav.stereo = false
-	wav.data = data
-	
-	breathing_player.stream = wav
-	breathing_player.pitch_scale = randf_range(0.96, 1.04)
-	breathing_player.play()
-
-# Called by player controller when physical exertion occurs
-func report_exertion(amount: float) -> void:
-	exertion = clampf(exertion + amount, 0.0, 1.0)
-
-# Muffled suit-conducted footstep vibration thud
-func play_footstep(is_loping: bool) -> void:
-	var sample_rate = 22050
-	var duration = 0.12 if not is_loping else 0.16
-	var num_samples = int(sample_rate * duration)
-	var data = PackedByteArray()
-	data.resize(num_samples)
-	
-	for i in range(num_samples):
-		var t = float(i) / float(sample_rate)
-		# Deep mechanical thud: 55Hz pitch dropping exponentially to 25Hz
-		var freq = lerp(55.0, 25.0, t / duration)
-		var env = exp(-t * 28.0)
-		var wave = sin(t * freq * TAU) * env * (0.6 if is_loping else 0.4)
-		data[i] = clampi(int((wave + 1.0) * 0.5 * 255.0), 0, 255)
-	
-	var wav = AudioStreamWAV.new()
-	wav.format = AudioStreamWAV.FORMAT_8_BITS
-	wav.mix_rate = sample_rate
-	wav.stereo = false
 	wav.data = data
 	
 	footstep_player.stream = wav
@@ -159,13 +105,13 @@ func play_footstep(is_loping: bool) -> void:
 	footstep_player.pitch_scale = randf_range(0.92, 1.08)
 	footstep_player.play()
 
-# Heavy landing impact vibration through astronaut's knees and suit
+# Heavy landing impact vibration through astronaut's knees and suit (clean 16-bit signed PCM)
 func play_landing_thud(impact_velocity: float) -> void:
 	var sample_rate = 22050
 	var duration = 0.22
 	var num_samples = int(sample_rate * duration)
 	var data = PackedByteArray()
-	data.resize(num_samples)
+	data.resize(num_samples * 2)
 	
 	var intensity = clampf(abs(impact_velocity) / 4.0, 0.3, 1.0)
 	for i in range(num_samples):
@@ -173,10 +119,13 @@ func play_landing_thud(impact_velocity: float) -> void:
 		var freq = lerp(45.0, 18.0, t / duration)
 		var env = exp(-t * 18.0)
 		var wave = sin(t * freq * TAU) * env * intensity * 0.8
-		data[i] = clampi(int((wave + 1.0) * 0.5 * 255.0), 0, 255)
+		var sample_val = clampi(int(wave * 32767.0), -32767, 32767)
+		var u16 = sample_val if sample_val >= 0 else (sample_val + 65536)
+		data[i * 2] = u16 & 0xFF
+		data[i * 2 + 1] = (u16 >> 8) & 0xFF
 	
 	var wav = AudioStreamWAV.new()
-	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
 	wav.mix_rate = sample_rate
 	wav.stereo = false
 	wav.data = data
@@ -186,48 +135,27 @@ func play_landing_thud(impact_velocity: float) -> void:
 	impact_player.play()
 	report_exertion(0.35)
 
-# Plays the authentic Apollo Quindar telemetry tone (2525 Hz, 250 ms)
+# Apollo Quindar tone removed per Task 2
 func play_quindar_tone() -> void:
-	var sample_rate = 22050
-	var duration = 0.22
-	var num_samples = int(sample_rate * duration)
-	var data = PackedByteArray()
-	data.resize(num_samples)
-	
-	for i in range(num_samples):
-		var t = float(i) / float(sample_rate)
-		# Pure 2525 Hz sine wave with crisp onset/decay
-		var env = 1.0
-		if i < 80:
-			env = float(i) / 80.0
-		elif i > num_samples - 80:
-			env = float(num_samples - i) / 80.0
-		var wave = sin(t * 2525.0 * TAU) * env * 0.35
-		data[i] = clampi(int((wave + 1.0) * 0.5 * 255.0), 0, 255)
-	
-	var wav = AudioStreamWAV.new()
-	wav.format = AudioStreamWAV.FORMAT_8_BITS
-	wav.mix_rate = sample_rate
-	wav.stereo = false
-	wav.data = data
-	
-	comm_player.stream = wav
-	comm_player.play()
+	pass
 
-# Radio static squelch click
+# Radio static squelch click (clean 16-bit signed PCM)
 func play_comm_click() -> void:
 	var sample_rate = 22050
 	var duration = 0.05
 	var num_samples = int(sample_rate * duration)
 	var data = PackedByteArray()
-	data.resize(num_samples)
+	data.resize(num_samples * 2)
 	
 	for i in range(num_samples):
 		var noise = (randf() * 2.0 - 1.0) * 0.35
-		data[i] = clampi(int((noise + 1.0) * 0.5 * 255.0), 0, 255)
+		var sample_val = clampi(int(noise * 32767.0), -32767, 32767)
+		var u16 = sample_val if sample_val >= 0 else (sample_val + 65536)
+		data[i * 2] = u16 & 0xFF
+		data[i * 2 + 1] = (u16 >> 8) & 0xFF
 	
 	var wav = AudioStreamWAV.new()
-	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
 	wav.mix_rate = sample_rate
 	wav.stereo = false
 	wav.data = data
