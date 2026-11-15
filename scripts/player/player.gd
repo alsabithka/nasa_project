@@ -307,6 +307,7 @@ func _physics_process(delta: float) -> void:
 		coyote_timer = maxf(0.0, coyote_timer - delta)
 		air_time += delta
 		if v_norm <= 0.0:
+			is_jumping = false
 			floor_snap_length = 0.45 # Restore snap so landing immediately adheres
 
 	# Landing detection
@@ -324,7 +325,7 @@ func _physics_process(delta: float) -> void:
 		landing_squash = move_toward(landing_squash, 0.0, 1.2 * delta)
 	else:
 		landing_squash = move_toward(landing_squash, 0.0, 6.0 * delta)
-		if v_norm < 0.0 and not is_jumping:
+		if v_norm <= 0.05 and not is_jumping:
 			v_norm = -0.6 # Maintain solid ground adhesion over craters and slopes
 
 	prev_vertical_velocity = v_norm
