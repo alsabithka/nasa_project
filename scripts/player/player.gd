@@ -31,6 +31,19 @@ extends CharacterBody3D
 @onready var scanner_device: Node3D = $Visuals/Torso/RightArm/ScannerDevice
 @onready var scanner_screen: MeshInstance3D = $Visuals/Torso/RightArm/ScannerDevice/Screen
 @onready var anim_player: AnimationPlayer = get_node_or_null("AnimationPlayer")
+@onready var left_eyelid: MeshInstance3D = get_node_or_null("Visuals/Torso/Head/LeftGoggleRing/LeftEyelid")
+@onready var right_eyelid: MeshInstance3D = get_node_or_null("Visuals/Torso/Head/RightGoggleRing/RightEyelid")
+
+# Eye Blinking System (Task 1)
+const EYELID_OPEN_Z: float = -0.125
+const EYELID_CLOSED_Z: float = 0.005
+var _blink_timer: float = 3.2
+var _is_blinking: bool = false
+var _blink_elapsed: float = 0.0
+const BLINK_CLOSE_TIME: float = 0.06
+const BLINK_HOLD_TIME: float = 0.02
+const BLINK_OPEN_TIME: float = 0.07
+const BLINK_TOTAL_TIME: float = BLINK_CLOSE_TIME + BLINK_HOLD_TIME + BLINK_OPEN_TIME
 
 # Locomotion, Animation & Camera States
 var is_first_person: bool = false # Third-person exploration default
@@ -88,7 +101,86 @@ func is_in_interaction() -> bool:
 func _ready() -> void:
 	capture_mouse()
 	_setup_third_person_camera()
+	_setup_eyelids()
 	call_deferred("_connect_subsystems")
+
+func _setup_eyelids() -> void:
+	if left_eyelid:
+		left_eyelid.visible = false
+		left_eyelid.position.z = -0.08
+		left_eyelid.scale.z = 0.001
+	if right_eyelid:
+		right_eyelid.visible = false
+		right_eyelid.position.z = -0.08
+		right_eyelid.scale.z = 0.001
+
+func _process(delta: float) -> void:
+	_update_eye_blinking(delta)
+
+func _update_eye_blinking(delta: float) -> void:
+	if not left_eyelid or not right_eyelid:
+		return
+	
+	if not _is_blinking:
+		_blink_timer -= delta
+		if _blink_timer <= 0.0:
+			_trigger_blink()
+		return
+	
+	_blink_elapsed += delta
+	if _blink_elapsed <= BLINK_CLOSE_TIME:
+		# Closing phase (0 to 60ms): eyelids drop down to cover eyeball
+		var t = _blink_elapsed / BLINK_CLOSE_TIME
+		var curve = sin(t * PI * 0.5)
+		var p_z = lerp(-0.08, 0.005, curve)
+		var s_z = lerp(0.001, 1.0, curve)
+		left_eyelid.visible = true
+		right_eyelid.visible = true
+		left_eyelid.position.z = p_z
+		right_eyelid.position.z = p_z
+		left_eyelid.scale.z = s_z
+		right_eyelid.scale.z = s_z
+	elif _blink_elapsed <= BLINK_CLOSE_TIME + BLINK_HOLD_TIME:
+		# Eyes fully closed (20ms hold)
+		left_eyelid.visible = true
+		right_eyelid.visible = true
+		left_eyelid.position.z = 0.005
+		right_eyelid.position.z = 0.005
+		left_eyelid.scale.z = 1.0
+		right_eyelid.scale.z = 1.0
+	elif _blink_elapsed <= BLINK_TOTAL_TIME:
+		# Reopening phase (70ms reopen)
+		var t = (_blink_elapsed - BLINK_CLOSE_TIME - BLINK_HOLD_TIME) / BLINK_OPEN_TIME
+		var curve = sin(t * PI * 0.5)
+		var p_z = lerp(0.005, -0.08, curve)
+		var s_z = lerp(1.0, 0.001, curve)
+		left_eyelid.position.z = p_z
+		right_eyelid.position.z = p_z
+		left_eyelid.scale.z = s_z
+		right_eyelid.scale.z = s_z
+	else:
+		# Blink complete: hide eyelids and reset timer (3.0 to 5.5s)
+		left_eyelid.visible = false
+		right_eyelid.visible = false
+		left_eyelid.position.z = -0.08
+		right_eyelid.position.z = -0.08
+		left_eyelid.scale.z = 0.001
+		right_eyelid.scale.z = 0.001
+		_is_blinking = false
+		_blink_elapsed = 0.0
+		if randf() < 0.15:
+			# 15% chance of expressive double-blink
+			_blink_timer = 0.08
+		else:
+			_blink_timer = randf_range(3.0, 5.5)
+
+func _trigger_blink() -> void:
+	if not left_eyelid or not right_eyelid:
+		return
+	_is_blinking = true
+	_blink_elapsed = 0.0
+	left_eyelid.visible = true
+	right_eyelid.visible = true
 
 func _setup_third_person_camera() -> void:
 	camera_pivot.position = Vector3(0, 0.85, 0)

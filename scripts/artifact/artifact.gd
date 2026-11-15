@@ -27,6 +27,7 @@ enum ArtifactState {
 @export var interaction_range: float = 3.5
 @export var dig_duration: float = 4.0
 @export var clean_duration: float = 7.0
+@export var buried_depth: float = 1.35 # Distance below ground before excavation begins
 
 # ---- Onready nodes (must match artifact.tscn) ----
 @onready var prompt_label: Label3D = $PromptLabel
@@ -50,6 +51,7 @@ var _clean_ui: CanvasLayer = null
 var _scanner_ref: Node = null
 var _is_player_in_zone: bool = false
 var _interacting_player: CharacterBody3D = null
+var _excavation_audio: AudioStreamPlayer3D = null
 
 func _get_player() -> CharacterBody3D:
 	if _interacting_player and is_instance_valid(_interacting_player):
@@ -84,6 +86,7 @@ func _ready() -> void:
 	
 	# Configure dust particles
 	_setup_dust_particles()
+	_setup_excavation_audio()
 	
 	# Listen for future recovery signals from game_state
 	var game_state = get_node_or_null("/root/GameState")
@@ -118,6 +121,46 @@ func _setup_dust_particles() -> void:
 	dust_particles.amount = 24
 	dust_particles.lifetime = 1.2
 	dust_particles.emitting = false
+
+func _setup_excavation_audio() -> void:
+	_excavation_audio = AudioStreamPlayer3D.new()
+	_excavation_audio.name = "ExcavationAudio"
+	_excavation_audio.bus = &"Master"
+	_excavation_audio.volume_db = -16.0
+	_excavation_audio.max_distance = 18.0
+	add_child(_excavation_audio)
+	
+	# Generate 16-bit soft regolith granulated excavation loop
+	var sample_rate = 22050
+	var duration = 0.5
+	var num_samples = int(sample_rate * duration)
+	var data = PackedByteArray()
+	data.resize(num_samples * 2)
+	for i in range(num_samples):
+		var t = float(i) / float(sample_rate)
+		var scrape = sin(t * 110.0 * TAU) * 0.25
+		var noise = (randf() * 2.0 - 1.0) * 0.4
+		var env = sin(t / duration * PI) * 0.8
+		var sample_val = clampi(int((scrape + noise) * env * 22000.0), -32767, 32767)
+		var u16 = sample_val if sample_val >= 0 else (sample_val + 65536)
+		data[i * 2] = u16 & 0xFF
+		data[i * 2 + 1] = (u16 >> 8) & 0xFF
+	
+	var wav = AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
+	wav.mix_rate = sample_rate
+	wav.stereo = false
+	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	wav.data = data
+	_excavation_audio.stream = wav
+
+func _play_excavation_audio() -> void:
+	if _excavation_audio and not _excavation_audio.playing:
+		_excavation_audio.play()
+
+func _stop_excavation_audio() -> void:
+	if _excavation_audio and _excavation_audio.playing:
+		_excavation_audio.stop()
 
 func _load_artifact_metadata() -> void:
 	var game_state = get_node_or_null("/root/GameState")
@@ -187,6 +230,8 @@ func _update_state_visuals() -> void:
 	match current_state:
 		ArtifactState.BURIED:
 			visual_model.visible = false
+			visual_model.scale = Vector3.ONE
+			visual_model.position.y = -buried_depth
 			prompt_label.visible = false
 			if dig_progress_label:
 				dig_progress_label.visible = false
@@ -194,6 +239,8 @@ func _update_state_visuals() -> void:
 		
 		ArtifactState.DIG_SITE:
 			visual_model.visible = false
+			visual_model.scale = Vector3.ONE
+			visual_model.position.y = -buried_depth
 			prompt_label.text = "[E] EXCAVATE SUBSURFACE ANOMALY"
 			prompt_label.modulate = AerospaceTheme.COLOR_AMBER
 			prompt_label.visible = true
@@ -202,7 +249,9 @@ func _update_state_visuals() -> void:
 			_set_beacon_color(Color(1.0, 0.616, 0.196, 0.9), Color(1.0, 0.616, 0.196))
 		
 		ArtifactState.DIGGING:
-			visual_model.visible = false
+			visual_model.visible = true
+			visual_model.scale = Vector3.ONE
+			visual_model.position.y = lerp(-buried_depth, 0.0, dig_progress)
 			prompt_label.visible = false
 			if dig_progress_label:
 				dig_progress_label.visible = true
@@ -213,6 +262,7 @@ func _update_state_visuals() -> void:
 		ArtifactState.EXPOSED:
 			visual_model.visible = true
 			visual_model.scale = Vector3.ONE
+			visual_model.position.y = 0.0
 			prompt_label.text = "[E] RECOVER & DECONTAMINATE SPECIMEN"
 			prompt_label.modulate = AerospaceTheme.COLOR_STATUS_GREEN
 			prompt_label.visible = true
@@ -222,6 +272,8 @@ func _update_state_visuals() -> void:
 		
 		ArtifactState.CLEANING:
 			visual_model.visible = true
+			visual_model.scale = Vector3.ONE
+			visual_model.position.y = 0.0
 			prompt_label.visible = false
 			if dig_progress_label:
 				dig_progress_label.visible = false
@@ -229,6 +281,7 @@ func _update_state_visuals() -> void:
 		ArtifactState.IDENTIFIED:
 			visual_model.visible = true
 			visual_model.scale = Vector3.ONE
+			visual_model.position.y = 0.0
 			prompt_label.text = "[✓ CATALOGED] " + artifact_name
 			prompt_label.modulate = AerospaceTheme.COLOR_STATUS_GREEN
 			prompt_label.visible = true
@@ -274,28 +327,26 @@ func _process(delta: float) -> void:
 			
 			# Update progress label
 			if dig_progress_label:
-				dig_progress_label.text = "Excavating... %d%%" % int(dig_progress * 100.0)
+				dig_progress_label.text = "EXCAVATING REGOLITH: %d%%" % int(dig_progress * 100.0)
 			
-			# Progressively reveal visual model
-			if dig_progress >= 0.3 and not visual_model.visible:
+			# Progressively emerge visual model vertically from beneath the lunar ground
+			if visual_model:
 				visual_model.visible = true
-			if visual_model.visible:
-				var reveal_scale = clamp(remap(dig_progress, 0.3, 1.0, 0.3, 1.0), 0.3, 1.0)
-				if dig_progress < 0.3:
-					reveal_scale = 0.0
-					visual_model.visible = false
-				visual_model.scale = Vector3.ONE * reveal_scale
+				visual_model.scale = Vector3.ONE
+				visual_model.position.y = lerp(-buried_depth, 0.0, dig_progress)
 			
-			# Activate dust
+			# Activate dust and excavation audio
 			if dust_particles and not dust_particles.emitting:
 				dust_particles.emitting = true
+			_play_excavation_audio()
 			
 			if dig_progress >= 1.0:
 				_complete_digging()
 		else:
-			# Pause digging: stop particles
+			# Pause digging: stop particles and audio
 			if dust_particles and dust_particles.emitting:
 				dust_particles.emitting = false
+			_stop_excavation_audio()
 
 # ---- Input ----
 func _unhandled_input(event: InputEvent) -> void:
@@ -325,6 +376,7 @@ func _start_digging() -> void:
 func _pause_digging() -> void:
 	if dust_particles and dust_particles.emitting:
 		dust_particles.emitting = false
+	_stop_excavation_audio()
 	var player = _get_player()
 	if player and player.has_method("end_interaction"):
 		player.end_interaction()
@@ -333,6 +385,7 @@ func _cancel_digging() -> void:
 	is_player_holding_e = false
 	if dust_particles and dust_particles.emitting:
 		dust_particles.emitting = false
+	_stop_excavation_audio()
 	var player = _get_player()
 	if player and player.has_method("end_interaction"):
 		player.end_interaction()
@@ -343,6 +396,11 @@ func _complete_digging() -> void:
 	dig_progress = 1.0
 	if dust_particles:
 		dust_particles.emitting = false
+	_stop_excavation_audio()
+	if visual_model:
+		visual_model.visible = true
+		visual_model.scale = Vector3.ONE
+		visual_model.position.y = 0.0
 	dig_completed.emit()
 	_set_state(ArtifactState.EXPOSED)
 	var player = _get_player()

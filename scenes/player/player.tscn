@@ -90,6 +90,8 @@ top_radius = 0.38
 bottom_radius = 0.38
 height = 0.55
 radial_segments = 24
+cap_top = false
+cap_bottom = false
 
 [sub_resource type="SphereMesh" id="Mesh_TorsoBottom"]
 material = SubResource("Mat_SuitWhite")
@@ -118,24 +120,24 @@ size = Vector3(0.08, 0.038, 0.032)
 
 [sub_resource type="SphereMesh" id="Mesh_Sclera"]
 material = SubResource("Mat_EyeWhite")
-radius = 0.085
-height = 0.05
-radial_segments = 16
-rings = 8
+radius = 0.108
+height = 0.07
+radial_segments = 24
+rings = 12
 
 [sub_resource type="SphereMesh" id="Mesh_Iris"]
 material = SubResource("Mat_EyeIris")
-radius = 0.054
+radius = 0.058
 height = 0.016
-radial_segments = 16
-rings = 8
+radial_segments = 20
+rings = 10
 
 [sub_resource type="SphereMesh" id="Mesh_Pupil"]
 material = SubResource("Mat_EyePupil")
-radius = 0.034
+radius = 0.035
 height = 0.016
-radial_segments = 16
-rings = 8
+radial_segments = 20
+rings = 10
 
 [sub_resource type="SphereMesh" id="Mesh_Sparkle"]
 material = SubResource("Mat_EyeSparkle")
@@ -143,6 +145,13 @@ radius = 0.011
 height = 0.014
 radial_segments = 8
 rings = 4
+
+[sub_resource type="SphereMesh" id="Mesh_Eyelid"]
+material = SubResource("Mat_MinionYellow")
+radius = 0.104
+height = 0.045
+radial_segments = 24
+rings = 12
 
 [sub_resource type="BoxMesh" id="Mesh_GoggleSideStrap"]
 material = SubResource("Mat_GoggleStrap")
@@ -161,9 +170,9 @@ rings = 16
 
 [sub_resource type="CylinderMesh" id="Mesh_NeckRing"]
 material = SubResource("Mat_SilverMetallic")
-top_radius = 0.38
-bottom_radius = 0.38
-height = 0.06
+top_radius = 0.386
+bottom_radius = 0.386
+height = 0.04
 radial_segments = 24
 
 [sub_resource type="BoxMesh" id="Mesh_ShoulderStrap"]
@@ -473,47 +482,57 @@ transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, -0.12,
 mesh = SubResource("Mesh_GoggleRing")
 
 [node name="LeftEyeSclera" type="MeshInstance3D" parent="Visuals/Torso/Head/LeftGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.005, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.005, 0)
 mesh = SubResource("Mesh_Sclera")
 
 [node name="LeftEyeIris" type="MeshInstance3D" parent="Visuals/Torso/Head/LeftGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.025, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.024, 0)
 mesh = SubResource("Mesh_Iris")
 
 [node name="LeftEyePupil" type="MeshInstance3D" parent="Visuals/Torso/Head/LeftGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.036, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.033, 0)
 mesh = SubResource("Mesh_Pupil")
 
 [node name="LeftEyeSparkle" type="MeshInstance3D" parent="Visuals/Torso/Head/LeftGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.014, 0.044, -0.014)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.014, 0.04, -0.014)
 mesh = SubResource("Mesh_Sparkle")
+
+[node name="LeftEyelid" type="MeshInstance3D" parent="Visuals/Torso/Head/LeftGoggleRing"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.001, 0, 0.026, -0.08)
+visible = false
+mesh = SubResource("Mesh_Eyelid")
 
 [node name="RightGoggleRing" type="MeshInstance3D" parent="Visuals/Torso/Head"]
 transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0.12, 0.08, 0.35)
 mesh = SubResource("Mesh_GoggleRing")
 
 [node name="RightEyeSclera" type="MeshInstance3D" parent="Visuals/Torso/Head/RightGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.005, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.005, 0)
 mesh = SubResource("Mesh_Sclera")
 
 [node name="RightEyeIris" type="MeshInstance3D" parent="Visuals/Torso/Head/RightGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.025, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.024, 0)
 mesh = SubResource("Mesh_Iris")
 
 [node name="RightEyePupil" type="MeshInstance3D" parent="Visuals/Torso/Head/RightGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.036, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.033, 0)
 mesh = SubResource("Mesh_Pupil")
 
 [node name="RightEyeSparkle" type="MeshInstance3D" parent="Visuals/Torso/Head/RightGoggleRing"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.014, 0.044, -0.014)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.014, 0.04, -0.014)
 mesh = SubResource("Mesh_Sparkle")
+
+[node name="RightEyelid" type="MeshInstance3D" parent="Visuals/Torso/Head/RightGoggleRing"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.001, 0, 0.026, -0.08)
+visible = false
+mesh = SubResource("Mesh_Eyelid")
 
 [node name="TransparentVisor" type="MeshInstance3D" parent="Visuals/Torso/Head"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0.02)
 mesh = SubResource("Mesh_TransparentVisor")
 
 [node name="NeckRing" type="MeshInstance3D" parent="Visuals/Torso/Head"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.28, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.045, 0)
 mesh = SubResource("Mesh_NeckRing")
 
 [node name="LeftArm" type="Node3D" parent="Visuals/Torso"]

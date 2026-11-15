@@ -36,23 +36,26 @@ func _setup_audio() -> void:
 	_audio_player = AudioStreamPlayer.new()
 	add_child(_audio_player)
 	_audio_player.bus = &"Master"
-	_audio_player.volume_db = -12.0
+	_audio_player.volume_db = -18.0
 	
-	# Procedurally generate a clean synthetic beep sound
+	# Procedurally generate a clean 16-bit synthetic telemetry ping
 	var sample_rate = 22050
-	var duration = 0.08
+	var duration = 0.06
 	var num_samples = int(sample_rate * duration)
 	var data = PackedByteArray()
-	data.resize(num_samples)
+	data.resize(num_samples * 2)
 	for i in range(num_samples):
 		var t = float(i) / float(sample_rate)
-		# 880 Hz beep with subtle exponential decay
-		var wave = sin(t * 880.0 * TAU) * exp(-t * 25.0)
-		var byte_val = clampi(int((wave + 1.0) * 0.5 * 255.0), 0, 255)
-		data[i] = byte_val
+		# 980 Hz smooth sine wave with clean exponential decay
+		var env = exp(-t * 35.0)
+		var wave = sin(t * 980.0 * TAU) * env * 0.7
+		var sample_val = clampi(int(wave * 32767.0), -32767, 32767)
+		var u16 = sample_val if sample_val >= 0 else (sample_val + 65536)
+		data[i * 2] = u16 & 0xFF
+		data[i * 2 + 1] = (u16 >> 8) & 0xFF
 	
 	var wav = AudioStreamWAV.new()
-	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
 	wav.mix_rate = sample_rate
 	wav.stereo = false
 	wav.data = data
@@ -67,22 +70,23 @@ func _process(delta: float) -> void:
 		_scan_timer = 0.0
 		_perform_scan()
 	
-	# Handle proximity beep cadence
-	if current_signal_strength > 0.05:
+	# Handle proximity beep cadence: purposeful feedback only when close (>= 0.35)
+	# Capped cadence ensures clean distinct pings, avoiding continuous buzzing
+	if current_signal_strength >= 0.35:
 		_audio_timer += delta
 		var beep_interval: float
-		# When locked on and very strong signal: very rapid continuous beep
 		if is_locked_on and current_signal_strength >= 0.85:
-			beep_interval = 0.08
+			beep_interval = 0.38
 		else:
-			# Beep interval scales inversely with signal strength: 1.2s far -> 0.15s near
-			beep_interval = lerp(1.2, 0.15, current_signal_strength)
+			beep_interval = lerp(1.4, 0.45, (current_signal_strength - 0.35) / 0.65)
+		
 		if _audio_timer >= beep_interval:
 			_audio_timer = 0.0
 			if _audio_player and not _audio_player.playing:
-				# Scale pitch slightly higher when closer (880Hz -> 1320Hz)
-				_audio_player.pitch_scale = lerp(0.9, 1.4, current_signal_strength)
+				_audio_player.pitch_scale = lerp(0.95, 1.25, current_signal_strength)
 				_audio_player.play()
+	else:
+		_audio_timer = 0.0
 
 func _perform_scan() -> void:
 	var player = _get_player()

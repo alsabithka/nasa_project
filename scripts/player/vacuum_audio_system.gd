@@ -37,7 +37,7 @@ func _setup_audio_players() -> void:
 	plss_hum_player = AudioStreamPlayer.new()
 	plss_hum_player.name = "PLSSHumAudio"
 	plss_hum_player.bus = &"Master"
-	plss_hum_player.volume_db = -24.0
+	plss_hum_player.volume_db = -34.0
 	add_child(plss_hum_player)
 	
 	footstep_player = AudioStreamPlayer.new()
@@ -58,25 +58,29 @@ func _setup_audio_players() -> void:
 	comm_player.volume_db = -18.0
 	add_child(comm_player)
 
-# Generates procedural continuous low-frequency hum of the PLSS water loop & fan
+# Generates soft, low-pass filtered, very quiet ambient murmur (replaces harsh 8-bit motor buzz)
 func _start_plss_hum() -> void:
+	if not plss_hum_player:
+		return
 	var sample_rate = 22050
-	var duration = 1.0
+	var duration = 2.0 # Exact integer cycle alignment for seamless loop
 	var num_samples = int(sample_rate * duration)
 	var data = PackedByteArray()
-	data.resize(num_samples)
+	data.resize(num_samples * 2) # 16-bit
 	
 	for i in range(num_samples):
 		var t = float(i) / float(sample_rate)
-		# 110 Hz primary motor hum + 220 Hz harmonic + subtle filtered air turbulence
-		var s1 = sin(t * 110.0 * TAU) * 0.4
-		var s2 = sin(t * 220.0 * TAU) * 0.2
-		var noise = (randf() - 0.5) * 0.15
-		var wave = (s1 + s2 + noise) * 0.35
-		data[i] = clampi(int((wave + 1.0) * 0.5 * 255.0), 0, 255)
+		# 45 Hz (90 cycles) + 65 Hz (130 cycles) gentle low-frequency acoustic warmth
+		var s1 = sin(t * 45.0 * TAU) * 0.12
+		var s2 = sin(t * 65.0 * TAU) * 0.04
+		var wave = (s1 + s2) * 0.4
+		var sample_val = clampi(int(wave * 32767.0), -32767, 32767)
+		var u16 = sample_val if sample_val >= 0 else (sample_val + 65536)
+		data[i * 2] = u16 & 0xFF
+		data[i * 2 + 1] = (u16 >> 8) & 0xFF
 	
 	var wav = AudioStreamWAV.new()
-	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
 	wav.mix_rate = sample_rate
 	wav.stereo = false
 	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
@@ -85,6 +89,7 @@ func _start_plss_hum() -> void:
 	wav.data = data
 	
 	plss_hum_player.stream = wav
+	plss_hum_player.volume_db = -34.0
 	plss_hum_player.play()
 
 func _start_breathing() -> void:
