@@ -44,11 +44,17 @@ extends Control
 var selected_journal_planet: String = "Moon"
 var _last_discovered_id: String = ""
 
+# Phase 3 — pause menu + field manual instances
+var _pause_menu = null
+var _field_manual = null
+
 func _ready() -> void:
 	_update_header()
 	_connect_gamestate()
 	_connect_scanner()
 	_setup_buttons()
+	_setup_pause_menu()
+	_check_field_manual()
 	
 	discovery_popup.visible = false
 	journal_modal.visible = false
@@ -60,6 +66,21 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_journal"):
 		toggle_journal()
+	elif event.is_action_pressed("ui_cancel"):
+		# ESC priority: close open modals first, then open pause menu
+		if discovery_popup.visible:
+			_on_popup_closed()
+			get_viewport().set_input_as_handled()
+		elif journal_modal.visible:
+			journal_modal.visible = false
+			radar_panel.visible = true
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+			get_viewport().set_input_as_handled()
+		elif completion_modal.visible:
+			pass  # don't dismiss mission complete
+		else:
+			_open_pause()
+			get_viewport().set_input_as_handled()
 
 func _setup_buttons() -> void:
 	journal_button.pressed.connect(toggle_journal)
@@ -303,23 +324,64 @@ func _show_artifact_detail(artifact_id: String) -> void:
 		journal_detail_text.text = "[i]This historical object remains buried beneath the lunar dust.\n\nFollow your handheld survey scanner signal to locate, excavate, and clean the artifact to uncover its identity and mission history![/i]"
 
 func _on_menu_pressed() -> void:
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	# B11 FIX: show confirm dialog before returning to menu
-	var dialog = ConfirmationDialog.new()
-	dialog.title = "Return to Menu?"
-	dialog.dialog_text = "Your current progress will be lost.\nReturn to the main menu?"
-	dialog.ok_button_text = "Return to Menu"
-	dialog.cancel_button_text = "Stay & Explore"
-	dialog.confirmed.connect(func():
-		get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
-	)
-	dialog.canceled.connect(func():
-		dialog.queue_free()
-		if not journal_modal.visible and not discovery_popup.visible:
+	_open_pause()
+
+# ─── Pause Menu helpers ──────────────────────────────────────────────────────
+
+func _setup_pause_menu() -> void:
+	var pm_scene = load("res://scenes/ui/pause_menu.tscn")
+	if pm_scene:
+		_pause_menu = pm_scene.instantiate()
+		add_child(_pause_menu)
+		_pause_menu.resume_requested.connect(_close_pause)
+		_pause_menu.open_journal_requested.connect(func():
+			_close_pause()
+			toggle_journal()
+		)
+		_pause_menu.open_settings_requested.connect(_open_settings)
+
+
+func _open_pause() -> void:
+	if _pause_menu:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		_pause_menu.show_pause()
+
+
+func _close_pause() -> void:
+	if _pause_menu:
+		_pause_menu.hide_pause()
+		if not journal_modal.visible and not discovery_popup.visible and not completion_modal.visible:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	)
-	get_viewport().add_child(dialog)
-	dialog.popup_centered()
+
+
+func _open_settings() -> void:
+	var sm_scene = load("res://scenes/ui/settings_menu.tscn")
+	if sm_scene:
+		var sm = sm_scene.instantiate()
+		add_child(sm)
+		sm.settings_closed.connect(func(): sm.queue_free())
+		sm.show_settings()
+
+
+# ─── Field Manual ────────────────────────────────────────────────────────────
+
+func _check_field_manual() -> void:
+	# Load field_manual.gd static method via ResourceLoader (safe — no Autoload)
+	var fm_script = load("res://scripts/ui/field_manual.gd")
+	if fm_script and fm_script.should_show():
+		var fm_scene = load("res://scenes/ui/field_manual.tscn")
+		if fm_scene:
+			_field_manual = fm_scene.instantiate()
+			add_child(_field_manual)
+			_field_manual.manual_closed.connect(func():
+				if _field_manual:
+					Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+			)
+			# Slight delay so the HUD fully initialises before showing manual
+			await get_tree().create_timer(0.3).timeout
+			if is_inside_tree() and _field_manual:
+				_field_manual.show_manual()
+				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 # B3 HELPER: format year values cleanly regardless of float/int/string type
 func _format_year(val) -> String:
