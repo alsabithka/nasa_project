@@ -266,7 +266,12 @@ func _open_journal_to_last_discovered() -> void:
 
 func _populate_journal(planet: String) -> void:
 	selected_journal_planet = planet
-	# B6 FIX: apply active-tab highlight
+	# B6 FIX + Phase 6: active-tab highlight with token colours
+	moon_tab_btn.add_theme_color_override("font_color",
+		UITokens.SIGNAL_GOLD if planet == "Moon" else UITokens.PAPER_500)
+	mars_tab_btn.add_theme_color_override("font_color",
+		UITokens.SIGNAL_GOLD if planet == "Mars" else UITokens.PAPER_500)
+	# Keep old modulate for tab background differentiation (B6 compat)
 	moon_tab_btn.modulate = Color(1.0, 0.85, 0.2) if planet == "Moon" else Color(0.7, 0.75, 0.9)
 	mars_tab_btn.modulate = Color(1.0, 0.85, 0.2) if planet == "Mars" else Color(0.7, 0.75, 0.9)
 	for c in journal_list.get_children():
@@ -277,30 +282,56 @@ func _populate_journal(planet: String) -> void:
 		return
 	
 	var artifacts = gs.artifacts_data
-	var found_any = false
+	var entry_num := 0
 	
 	for id in artifacts.keys():
 		var data = artifacts[id]
 		if data.get("location", "").to_lower() != planet.to_lower():
 			continue
 		
-		found_any = true
+		entry_num += 1
 		var is_rec = gs.is_artifact_recovered(id)
+		var cat: String = data.get("category", "")
 		
-		var btn = Button.new()
-		btn.custom_minimum_size = Vector2(0, 48)
-		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		
+		# Phase 6: row = number glyph + name/category VBox
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		journal_list.add_child(row)
+
+		var num_lbl := Label.new()
+		num_lbl.text = "%02d" % entry_num
+		num_lbl.add_theme_font_size_override("font_size", UITokens.TEXT_CAPTION)
+		num_lbl.add_theme_color_override("font_color",
+			UITokens.SIGNAL_GOLD if is_rec else UITokens.PAPER_500)
+		num_lbl.custom_minimum_size = Vector2(28, 0)
+		row.add_child(num_lbl)
+
+		var vb := VBoxContainer.new()
+		vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(vb)
+
+		var name_btn := Button.new()
+		name_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		name_btn.flat = true
+		name_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if is_rec:
-			btn.text = " [✓] " + data.get("name", id)
-			btn.modulate = Color(0.9, 1.0, 0.9)
+			name_btn.text = "✓ " + data.get("name", id)
+			name_btn.add_theme_color_override("font_color", UITokens.PAPER_100)
+			name_btn.add_theme_font_size_override("font_size", UITokens.TEXT_BODY)
 		else:
-			btn.text = " [ ? ] Unidentified Subsurface Anomaly"
-			btn.modulate = Color(0.6, 0.65, 0.75)
-		
+			name_btn.text = "? Unidentified Subsurface Anomaly"
+			name_btn.add_theme_color_override("font_color", UITokens.PAPER_500)
+			name_btn.add_theme_font_size_override("font_size", UITokens.TEXT_BODY)
 		var target_id = id
-		btn.pressed.connect(func(): _show_artifact_detail(target_id))
-		journal_list.add_child(btn)
+		name_btn.pressed.connect(func(): _show_artifact_detail(target_id))
+		vb.add_child(name_btn)
+
+		if is_rec and cat != "":
+			var cat_lbl := Label.new()
+			cat_lbl.text = cat.to_upper()
+			cat_lbl.add_theme_font_size_override("font_size", UITokens.TEXT_CAPTION)
+			cat_lbl.add_theme_color_override("font_color", UITokens.SIGNAL_CYAN)
+			vb.add_child(cat_lbl)
 	
 	# Select first item detail
 	for id in artifacts.keys():

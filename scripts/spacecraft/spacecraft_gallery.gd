@@ -11,6 +11,8 @@ extends Node3D
 const HistoricalSpacecraftModels = preload("res://scripts/spacecraft/historical_spacecraft_models.gd")
 const SpacecraftInspectorHUD = preload("res://scripts/ui/spacecraft_inspector_hud.gd")
 
+const UITokens = preload("res://scripts/ui/ui_tokens.gd")
+
 var current_craft_index: int = 0
 
 var spacecraft_list: Array[Dictionary] = [
@@ -131,13 +133,24 @@ func _setup_environment() -> void:
 
 func _setup_ui() -> void:
 	ui_layer = CanvasLayer.new()
-	ui_layer.layer = 10
+	ui_layer.layer = UITokens.LAYER_OVERLAYS  # 10
 	add_child(ui_layer)
 
 	var root = Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui_layer.add_child(root)
+
+	# Phase 6: shared ArchiveCard style (INK_800, 0px radius, PAPER_500 border)
+	var style = StyleBoxFlat.new()
+	style.bg_color = UITokens.INK_800
+	style.border_color = UITokens.PAPER_500
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(0)
+	style.content_margin_left = 20
+	style.content_margin_right = 20
+	style.content_margin_top = 12
+	style.content_margin_bottom = 12
 
 	# Top Header Panel
 	var top_panel = PanelContainer.new()
@@ -147,16 +160,6 @@ func _setup_ui() -> void:
 	top_panel.offset_top = 20
 	top_panel.offset_bottom = 120
 	root.add_child(top_panel)
-
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.04, 0.06, 0.10, 0.85)
-	style.border_color = Color(0.2, 0.5, 0.8, 0.7)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(6)
-	style.content_margin_left = 20
-	style.content_margin_right = 20
-	style.content_margin_top = 12
-	style.content_margin_bottom = 12
 	top_panel.add_theme_stylebox_override("panel", style)
 
 	var top_vbox = VBoxContainer.new()
@@ -171,14 +174,14 @@ func _setup_ui() -> void:
 
 	title_label = Label.new()
 	title_label.text = "NASA HISTORICAL HARDWARE EXHIBITION"
-	title_label.add_theme_font_size_override("font_size", 20)
-	title_label.add_theme_color_override("font_color", Color(0.95, 0.82, 0.35))
+	title_label.add_theme_font_size_override("font_size", UITokens.TEXT_TITLE)
+	title_label.add_theme_color_override("font_color", UITokens.SIGNAL_GOLD)
 	title_vbox.add_child(title_label)
 
 	subtitle_label = Label.new()
 	subtitle_label.text = "Solar System Collection - Deep Space & Planetary Missions"
-	subtitle_label.add_theme_font_size_override("font_size", 14)
-	subtitle_label.add_theme_color_override("font_color", Color(0.7, 0.85, 1.0))
+	subtitle_label.add_theme_font_size_override("font_size", UITokens.TEXT_BODY)
+	subtitle_label.add_theme_color_override("font_color", UITokens.PAPER_300)
 	title_vbox.add_child(subtitle_label)
 
 	var exit_btn = Button.new()
@@ -188,8 +191,8 @@ func _setup_ui() -> void:
 
 	stats_label = Label.new()
 	stats_label.text = "Launch: 2007 | Status: Inactive"
-	stats_label.add_theme_font_size_override("font_size", 12)
-	stats_label.add_theme_color_override("font_color", Color(0.65, 0.75, 0.80))
+	stats_label.add_theme_font_size_override("font_size", UITokens.TEXT_CAPTION)
+	stats_label.add_theme_color_override("font_color", UITokens.PAPER_500)
 	top_vbox.add_child(stats_label)
 
 	# Bottom Spacecraft Selection Bar
@@ -201,6 +204,7 @@ func _setup_ui() -> void:
 	bot_panel.offset_bottom = -20
 	bot_panel.offset_top = -88
 	root.add_child(bot_panel)
+	# Reuse same ArchiveCard style
 	bot_panel.add_theme_stylebox_override("panel", style)
 
 	var bot_scroll = ScrollContainer.new()
