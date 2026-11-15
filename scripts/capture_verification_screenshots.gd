@@ -65,14 +65,14 @@ func _capture_views() -> void:
 	_save_screenshot("verify_front_happy.png")
 	print("Captured verify_front_happy.png")
 	
-	# VIEW 3: Front Close-Up - Calm Expression (Half-closed eyelids within lens)
+	# VIEW 3: Front Close-Up - Calm Expression (40% closed eyelids within lens)
 	player.set_expression(player.FacialExpression.CALM)
 	player._current_smile = 0.0
-	player._current_calm = 0.50
+	player._current_calm = 0.40
 	player._target_smile = 0.0
-	player._target_calm = 0.50
+	player._target_calm = 0.40
 	player._update_facial_expressions(0.001)
-	player._apply_eyelid_coverage(0.50)
+	player._apply_eyelid_coverage(0.40)
 	
 	await process_frame
 	await process_frame

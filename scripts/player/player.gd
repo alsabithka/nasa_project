@@ -49,7 +49,7 @@ var current_expression: FacialExpression = FacialExpression.NEUTRAL
 var _expression_timer: float = 20.0 # Automatic transition every 15-30s
 var _target_smile: float = 0.0
 var _current_smile: float = 0.0
-var _target_calm: float = 0.0 # 0.0 = open, 0.5 = calm half-closed eyelids
+var _target_calm: float = 0.0 # 0.0 = open, 0.4 = calm 40% closed eyelids
 var _current_calm: float = 0.0
 
 # Eye Blinking System
@@ -174,7 +174,7 @@ func set_expression(expr: FacialExpression) -> void:
 			_target_calm = 0.0
 		FacialExpression.CALM:
 			_target_smile = 0.60
-			_target_calm = 0.50
+			_target_calm = 0.40
 
 func _update_eye_blinking(delta: float) -> void:
 	if not left_eyelid or not right_eyelid:

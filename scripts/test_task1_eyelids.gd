@@ -52,11 +52,11 @@ func _test_eyelids() -> void:
 	
 	# Test Calm
 	player.set_expression(player.FacialExpression.CALM)
-	if abs(player._target_smile - 0.60) > 0.01 or abs(player._target_calm - 0.50) > 0.01:
+	if abs(player._target_smile - 0.60) > 0.01 or abs(player._target_calm - 0.40) > 0.01:
 		printerr("FAIL: CALM target values mismatch: smile=%.2f, calm=%.2f" % [player._target_smile, player._target_calm])
 		quit(1)
 		return
-	print("PASS: CALM expression smile=0.60, calm=0.50")
+	print("PASS: CALM expression smile=0.60, calm=0.40")
 	
 	# Test coverage application
 	player._apply_eyelid_coverage(0.0)
@@ -65,28 +65,28 @@ func _test_eyelids() -> void:
 		quit(1)
 		return
 	
-	player._apply_eyelid_coverage(0.5)
+	player._apply_eyelid_coverage(0.4)
 	if not left_eyelid.visible or not right_eyelid.visible:
-		printerr("FAIL: Eyelid should be visible at coverage 0.5")
+		printerr("FAIL: Eyelid should be visible at coverage 0.4")
 		quit(1)
 		return
 	var cov_l = left_mat.get_shader_parameter("coverage")
 	var cov_r = right_mat.get_shader_parameter("coverage")
-	if abs(cov_l - 0.5) > 0.01 or abs(cov_r - 0.5) > 0.01:
+	if abs(cov_l - 0.4) > 0.01 or abs(cov_r - 0.4) > 0.01:
 		printerr("FAIL: Shader coverage parameter not set properly: %s, %s" % [cov_l, cov_r])
 		quit(1)
 		return
-	print("PASS: Coverage 0.5 correctly sets shader parameter.")
+	print("PASS: Coverage 0.4 correctly sets shader parameter.")
 	
 	# Test Blink in Calm state
-	player._current_calm = 0.50
+	player._current_calm = 0.40
 	player._is_blinking = false
 	player._trigger_blink()
 	# Mid-close
 	player._update_eye_blinking(0.04)
 	var mid_cov = left_mat.get_shader_parameter("coverage")
 	print("Blink mid-close coverage: %.3f" % mid_cov)
-	if mid_cov <= 0.5 or mid_cov >= 1.0:
+	if mid_cov <= 0.4 or mid_cov >= 1.0:
 		printerr("FAIL: Mid-close coverage invalid")
 		quit(1)
 		return
@@ -104,11 +104,11 @@ func _test_eyelids() -> void:
 	player._update_eye_blinking(0.12)
 	var end_cov = left_mat.get_shader_parameter("coverage")
 	print("Blink reopened coverage: %.3f" % end_cov)
-	if abs(end_cov - 0.50) > 0.02:
-		printerr("FAIL: Reopened coverage should return to calm (0.50)")
+	if abs(end_cov - 0.40) > 0.02:
+		printerr("FAIL: Reopened coverage should return to calm (0.40)")
 		quit(1)
 		return
-	print("PASS: Blink in CALM state closes 0.5 -> 1.0 -> 0.5.")
+	print("PASS: Blink in CALM state closes 0.4 -> 1.0 -> 0.4.")
 	
 	print("\nALL TASK 1 EYELID & BLINKING TESTS PASSED!")
 	quit(0)

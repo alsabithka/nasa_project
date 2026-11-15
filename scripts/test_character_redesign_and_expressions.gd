@@ -129,17 +129,17 @@ func _run_audit() -> void:
 		return
 	print("[Eyelids] Open state: retracted (visible=%s, coverage=%.3f)" % [left_eyelid.visible, cov_open])
 	
-	# Test Calm expression (half-closed eyelids)
+	# Test Calm expression (eyelids close 40%)
 	player.set_expression(player.FacialExpression.CALM)
-	player._current_calm = 0.50
+	player._current_calm = 0.40
 	player._update_eye_blinking(0.01)
 	var cov_calm = left_mat.get_shader_parameter("coverage") if left_mat else left_eyelid.scale.z
 	print("[Eyelids] Calm expression: visible=%s, coverage=%.3f" % [left_eyelid.visible, cov_calm])
-	if not left_eyelid.visible or abs(cov_calm - 0.50) > 0.05:
-		printerr("FAIL: Calm expression should lower eyelids to ~50% coverage")
+	if not left_eyelid.visible or abs(cov_calm - 0.40) > 0.05:
+		printerr("FAIL: Calm expression should lower eyelids to ~40% coverage")
 		quit(1)
 		return
-	print("PASS: Calm half-closed expression verified within circular lens opening!")
+	print("PASS: Calm expression (40% coverage) verified within circular lens opening!")
 	
 	# Test Blink over calm expression
 	player._trigger_blink()
@@ -154,8 +154,8 @@ func _run_audit() -> void:
 	
 	player._update_eye_blinking(0.12) # reopening completes
 	var cov_reopen = left_mat.get_shader_parameter("coverage") if left_mat else left_eyelid.scale.z
-	if cov_reopen > 0.55: # returns to calm level 0.50
-		printerr("FAIL: Eyelid did not return to calm expression level after blink")
+	if cov_reopen > 0.45: # returns to calm level 0.40
+		printerr("FAIL: Eyelid did not return to calm expression level (0.40) after blink")
 		quit(1)
 		return
 	print("PASS: Natural blinking seamlessly harmonized with active facial expressions!")
