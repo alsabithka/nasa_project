@@ -11,6 +11,9 @@ extends Node3D
 const HistoricalSpacecraftModels = preload("res://scripts/spacecraft/historical_spacecraft_models.gd")
 const SpacecraftInspectorHUD = preload("res://scripts/ui/spacecraft_inspector_hud.gd")
 
+const UITokens = preload("res://scripts/ui/ui_tokens.gd")
+const InputSetup = preload("res://scripts/input/input_setup.gd")
+
 var current_craft_index: int = 0
 
 var spacecraft_list: Array[Dictionary] = [
@@ -68,12 +71,17 @@ var spacecraft_list: Array[Dictionary] = [
 @onready var camera: Camera3D = $CameraPivot/CameraPitch/Camera3D
 @onready var sun_light: DirectionalLight3D = $SunLight
 
-# UI Nodes
+# UI Nodes (Phase 6: header + info panel + selector rail built from shared components)
 var ui_layer: CanvasLayer
-var title_label: Label
-var subtitle_label: Label
-var stats_label: Label
+var title_label: Label        # craft name (header)
+var subtitle_label: Label     # destination (header caption)
+var stats_label: Label        # historical notes (info panel)
 var inspector_hud: CanvasLayer = null
+var position_label: Label     # "02 / 05"
+var rail_panel: Control       # selector rail + actions (hidden while the inspector is open)
+var info_panel: Control       # data rows + notes (hidden while the inspector is open)
+var _fields: Dictionary = {}   # launch / distance / status value labels
+var _rotate_button: Button
 
 # Orbit Camera State
 var yaw: float = 0.0
@@ -88,6 +96,9 @@ func _ready() -> void:
 	_setup_environment()
 	_setup_ui()
 	_load_spacecraft(current_craft_index)
+	# Keyboard / gamepad users start on the current craft in the rail.
+	if not _craft_buttons.is_empty():
+		_craft_buttons[current_craft_index].grab_focus.call_deferred()
 
 func _setup_environment() -> void:
 	# Add backdrop stars and celestial bodies
@@ -129,109 +140,217 @@ func _setup_environment() -> void:
 	stars.mesh = sphere
 	add_child(stars)
 
+var _craft_buttons: Array[Button] = []
+
 func _setup_ui() -> void:
+	InputSetup.ensure()
 	ui_layer = CanvasLayer.new()
-	ui_layer.layer = 10
+	ui_layer.layer = UITokens.LAYER_OVERLAYS  # 10
 	add_child(ui_layer)
 
-	var root = Control.new()
+	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE    # the 3D view stays draggable behind the UI
+	root.theme = UITokens.theme()
 	ui_layer.add_child(root)
 
-	# Top Header Panel
-	var top_panel = PanelContainer.new()
-	top_panel.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	top_panel.offset_left = 32
-	top_panel.offset_right = -32
-	top_panel.offset_top = 20
-	top_panel.offset_bottom = 120
-	root.add_child(top_panel)
+	# Three zones in one margin box: header (top) / info (right, middle) / rail (bottom).
+	var margin := MarginContainer.new()
+	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for side in ["left", "right", "top", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side, UITokens.SP_6)
+	root.add_child(margin)
+	var zones := VBoxContainer.new()
+	zones.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	zones.add_theme_constant_override("separation", UITokens.SP_3)
+	margin.add_child(zones)
 
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.04, 0.06, 0.10, 0.85)
-	style.border_color = Color(0.2, 0.5, 0.8, 0.7)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(6)
-	style.content_margin_left = 20
-	style.content_margin_right = 20
-	style.content_margin_top = 12
-	style.content_margin_bottom = 12
-	top_panel.add_theme_stylebox_override("panel", style)
-
-	var top_vbox = VBoxContainer.new()
-	top_panel.add_child(top_vbox)
-
-	var h_top = HBoxContainer.new()
-	top_vbox.add_child(h_top)
-
-	var title_vbox = VBoxContainer.new()
-	title_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	h_top.add_child(title_vbox)
-
-	title_label = Label.new()
-	title_label.text = "NASA HISTORICAL HARDWARE EXHIBITION"
-	title_label.add_theme_font_size_override("font_size", 20)
-	title_label.add_theme_color_override("font_color", Color(0.95, 0.82, 0.35))
-	title_vbox.add_child(title_label)
-
+	# ── Header ──────────────────────────────────────────────────────────────────────────
+	var header := ArchiveCard.new()
+	zones.add_child(header)
+	var h_row := HBoxContainer.new()
+	h_row.add_theme_constant_override("separation", UITokens.SP_4)
+	header.add_child(h_row)
+	var h_col := VBoxContainer.new()
+	h_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h_col.add_theme_constant_override("separation", 0)
+	h_row.add_child(h_col)
 	subtitle_label = Label.new()
-	subtitle_label.text = "Solar System Collection - Deep Space & Planetary Missions"
-	subtitle_label.add_theme_font_size_override("font_size", 14)
-	subtitle_label.add_theme_color_override("font_color", Color(0.7, 0.85, 1.0))
-	title_vbox.add_child(subtitle_label)
-
-	var exit_btn = Button.new()
-	exit_btn.text = "Return to Menu [ESC]"
+	subtitle_label.theme_type_variation = &"CaptionLabel"
+	subtitle_label.add_theme_color_override("font_color", UITokens.SIGNAL_GOLD)
+	h_col.add_child(subtitle_label)
+	title_label = Label.new()
+	title_label.theme_type_variation = &"DisplayLabel"
+	h_col.add_child(title_label)
+	position_label = Label.new()
+	position_label.theme_type_variation = &"StatLabel"
+	position_label.add_theme_color_override("font_color", UITokens.PAPER_300)
+	position_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h_row.add_child(position_label)
+	var exit_btn := Button.new()
+	exit_btn.text = "Return to menu"
+	exit_btn.icon = UITokens.icon("close")
+	exit_btn.theme_type_variation = &"GhostButton"
+	exit_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	exit_btn.pressed.connect(_on_exit_pressed)
-	h_top.add_child(exit_btn)
+	h_row.add_child(exit_btn)
+	var esc_cap := KeyCap.new()
+	esc_cap.label_override = "Esc"
+	esc_cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h_row.add_child(esc_cap)
 
-	stats_label = Label.new()
-	stats_label.text = "Launch: 2007 | Status: Inactive"
-	stats_label.add_theme_font_size_override("font_size", 12)
-	stats_label.add_theme_color_override("font_color", Color(0.65, 0.75, 0.80))
-	top_vbox.add_child(stats_label)
+	# ── Middle: spacer (3D view) + info panel on the right ──────────────────────────────
+	var middle := HBoxContainer.new()
+	middle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	middle.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	zones.add_child(middle)
+	var spacer := Control.new()
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	middle.add_child(spacer)
 
-	# Bottom Spacecraft Selection Bar
-	var bot_panel = PanelContainer.new()
-	bot_panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	bot_panel.offset_left = 32
-	bot_panel.offset_right = -32
-	bot_panel.offset_bottom = -20
-	bot_panel.offset_top = -80
-	root.add_child(bot_panel)
-	bot_panel.add_theme_stylebox_override("panel", style)
+	var info := ArchiveCard.new()
+	info.show_offset_shadow = true
+	info.custom_minimum_size = Vector2(360, 0)
+	info.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	middle.add_child(info)
+	info_panel = info
+	var i_col := VBoxContainer.new()
+	i_col.add_theme_constant_override("separation", UITokens.SP_3)
+	info.add_child(i_col)
+	var badges := HBoxContainer.new()
+	badges.add_theme_constant_override("separation", UITokens.SP_2)
+	badges.add_child(Badge.make(Badge.Kind.ARCHIVE))
+	i_col.add_child(badges)
+	var data := GridContainer.new()
+	data.columns = 2
+	data.add_theme_constant_override("h_separation", UITokens.SP_6)
+	data.add_theme_constant_override("v_separation", UITokens.SP_3)
+	i_col.add_child(data)
+	_add_field(data, "launch", "LAUNCH")
+	_add_field(data, "distance", "DISTANCE")
+	var status_col := VBoxContainer.new()
+	status_col.add_theme_constant_override("separation", 2)
+	status_col.add_child(_gallery_caption("STATUS"))
+	_fields["status"] = _gallery_body()
+	status_col.add_child(_fields["status"])
+	i_col.add_child(status_col)
+	var rule := ColorRect.new()
+	rule.color = UITokens.INK_600
+	rule.custom_minimum_size = Vector2(0, 1)
+	i_col.add_child(rule)
+	var notes_col := VBoxContainer.new()
+	notes_col.add_theme_constant_override("separation", 2)
+	notes_col.add_child(_gallery_caption("WHY IT MATTERS"))
+	stats_label = _gallery_body()
+	notes_col.add_child(stats_label)
+	i_col.add_child(notes_col)
 
-	var bot_hbox = HBoxContainer.new()
-	bot_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	bot_hbox.add_theme_constant_override("separation", 16)
-	bot_panel.add_child(bot_hbox)
+	# ── Rail: one toggle per craft (wraps, never off-screen) + actions ──────────────────
+	var rail := ArchiveCard.new()
+	zones.add_child(rail)
+	rail_panel = rail
+	var r_col := VBoxContainer.new()
+	r_col.add_theme_constant_override("separation", UITokens.SP_2)
+	rail.add_child(r_col)
 
-	var prev_btn = Button.new()
-	prev_btn.text = "< Prev Craft [Q]"
-	prev_btn.pressed.connect(select_prev_spacecraft)
-	bot_hbox.add_child(prev_btn)
-
+	var craft_flow := HFlowContainer.new()
+	craft_flow.add_theme_constant_override("h_separation", UITokens.SP_1)
+	craft_flow.add_theme_constant_override("v_separation", UITokens.SP_1)
+	r_col.add_child(craft_flow)
+	_craft_buttons.clear()
 	for i in range(spacecraft_list.size()):
-		var btn = Button.new()
-		var sc = spacecraft_list[i]
-		btn.text = "[%d] %s" % [i + 1, sc["name"]]
-		var idx = i
-		btn.pressed.connect(func(): _load_spacecraft(idx))
-		bot_hbox.add_child(btn)
+		var btn := Button.new()
+		btn.text = "%02d  %s" % [i + 1, spacecraft_list[i]["name"]]
+		btn.theme_type_variation = &"TabButton"
+		btn.toggle_mode = true
+		btn.focus_mode = Control.FOCUS_ALL
+		var idx := i
+		btn.pressed.connect(func() -> void: _load_spacecraft(idx))
+		# Selection follows focus: arrow keys / D-pad browse the collection.
+		btn.focus_entered.connect(func() -> void:
+			if idx != current_craft_index:
+				_load_spacecraft(idx))
+		craft_flow.add_child(btn)
+		_craft_buttons.append(btn)
 
-	var next_btn = Button.new()
-	next_btn.text = "Next Craft [E] >"
-	next_btn.pressed.connect(select_next_spacecraft)
-	bot_hbox.add_child(next_btn)
+	var actions := HBoxContainer.new()
+	actions.add_theme_constant_override("separation", UITokens.SP_3)
+	r_col.add_child(actions)
+	actions.add_child(_action_button("Previous", "chevron_left", "gallery_prev", select_prev_spacecraft, &"GhostButton"))
+	actions.add_child(_action_button("Next", "chevron_right", "gallery_next", select_next_spacecraft, &"GhostButton"))
+	var grow := Control.new()
+	grow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	actions.add_child(grow)
+	var rot := _action_button("Auto-rotate: On", "", "gallery_rotate", toggle_auto_rotate, &"GhostButton")
+	_rotate_button = rot.get_child(1) as Button
+	actions.add_child(rot)
+	actions.add_child(_action_button("Inspect components", "scan", "gallery_inspect", toggle_component_inspector, &"PrimaryButton"))
+	_sync_craft_buttons()
 
-	var inspect_btn = Button.new()
-	inspect_btn.text = "Inspect Components [I / Space]"
-	inspect_btn.pressed.connect(toggle_component_inspector)
-	bot_hbox.add_child(inspect_btn)
+
+## [KeyCap] [Button] pair; the cap reads the InputMap so rebinding shows up automatically.
+func _action_button(text: String, icon_name: String, action: String, cb: Callable, variation: StringName) -> HBoxContainer:
+	var holder := HBoxContainer.new()
+	holder.add_theme_constant_override("separation", UITokens.SP_2)
+	var cap := KeyCap.new()
+	cap.action_name = action
+	cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	holder.add_child(cap)
+	var b := Button.new()
+	b.text = text
+	if icon_name != "":
+		b.icon = UITokens.icon(icon_name)
+	b.theme_type_variation = variation
+	b.pressed.connect(cb)
+	holder.add_child(b)
+	return holder
+
+
+func _add_field(grid: GridContainer, key: String, caption: String) -> void:
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 2)
+	v.add_child(_gallery_caption(caption))
+	var l := Label.new()
+	l.theme_type_variation = &"StatLabel"
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(l)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_child(v)
+	_fields[key] = l
+
+
+func _gallery_caption(t: String) -> Label:
+	var l := Label.new()
+	l.text = t
+	l.theme_type_variation = &"CaptionLabel"
+	l.add_theme_color_override("font_color", UITokens.PAPER_300)
+	return l
+
+
+func _gallery_body() -> Label:
+	var l := Label.new()
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_color_override("font_color", UITokens.PAPER_100)
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return l
+
+
+func _sync_craft_buttons() -> void:
+	for i in range(_craft_buttons.size()):
+		_craft_buttons[i].set_pressed_no_signal(i == current_craft_index)
+
+func toggle_auto_rotate() -> void:
+	auto_rotate = not auto_rotate
+	if _rotate_button != null:
+		_rotate_button.text = "Auto-rotate: On" if auto_rotate else "Auto-rotate: Off"
 
 func _load_spacecraft(idx: int) -> void:
 	current_craft_index = clampi(idx, 0, spacecraft_list.size() - 1)
+	_sync_craft_buttons()
 	var sc = spacecraft_list[current_craft_index]
 
 	# Clear previous model
@@ -261,13 +380,19 @@ func _load_spacecraft(idx: int) -> void:
 	if model:
 		mount_point.add_child(model)
 
-	# Update UI text
+	# Update UI text (all values come from spacecraft_list; nothing is invented here)
 	if title_label:
-		title_label.text = sc["name"].to_upper()
+		title_label.text = sc["name"]
 	if subtitle_label:
-		subtitle_label.text = "Destination: %s | %s" % [sc["target"], sc["status"]]
+		subtitle_label.text = ("DESTINATION · %s" % sc["target"]).to_upper()
+	if position_label:
+		position_label.text = "%02d / %02d" % [current_craft_index + 1, spacecraft_list.size()]
+	if _fields.has("launch"):
+		_fields["launch"].text = sc["launch"]
+		_fields["distance"].text = sc["dist_au"]
+		_fields["status"].text = sc["status"]
 	if stats_label:
-		stats_label.text = "Launch Date: %s | Distance: %s\n%s" % [sc["launch"], sc["dist_au"], sc["notes"]]
+		stats_label.text = sc["notes"]
 
 	# Reset inspector if currently open
 	if inspector_hud:
@@ -314,6 +439,7 @@ func toggle_component_inspector() -> void:
 	if inspector_hud:
 		inspector_hud.queue_free()
 		inspector_hud = null
+		_set_inspecting(false)
 		return
 
 	inspector_hud = SpacecraftInspectorHUD.new()
@@ -321,9 +447,20 @@ func toggle_component_inspector() -> void:
 	add_child(inspector_hud)
 	var sc = spacecraft_list[current_craft_index]
 	inspector_hud.open_inspector(mount_point, sc["id"])
+	_set_inspecting(true)
+
+## The inspector occupies the bottom of the screen: the rail and info panel step aside.
+func _set_inspecting(on: bool) -> void:
+	if rail_panel:
+		rail_panel.visible = not on
+	if info_panel:
+		info_panel.visible = not on
+	if not on and current_craft_index < _craft_buttons.size():
+		_craft_buttons[current_craft_index].grab_focus.call_deferred()
 
 func _on_inspector_closed() -> void:
 	inspector_hud = null
+	_set_inspecting(false)
 
 func _on_exit_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
@@ -359,28 +496,18 @@ func _unhandled_input(event: InputEvent) -> void:
 		yaw -= delta_pos.x * 0.006
 		pitch = clampf(pitch - delta_pos.y * 0.006, -1.2, 1.2)
 
-	elif event is InputEventKey and event.pressed:
-		match event.keycode:
-			KEY_ESCAPE:
-				if inspector_hud:
-					toggle_component_inspector()
-				else:
-					_on_exit_pressed()
-			KEY_1:
-				_load_spacecraft(0)
-			KEY_2:
-				_load_spacecraft(1)
-			KEY_3:
-				_load_spacecraft(2)
-			KEY_4:
-				_load_spacecraft(3)
-			KEY_5:
-				_load_spacecraft(4)
-			KEY_Q:
-				select_prev_spacecraft()
-			KEY_E:
-				select_next_spacecraft()
-			KEY_I:
-				toggle_component_inspector()
-			KEY_SPACE:
-				auto_rotate = not auto_rotate
+	# Phase 6: actions only (no raw KEY_ literals). Q/E/Left/Right cycle, I inspects, Space rotates.
+	elif event.is_action_pressed("ui_cancel"):
+		if inspector_hud:
+			toggle_component_inspector()
+		else:
+			_on_exit_pressed()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("gallery_prev"):
+		select_prev_spacecraft()
+	elif event.is_action_pressed("gallery_next"):
+		select_next_spacecraft()
+	elif event.is_action_pressed("gallery_inspect"):
+		toggle_component_inspector()
+	elif event.is_action_pressed("gallery_rotate"):
+		toggle_auto_rotate()

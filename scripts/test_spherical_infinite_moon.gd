@@ -172,9 +172,9 @@ func _run_tests() -> void:
 	# LRV is at (18, 12). Distance is 57m (within 65m scan range!)
 	player.global_position = Vector3(half_size - 15.0, terrain.get_terrain_height(half_size - 15.0, 12.0) + 0.15, 12.0)
 	scanner._perform_scan()
-	print("[Scanner Near Edge] Signal strength: ", scanner.current_signal_strength, " Distance: ", scanner.current_distance, " Target: ", scanner.current_target_id)
-	if scanner.current_target_id != "apollo_lrv" and scanner.current_target_id != "lunar_ferroan_anorthosite":
-		printerr("FAIL: Scanner failed to track artifact near boundary! Target: %s" % scanner.current_target_id)
+	print("[Scanner Near Edge] Signal strength: ", scanner.current_signal_strength, " Distance: ", scanner.current_distance)
+	if scanner.current_target_id != "apollo_lrv":
+		printerr("FAIL: Scanner failed to track LRV near boundary!")
 		quit(1)
 		return
 	print("PASS: Proximity scanner accurately tracks artifacts across spherical boundaries!")

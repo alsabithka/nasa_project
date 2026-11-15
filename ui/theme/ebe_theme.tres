@@ -1,0 +1,503 @@
+[gd_resource type="Theme" load_steps=32 format=3]
+
+[ext_resource type="FontFile" path="res://assets/fonts/IBMPlexSans-Regular.ttf" id="Font_Sans"]
+[ext_resource type="FontFile" path="res://assets/fonts/IBMPlexSans-Medium.ttf" id="Font_SansMedium"]
+[ext_resource type="FontFile" path="res://assets/fonts/IBMPlexSans-Bold.ttf" id="Font_SansBold"]
+[ext_resource type="FontFile" path="res://assets/fonts/IBMPlexMono-Regular.ttf" id="Font_Mono"]
+[ext_resource type="FontFile" path="res://assets/fonts/IBMPlexMono-Medium.ttf" id="Font_MonoMedium"]
+
+;; Echoes Beyond Earth — Design System Theme
+;; Direction A: Declassified Archive
+;; Tokens source: scripts/ui/ui_tokens.gd
+;; Apply per scene root: $Root.theme = preload("res://ui/theme/ebe_theme.tres")
+;; Do NOT set as project default without approval (edits project.godot).
+
+;; ── INK PALETTE ──────────────────────────────────────────────
+;; ink-900 #07090D  ink-800 #0D1117  ink-700 #151B24  ink-600 #2A3442
+;; ── PAPER PALETTE ────────────────────────────────────────────
+;; paper-100 #E8EAED  paper-300 #A3ACB9  paper-500 #7C8797
+;; ── SIGNAL PALETTE ───────────────────────────────────────────
+;; gold #FAC733  cyan #80CCFF  red #FF5A4D  green #5FE08A
+
+;; ── STYLEBOXES ───────────────────────────────────────────────
+
+;; Panel / PanelContainer — archive card: ink-800 bg, ink-600 1px border, 0 radius
+[sub_resource type="StyleBoxFlat" id="SB_Panel"]
+bg_color = Color(0.051, 0.067, 0.09, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.165, 0.204, 0.259, 1)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
+;; HUD panel — more transparent, no border
+[sub_resource type="StyleBoxFlat" id="SB_HudPanel"]
+bg_color = Color(0.027, 0.035, 0.051, 0.82)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.165, 0.204, 0.259, 0.6)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+
+;; Button normal — ink-700 bg, ink-600 2px border, radius 2
+[sub_resource type="StyleBoxFlat" id="SB_ButtonNormal"]
+bg_color = Color(0.082, 0.106, 0.141, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.165, 0.204, 0.259, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+;; Button hover — ink-600 bg, cyan 2px border
+[sub_resource type="StyleBoxFlat" id="SB_ButtonHover"]
+bg_color = Color(0.165, 0.204, 0.259, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.98, 0.78, 0.2, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+;; Button pressed — gold bg, gold border (text becomes ink-900 in code)
+[sub_resource type="StyleBoxFlat" id="SB_ButtonPressed"]
+bg_color = Color(0.98, 0.78, 0.2, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.98, 0.78, 0.2, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+;; Button disabled — ink-800 at 50% opacity
+[sub_resource type="StyleBoxFlat" id="SB_ButtonDisabled"]
+bg_color = Color(0.051, 0.067, 0.09, 0.5)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.165, 0.204, 0.259, 0.4)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+;; Focus ring — hollow, cyan 2px border
+[sub_resource type="StyleBoxFlat" id="SB_Focus"]
+draw_center = false
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.502, 0.8, 1.0, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
+;; ProgressBar background
+[sub_resource type="StyleBoxFlat" id="SB_ProgressBg"]
+bg_color = Color(0.082, 0.106, 0.141, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.165, 0.204, 0.259, 1)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+;; ProgressBar fill — cyan
+[sub_resource type="StyleBoxFlat" id="SB_ProgressFill"]
+bg_color = Color(0.502, 0.8, 1.0, 1)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+;; Tab selected — gold underline effect
+[sub_resource type="StyleBoxFlat" id="SB_TabSelected"]
+bg_color = Color(0.082, 0.106, 0.141, 1)
+border_width_left = 0
+border_width_top = 0
+border_width_right = 0
+border_width_bottom = 2
+border_color = Color(0.98, 0.78, 0.2, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+;; Tab unselected — transparent
+[sub_resource type="StyleBoxFlat" id="SB_TabUnselected"]
+bg_color = Color(0.051, 0.067, 0.09, 0.0)
+border_width_left = 0
+border_width_top = 0
+border_width_right = 0
+border_width_bottom = 1
+border_color = Color(0.165, 0.204, 0.259, 0.5)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+;; HSeparator line
+[sub_resource type="StyleBoxLine" id="SB_Separator"]
+color = Color(0.165, 0.204, 0.259, 1)
+thickness = 1
+
+;; ScrollBar background (minimal, transparent)
+[sub_resource type="StyleBoxFlat" id="SB_ScrollBg"]
+bg_color = Color(0.082, 0.106, 0.141, 0.4)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+;; ScrollBar grabber
+[sub_resource type="StyleBoxFlat" id="SB_ScrollGrabber"]
+bg_color = Color(0.165, 0.204, 0.259, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+;; ScrollBar grabber hover
+[sub_resource type="StyleBoxFlat" id="SB_ScrollGrabberHover"]
+bg_color = Color(0.502, 0.8, 1.0, 0.7)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="SB_PrimaryNormal"]
+bg_color = Color(0.98, 0.78, 0.2, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.98, 0.78, 0.2, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="SB_PrimaryHover"]
+bg_color = Color(1, 0.86, 0.45, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.86, 0.45, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="SB_PrimaryPressed"]
+bg_color = Color(0.8, 0.62, 0.14, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.8, 0.62, 0.14, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="SB_GhostNormal"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.486, 0.529, 0.592, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="SB_GhostHover"]
+bg_color = Color(0.082, 0.106, 0.141, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.91, 0.918, 0.929, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="SB_TabBtnNormal"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 0
+border_width_top = 0
+border_width_right = 0
+border_width_bottom = 0
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+content_margin_left = 16.0
+content_margin_top = 10.0
+content_margin_right = 16.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="SB_TabBtnHover"]
+bg_color = Color(0.082, 0.106, 0.141, 1)
+border_width_left = 0
+border_width_top = 0
+border_width_right = 0
+border_width_bottom = 0
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+content_margin_left = 16.0
+content_margin_top = 10.0
+content_margin_right = 16.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="SB_TabBtnOn"]
+bg_color = Color(0.082, 0.106, 0.141, 1)
+border_width_bottom = 3
+border_color = Color(0.98, 0.78, 0.2, 1)
+content_margin_left = 16.0
+content_margin_top = 10.0
+content_margin_right = 16.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="SB_CardHard"]
+bg_color = Color(0.051, 0.067, 0.09, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.165, 0.204, 0.259, 1)
+shadow_color = Color(0.027, 0.035, 0.051, 1)
+shadow_offset = Vector2(4, 4)
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
+[resource]
+default_font = ExtResource("Font_Sans")
+default_font_size = 14
+
+;; ── BUTTON ───────────────────────────────────────────────────
+Button/colors/font_color = Color(0.91, 0.918, 0.929, 1)
+Button/colors/font_hover_color = Color(0.91, 0.918, 0.929, 1)
+Button/colors/font_pressed_color = Color(0.027, 0.035, 0.051, 1)
+Button/colors/font_disabled_color = Color(0.486, 0.529, 0.592, 1)
+Button/colors/font_focus_color = Color(0.91, 0.918, 0.929, 1)
+Button/fonts/font = ExtResource("Font_SansMedium")
+Button/font_sizes/font_size = 14
+Button/styles/normal = SubResource("SB_ButtonNormal")
+Button/styles/hover = SubResource("SB_ButtonHover")
+Button/styles/pressed = SubResource("SB_ButtonPressed")
+Button/styles/disabled = SubResource("SB_ButtonDisabled")
+Button/styles/focus = SubResource("SB_Focus")
+
+;; ── LABEL ────────────────────────────────────────────────────
+Label/colors/font_color = Color(0.91, 0.918, 0.929, 1)
+Label/fonts/font = ExtResource("Font_Sans")
+Label/font_sizes/font_size = 14
+
+;; ── RICH TEXT LABEL ──────────────────────────────────────────
+RichTextLabel/colors/default_color = Color(0.91, 0.918, 0.929, 1)
+RichTextLabel/fonts/normal_font = ExtResource("Font_Sans")
+RichTextLabel/fonts/bold_font = ExtResource("Font_SansBold")
+RichTextLabel/fonts/mono_font = ExtResource("Font_Mono")
+RichTextLabel/font_sizes/normal_font_size = 14
+RichTextLabel/font_sizes/bold_font_size = 14
+RichTextLabel/font_sizes/italics_font_size = 14
+RichTextLabel/font_sizes/bold_italics_font_size = 14
+
+;; ── PANEL / PANEL CONTAINER ───────────────────────────────────
+Panel/styles/panel = SubResource("SB_Panel")
+PanelContainer/styles/panel = SubResource("SB_Panel")
+
+;; ── PROGRESS BAR ─────────────────────────────────────────────
+ProgressBar/styles/background = SubResource("SB_ProgressBg")
+ProgressBar/styles/fill = SubResource("SB_ProgressFill")
+ProgressBar/colors/font_color = Color(0.91, 0.918, 0.929, 1)
+ProgressBar/font_sizes/font_size = 12
+
+;; ── SEPARATOR ────────────────────────────────────────────────
+HSeparator/styles/separator = SubResource("SB_Separator")
+VSeparator/styles/separator = SubResource("SB_Separator")
+
+;; ── TAB CONTAINER ────────────────────────────────────────────
+TabContainer/colors/font_selected_color = Color(0.98, 0.78, 0.2, 1)
+TabContainer/colors/font_unselected_color = Color(0.639, 0.675, 0.725, 1)
+TabContainer/colors/font_disabled_color = Color(0.486, 0.529, 0.592, 1)
+TabContainer/fonts/font = ExtResource("Font_SansMedium")
+TabContainer/font_sizes/font_size = 14
+TabContainer/styles/tab_selected = SubResource("SB_TabSelected")
+TabContainer/styles/tab_unselected = SubResource("SB_TabUnselected")
+TabContainer/styles/panel = SubResource("SB_Panel")
+
+;; ── SCROLL CONTAINER ─────────────────────────────────────────
+HScrollBar/styles/scroll = SubResource("SB_ScrollBg")
+HScrollBar/styles/grabber = SubResource("SB_ScrollGrabber")
+HScrollBar/styles/grabber_hover = SubResource("SB_ScrollGrabberHover")
+VScrollBar/styles/scroll = SubResource("SB_ScrollBg")
+VScrollBar/styles/grabber = SubResource("SB_ScrollGrabber")
+VScrollBar/styles/grabber_hover = SubResource("SB_ScrollGrabberHover")
+
+;; ── LINE EDIT ────────────────────────────────────────────────
+LineEdit/colors/font_color = Color(0.91, 0.918, 0.929, 1)
+LineEdit/colors/font_placeholder_color = Color(0.486, 0.529, 0.592, 1)
+LineEdit/styles/normal = SubResource("SB_ButtonNormal")
+LineEdit/styles/focus = SubResource("SB_Focus")
+
+
+;; ── TYPE VARIATIONS (Phase 2) ────────────────────────────────
+;; Use:  label.theme_type_variation = &"TitleLabel"
+CaptionLabel/base_type = &"Label"
+CaptionLabel/colors/font_color = Color(0.639, 0.675, 0.725, 1)
+CaptionLabel/font_sizes/font_size = 12
+
+LeadLabel/base_type = &"Label"
+LeadLabel/fonts/font = ExtResource("Font_SansMedium")
+LeadLabel/font_sizes/font_size = 16
+
+TitleLabel/base_type = &"Label"
+TitleLabel/fonts/font = ExtResource("Font_SansBold")
+TitleLabel/font_sizes/font_size = 20
+
+DisplayLabel/base_type = &"Label"
+DisplayLabel/fonts/font = ExtResource("Font_SansBold")
+DisplayLabel/font_sizes/font_size = 28
+
+HeroLabel/base_type = &"Label"
+HeroLabel/fonts/font = ExtResource("Font_SansBold")
+HeroLabel/font_sizes/font_size = 40
+
+;; Live / simulated numerals — always monospaced (separates data from prose)
+StatLabel/base_type = &"Label"
+StatLabel/colors/font_color = Color(0.502, 0.8, 1, 1)
+StatLabel/fonts/font = ExtResource("Font_MonoMedium")
+StatLabel/font_sizes/font_size = 16
+
+StatLabelLarge/base_type = &"Label"
+StatLabelLarge/colors/font_color = Color(0.502, 0.8, 1, 1)
+StatLabelLarge/fonts/font = ExtResource("Font_MonoMedium")
+StatLabelLarge/font_sizes/font_size = 28
+
+GoldLabel/base_type = &"Label"
+GoldLabel/colors/font_color = Color(0.98, 0.78, 0.2, 1)
+
+;; ── BUTTON VARIATIONS ────────────────────────────────────────
+;; Gold text on gold fill is forbidden → ink-900 text on gold.
+PrimaryButton/base_type = &"Button"
+PrimaryButton/colors/font_color = Color(0.027, 0.035, 0.051, 1)
+PrimaryButton/colors/font_hover_color = Color(0.027, 0.035, 0.051, 1)
+PrimaryButton/colors/font_pressed_color = Color(0.027, 0.035, 0.051, 1)
+PrimaryButton/colors/font_focus_color = Color(0.027, 0.035, 0.051, 1)
+PrimaryButton/colors/font_disabled_color = Color(0.486, 0.529, 0.592, 1)
+PrimaryButton/fonts/font = ExtResource("Font_SansBold")
+PrimaryButton/styles/normal = SubResource("SB_PrimaryNormal")
+PrimaryButton/styles/hover = SubResource("SB_PrimaryHover")
+PrimaryButton/styles/pressed = SubResource("SB_PrimaryPressed")
+
+GhostButton/base_type = &"Button"
+GhostButton/styles/normal = SubResource("SB_GhostNormal")
+GhostButton/styles/hover = SubResource("SB_GhostHover")
+
+TabButton/base_type = &"Button"
+TabButton/colors/font_color = Color(0.639, 0.675, 0.725, 1)
+TabButton/colors/font_hover_color = Color(0.91, 0.918, 0.929, 1)
+TabButton/colors/font_pressed_color = Color(0.98, 0.78, 0.2, 1)
+TabButton/colors/font_hover_pressed_color = Color(0.98, 0.78, 0.2, 1)
+TabButton/colors/font_focus_color = Color(0.91, 0.918, 0.929, 1)
+TabButton/styles/normal = SubResource("SB_TabBtnNormal")
+TabButton/styles/hover = SubResource("SB_TabBtnHover")
+TabButton/styles/pressed = SubResource("SB_TabBtnOn")
+TabButton/styles/hover_pressed = SubResource("SB_TabBtnOn")
+
+;; ── PANEL VARIATIONS ─────────────────────────────────────────
+ArchiveCard/base_type = &"PanelContainer"
+ArchiveCard/styles/panel = SubResource("SB_CardHard")
+
+HudPanel/base_type = &"PanelContainer"
+HudPanel/styles/panel = SubResource("SB_HudPanel")

@@ -6,11 +6,35 @@ extends Node
 signal artifact_recovered(artifact_id: String)
 signal mission_completed(planet: String)
 signal planet_unlocked(planet: String)
+signal resources_updated(energy: float, max_energy: float, minerals: int)
 
 var artifacts_data: Dictionary = {}
 var recovered_artifacts: Array[String] = []
 var unlocked_planets: Array[String] = ["Moon"]
 var current_planet: String = "Moon"
+
+# Tactical Sci-Fi Resource Tracking
+var energy: float = 94.0 # Percentage / kWh
+var max_energy: float = 100.0
+var minerals: int = 1420 # kg of geological samples
+
+func get_energy() -> float:
+	return energy
+
+func get_minerals() -> int:
+	return minerals
+
+func add_minerals(amount: int) -> void:
+	minerals += amount
+	resources_updated.emit(energy, max_energy, minerals)
+
+func consume_energy(amount: float) -> void:
+	energy = maxf(0.0, energy - amount)
+	resources_updated.emit(energy, max_energy, minerals)
+
+func charge_energy(amount: float) -> void:
+	energy = minf(max_energy, energy + amount)
+	resources_updated.emit(energy, max_energy, minerals)
 
 func _ready() -> void:
 	setup_default_inputs()
@@ -75,6 +99,7 @@ func register_artifact(artifact_id: String) -> void:
 	recovered_artifacts.append(artifact_id)
 	var art_name = artifacts_data[artifact_id].get("name", artifact_id)
 	print("[GameState] Artifact recovered: ", art_name, " (", artifact_id, ")")
+	add_minerals(280)
 	artifact_recovered.emit(artifact_id)
 	
 	# Check mission completion

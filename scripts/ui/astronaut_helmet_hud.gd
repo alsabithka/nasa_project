@@ -1,12 +1,11 @@
 extends CanvasLayer
 
-# Echoes Beyond Earth - Apollo Spacesuit LEVA Visor HUD
-# Recreates the astronaut's in-helmet telemetry display:
-# - Suit pressure, oxygen reserve, PLSS battery, metabolic heart rate
-# - Lunar gravity telemetry (1.62 m/s²)
-# - Gait mode display: [WALK] vs [LUNAR LOPE]
-# - Compass heading & pitch
-# - Subtle gold LEVA visor contour vignette
+# Echoes Beyond Earth - Suit telemetry (Phase 4)
+# Bottom-left zone of the world HUD (top-left, top-right and bottom-right belong to WorldHud).
+# LIVE values: heart rate (from exertion), gait, gravity, heading, view mode.
+# SIM values (invented, labelled with a SIM badge): suit pressure / atmosphere, O2, EVA clock.
+# Public label fields are read by the regression tests; keep their names.
+# Layer: UITokens.LAYER_TELEMETRY (5).
 
 @export var player_path: NodePath
 
@@ -18,15 +17,18 @@ var gravity_label: Label
 var compass_label: Label
 var view_mode_label: Label
 var mission_clock_label: Label
-var visor_overlay: Control
 
+var _suit_title: Label
+var _hr_title: Label
 var _player_ref: CharacterBody3D
 var _elapsed_sec: float = 0.0
 
+
 func _ready() -> void:
-	layer = 8
+	layer = UITokens.LAYER_TELEMETRY
 	_build_hud_elements()
 	call_deferred("_find_player")
+
 
 func _find_player() -> void:
 	if not player_path.is_empty():
@@ -34,140 +36,156 @@ func _find_player() -> void:
 	if not _player_ref:
 		_player_ref = get_tree().get_first_node_in_group("player") as CharacterBody3D
 
+
 func _build_hud_elements() -> void:
-	var root = Control.new()
+	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.theme = UITokens.theme()
 	add_child(root)
-	
-	# Visor curvature frame / vignette
-	visor_overlay = Control.new()
-	visor_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	visor_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(visor_overlay)
-	
-	# Top bar: Telemetry Readouts
-	var top_panel = PanelContainer.new()
-	top_panel.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	top_panel.offset_left = 32
-	top_panel.offset_right = -32
-	top_panel.offset_top = 18
-	top_panel.offset_bottom = 58
-	top_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(top_panel)
-	
-	var hbox = HBoxContainer.new()
-	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	hbox.add_theme_constant_override("separation", 28)
-	top_panel.add_child(hbox)
-	
-	suit_pressure_label = _create_hud_item(hbox, "SUIT P", "3.7 PSI (25.5 kPa)", Color(0.3, 0.9, 1.0))
-	consumables_label = _create_hud_item(hbox, "PLSS O2", "98.4%", Color(0.3, 1.0, 0.5))
-	heart_rate_label = _create_hud_item(hbox, "HEART RATE", "82 BPM", Color(1.0, 0.85, 0.2))
-	gait_label = _create_hud_item(hbox, "GAIT MODE", "LUNAR LOPE [Shift/C]", Color(0.9, 0.95, 1.0))
-	gravity_label = _create_hud_item(hbox, "GRAVITY", "1.62 m/s² (0.166 g)", Color(0.6, 0.85, 1.0))
-	compass_label = _create_hud_item(hbox, "HEADING", "045° NNE", Color(0.85, 0.9, 0.95))
-	
-	# Bottom bar: View mode & Mission Clock
-	var bottom_hbox = HBoxContainer.new()
-	bottom_hbox.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	bottom_hbox.offset_left = 36
-	bottom_hbox.offset_right = -36
-	bottom_hbox.offset_bottom = -16
-	bottom_hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(bottom_hbox)
-	
-	view_mode_label = Label.new()
-	view_mode_label.text = "VIEW: 3RD-PERSON MINION EVA [Mouse Wheel to Zoom]"
-	view_mode_label.modulate = Color(0.7, 0.8, 0.9, 0.8)
-	bottom_hbox.add_child(view_mode_label)
-	
-	var spacer = Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bottom_hbox.add_child(spacer)
-	
-	mission_clock_label = Label.new()
-	mission_clock_label.text = "MET: 114:24:00"
-	mission_clock_label.modulate = Color(0.7, 0.8, 0.9, 0.8)
-	bottom_hbox.add_child(mission_clock_label)
 
-func _create_hud_item(parent: HBoxContainer, title: String, val: String, col: Color) -> Label:
-	var vb = VBoxContainer.new()
+	var panel := HudPanel.new()
+	var col := VBoxContainer.new()
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_theme_constant_override("separation", UITokens.SP_2)
+	panel.add_child(col)
+
+	var grid := GridContainer.new()
+	grid.columns = 3
+	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	grid.add_theme_constant_override("h_separation", UITokens.SP_6)
+	grid.add_theme_constant_override("v_separation", UITokens.SP_2)
+	col.add_child(grid)
+
+	# Row 1: SIM, SIM, LIVE.   Row 2: LIVE x3.
+	var c1: Array = _cell(grid, "SUIT PRESSURE", "3.7 PSI", UITokens.SIGNAL_CYAN, true)
+	_suit_title = c1[0]
+	suit_pressure_label = c1[1]
+	consumables_label = _cell(grid, "PLSS O₂", "98.4%", UITokens.SIGNAL_CYAN, true)[1]
+	var c3: Array = _cell(grid, "HEART RATE", "82 BPM", UITokens.SIGNAL_GOLD, false)
+	_hr_title = c3[0]
+	heart_rate_label = c3[1]
+	var c4: Array = _cell(grid, "GAIT", "LUNAR LOPE", UITokens.PAPER_100, false)
+	gait_label = c4[1]
+	var gait_cap := KeyCap.new()          # the real gait key, read from the InputMap
+	gait_cap.action_name = "gait_toggle"
+	gait_label.get_parent().add_child(gait_cap)
+	gravity_label = _cell(grid, "GRAVITY", "1.62 m/s²", UITokens.SIGNAL_CYAN, false)[1]
+	compass_label = _cell(grid, "HEADING", "045°", UITokens.PAPER_100, false)[1]
+
+	var rule := ColorRect.new()
+	rule.color = UITokens.INK_600
+	rule.custom_minimum_size = Vector2(0, 1)
+	col.add_child(rule)
+
+	# Footer: view mode (with its key-cap) and the simulated EVA clock.
+	var foot := HBoxContainer.new()
+	foot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	foot.add_theme_constant_override("separation", UITokens.SP_2)
+	col.add_child(foot)
+	var cap := KeyCap.new()
+	cap.action_name = "view_toggle"
+	foot.add_child(cap)
+	view_mode_label = Label.new()
+	view_mode_label.text = "VIEW: 3RD-PERSON CHASE"
+	view_mode_label.theme_type_variation = &"CaptionLabel"
+	view_mode_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	view_mode_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	foot.add_child(view_mode_label)
+	mission_clock_label = Label.new()
+	mission_clock_label.text = "EVA MET 114:24:00"
+	mission_clock_label.theme_type_variation = &"CaptionLabel"
+	mission_clock_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	foot.add_child(mission_clock_label)
+	foot.add_child(Badge.make(Badge.Kind.SIM))
+
+	root.add_child(panel)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, WorldHud.MARGIN)
+	panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+
+
+## One telemetry cell: caption title over a mono value (+ SIM badge when invented).
+## Returns [title_label, value_label].
+func _cell(parent: GridContainer, title: String, val: String, col: Color, is_sim: bool) -> Array:
+	var vb := VBoxContainer.new()
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_theme_constant_override("separation", 2)
 	parent.add_child(vb)
-	
-	var t = Label.new()
+
+	var t := Label.new()
 	t.text = title
-	t.add_theme_font_size_override("font_size", 10)
-	t.modulate = Color(0.6, 0.65, 0.72)
+	t.theme_type_variation = &"CaptionLabel"
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(t)
-	
-	var v = Label.new()
+
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", UITokens.SP_1)
+	vb.add_child(row)
+	var v := Label.new()
 	v.text = val
-	v.add_theme_font_size_override("font_size", 13)
-	v.modulate = col
-	vb.add_child(v)
-	return v
+	v.theme_type_variation = &"StatLabel"
+	v.add_theme_font_size_override("font_size", UITokens.TEXT_BODY)
+	v.add_theme_color_override("font_color", col)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(v)
+	if is_sim:
+		row.add_child(Badge.make(Badge.Kind.SIM))
+	return [t, v]
+
 
 func _process(delta: float) -> void:
 	_elapsed_sec += delta
-	var hr = int(_elapsed_sec / 3600.0) + 114
-	var mn = int(fmod(_elapsed_sec, 3600.0) / 60.0) + 24
-	var sc = int(fmod(_elapsed_sec, 60.0))
-	mission_clock_label.text = "EVA MET: %03d:%02d:%02d" % [hr, mn, sc]
-	
+	var hr: int = int(_elapsed_sec / 3600.0) + 114
+	var mn: int = int(fmod(_elapsed_sec, 3600.0) / 60.0) + 24
+	var sc: int = int(fmod(_elapsed_sec, 60.0))
+	mission_clock_label.text = "EVA MET %03d:%02d:%02d" % [hr, mn, sc]
+
 	if not _player_ref:
 		_find_player()
 		return
-	
-	# Update gait mode
-	var is_mars = false
-	var gs = get_node_or_null("/root/GameState")
+
+	var is_mars: bool = false
+	var gs: Node = get_node_or_null("/root/GameState")
 	if gs and gs.current_planet == "Mars":
 		is_mars = true
-	elif _player_ref and "gravity" in _player_ref and _player_ref.gravity > 2.5:
+	elif "gravity" in _player_ref and _player_ref.gravity > 2.5:
 		is_mars = true
 
-	var is_loping = false
+	var is_loping: bool = false
 	if "is_loping_mode" in _player_ref:
 		is_loping = _player_ref.is_loping_mode
-	
+
 	if is_mars:
-		gait_label.text = "MARTIAN STRIDE [Shift/C]" if is_loping else "SUIT WALK [Shift/C]"
-		if suit_pressure_label and suit_pressure_label.get_parent():
-			var title_lbl = suit_pressure_label.get_parent().get_child(0) as Label
-			if title_lbl:
-				title_lbl.text = "ATMOSPHERE"
-			suit_pressure_label.text = "6.1 hPa (95.3% CO₂)"
+		gait_label.text = "MARTIAN STRIDE" if is_loping else "SUIT WALK"
+		_suit_title.text = "ATMOSPHERE"
+		suit_pressure_label.text = "6.1 hPa"
 	else:
-		gait_label.text = "LUNAR LOPE [Shift/C]" if is_loping else "SUIT WALK [Shift/C]"
-	gait_label.modulate = Color(0.3, 1.0, 0.6) if is_loping else Color(0.9, 0.95, 1.0)
-	
-	# Update heart rate from exertion
-	var exertion = 0.0
+		gait_label.text = "LUNAR LOPE" if is_loping else "SUIT WALK"
+
+	# Heart rate from exertion. High is stated in words, not only coloured.
+	var exertion: float = 0.0
 	if "exertion_level" in _player_ref:
 		exertion = _player_ref.exertion_level
-	var bpm = int(lerp(76.0, 138.0, exertion))
+	var bpm: int = int(lerp(76.0, 138.0, exertion))
 	heart_rate_label.text = "%d BPM" % bpm
-	heart_rate_label.modulate = Color(1.0, 0.85, 0.2) if bpm < 115 else Color(1.0, 0.35, 0.35)
-	
-	# Update heading and pitch
+	var high: bool = bpm >= 115
+	_hr_title.text = "HEART RATE · HIGH" if high else "HEART RATE"
+	heart_rate_label.add_theme_color_override("font_color", UITokens.SIGNAL_RED if high else UITokens.SIGNAL_GOLD)
+
 	if "camera_pivot" in _player_ref and _player_ref.camera_pivot:
-		var yaw_deg = int(fmod(rad_to_deg(_player_ref.camera_pivot.rotation.y) + 360.0, 360.0))
-		compass_label.text = "%03d°" % yaw_deg
-	
-	# Update gravity readout dynamically
+		var yaw_deg: int = int(fmod(rad_to_deg(_player_ref.camera_pivot.rotation.y) + 360.0, 360.0))
+		compass_label.text = "%03d° %s" % [yaw_deg, _cardinal(yaw_deg)]
+
 	if "gravity" in _player_ref and gravity_label:
-		var g_val = _player_ref.gravity
-		var g_ratio = g_val / 9.80665
-		gravity_label.text = "%.2f m/s² (%.3f g)" % [g_val, g_ratio]
-	
-	# Update view mode label
-	var is_first_person = false
+		gravity_label.text = "%.2f m/s²" % float(_player_ref.gravity)
+
+	var fp: bool = false
 	if "is_first_person" in _player_ref:
-		is_first_person = _player_ref.is_first_person
-	view_mode_label.text = "VIEW: 1ST-PERSON VISOR [V]" if is_first_person else "VIEW: 3RD-PERSON MINION EVA [Mouse Wheel Zoom]"
-	if "is_first_person" in _player_ref:
-		is_first_person = _player_ref.is_first_person
-	view_mode_label.text = "VIEW: 1ST-PERSON EVA VISOR [V]" if is_first_person else "VIEW: 3RD-PERSON CHASE [V]"
+		fp = _player_ref.is_first_person
+	view_mode_label.text = "VIEW: 1ST-PERSON VISOR" if fp else "VIEW: 3RD-PERSON CHASE"
+
+
+static func _cardinal(deg: int) -> String:
+	var names := ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+	return names[int(round(float(deg) / 45.0)) % 8]

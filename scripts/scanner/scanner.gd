@@ -23,6 +23,7 @@ var current_distance: float = 999.0
 var current_signal_strength: float = 0.0
 var target_direction: Vector3 = Vector3.ZERO
 var is_locked_on: bool = false
+var beep_interval_near: float = 0.38
 
 var _scan_timer: float = 0.0
 var _audio_timer: float = 0.0
@@ -36,23 +37,26 @@ func _setup_audio() -> void:
 	_audio_player = AudioStreamPlayer.new()
 	add_child(_audio_player)
 	_audio_player.bus = &"Master"
-	_audio_player.volume_db = -12.0
+	_audio_player.volume_db = -18.0
 	
-	# Procedurally generate a clean synthetic beep sound
+	# Procedurally generate a clean 16-bit synthetic telemetry ping
 	var sample_rate = 22050
-	var duration = 0.08
+	var duration = 0.06
 	var num_samples = int(sample_rate * duration)
 	var data = PackedByteArray()
-	data.resize(num_samples)
+	data.resize(num_samples * 2)
 	for i in range(num_samples):
 		var t = float(i) / float(sample_rate)
-		# 880 Hz beep with subtle exponential decay
-		var wave = sin(t * 880.0 * TAU) * exp(-t * 25.0)
-		var byte_val = clampi(int((wave + 1.0) * 0.5 * 255.0), 0, 255)
-		data[i] = byte_val
+		# 980 Hz smooth sine wave with clean exponential decay
+		var env = exp(-t * 35.0)
+		var wave = sin(t * 980.0 * TAU) * env * 0.7
+		var sample_val = clampi(int(wave * 32767.0), -32767, 32767)
+		var u16 = sample_val if sample_val >= 0 else (sample_val + 65536)
+		data[i * 2] = u16 & 0xFF
+		data[i * 2 + 1] = (u16 >> 8) & 0xFF
 	
 	var wav = AudioStreamWAV.new()
-	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
 	wav.mix_rate = sample_rate
 	wav.stereo = false
 	wav.data = data
@@ -67,22 +71,8 @@ func _process(delta: float) -> void:
 		_scan_timer = 0.0
 		_perform_scan()
 	
-	# Handle proximity beep cadence
-	if current_signal_strength > 0.05:
-		_audio_timer += delta
-		var beep_interval: float
-		# When locked on and very strong signal: very rapid continuous beep
-		if is_locked_on and current_signal_strength >= 0.85:
-			beep_interval = 0.08
-		else:
-			# Beep interval scales inversely with signal strength: 1.2s far -> 0.15s near
-			beep_interval = lerp(1.2, 0.15, current_signal_strength)
-		if _audio_timer >= beep_interval:
-			_audio_timer = 0.0
-			if _audio_player and not _audio_player.playing:
-				# Scale pitch slightly higher when closer (880Hz -> 1320Hz)
-				_audio_player.pitch_scale = lerp(0.9, 1.4, current_signal_strength)
-				_audio_player.play()
+	# Proximity audio ping disabled per Task 2 (visual screen/LED pulse provides feedback)
+	_audio_timer = 0.0
 
 func _perform_scan() -> void:
 	var player = _get_player()
@@ -127,6 +117,7 @@ func _perform_scan() -> void:
 		
 		var dy = art_pos.y - scan_origin.y
 		var dist = sqrt(dx * dx + dy * dy + dz * dz)
+		
 		if dist < closest_dist:
 			closest_dist = dist
 			closest_artifact = art
@@ -134,27 +125,7 @@ func _perform_scan() -> void:
 	
 	if closest_artifact != null and closest_dist <= max_scan_range:
 		var art_id = closest_artifact.get_artifact_id()
-		# Realistic electromagnetic VLF induction response curve (non-linear inverse distance decay)
-		var norm_dist = closest_dist / max_scan_range
-		var strength = clampf(pow(clampf(1.0 - norm_dist, 0.0, 1.0), 2.2), 0.0, 1.0)
-		
-		# Material conductivity differentiation: Metal hardware & iron meteorites vs non-metallic silicates
-		var conductivity = 1.0
-		var game_state = get_node_or_null("/root/GameState")
-		if game_state:
-			var data = game_state.get_artifact_data(art_id)
-			var cat = data.get("category", "")
-			if cat == "Natural Lunar Material":
-				if art_id == "lunar_iron_meteorite":
-					conductivity = 1.0 # High ferromagnetic nickel-iron response
-				else:
-					conductivity = 0.08 # Non-metallic silicate rock
-			elif art_id == "pyroclastic_orange_glass":
-				conductivity = 0.35 # Moderate ilmenite volcanic glass response
-			else:
-				conductivity = 1.0 # Aerospace metals (Al, Ti, Inconel, Beryllium)
-		
-		var detector_strength = strength * conductivity
+		var strength = clamp(1.0 - (closest_dist / max_scan_range), 0.0, 1.0)
 		target_direction = closest_delta.normalized() if closest_delta.length_squared() > 0.001 else (closest_artifact.get_world_position() - scan_origin).normalized()
 		
 		if current_target_id != art_id:
@@ -165,9 +136,6 @@ func _perform_scan() -> void:
 		current_signal_strength = strength
 		scan_updated.emit(art_id, closest_dist, strength)
 		mystery_signal_updated.emit(strength, closest_dist)
-
-		if player and player.has_method("update_metal_detector_signal"):
-			player.update_metal_detector_signal(detector_strength, closest_dist)
 		
 		# Lock-on logic: within 4m = locked on
 		if closest_dist <= 4.0:

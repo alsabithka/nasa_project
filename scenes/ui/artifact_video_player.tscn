@@ -1,0 +1,570 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/artifact_video_player.gd" id="1_player"]
+
+[sub_resource type="StyleBoxFlat" id="Style_Band"]
+bg_color = Color(0.02, 0.03, 0.05, 0.72)
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+
+[sub_resource type="StyleBoxFlat" id="Style_Bar"]
+bg_color = Color(0.04, 0.05, 0.08, 0.9)
+border_width_top = 2
+border_color = Color(0.95, 0.75, 0.2, 0.65)
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+
+[sub_resource type="StyleBoxFlat" id="Style_LowerThird"]
+bg_color = Color(0.04, 0.05, 0.08, 0.84)
+border_width_left = 4
+border_color = Color(0.95, 0.75, 0.2, 0.95)
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 20.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="Style_Subtitle"]
+bg_color = Color(0, 0, 0, 0.62)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 18.0
+content_margin_top = 8.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="Style_Badge"]
+bg_color = Color(0.04, 0.05, 0.08, 0.78)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.5, 0.8, 1, 0.5)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxFlat" id="Style_ProgressBg"]
+bg_color = Color(0.16, 0.2, 0.3, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="Style_ProgressFill"]
+bg_color = Color(0.98, 0.78, 0.2, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="Style_EndCard"]
+bg_color = Color(0.04, 0.05, 0.08, 0.97)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.95, 0.75, 0.2, 0.8)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+content_margin_left = 36.0
+content_margin_top = 28.0
+content_margin_right = 36.0
+content_margin_bottom = 28.0
+
+[node name="ArtifactVideoPlayer" type="CanvasLayer"]
+process_mode = 3
+layer = 20
+script = ExtResource("1_player")
+
+[node name="UI" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Backdrop" type="ColorRect" parent="UI"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.008, 0.01, 0.016, 1)
+
+[node name="VideoFrame" type="AspectRatioContainer" parent="UI"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+ratio = 1.7778
+stretch_mode = 2
+
+[node name="Video" type="VideoStreamPlayer" parent="UI/VideoFrame"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+expand = true
+
+[node name="Overlay" type="Control" parent="UI"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopBand" type="PanelContainer" parent="UI/Overlay"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 52.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("Style_Band")
+
+[node name="Margin" type="MarginContainer" parent="UI/Overlay/TopBand"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 12
+
+[node name="HBox" type="HBoxContainer" parent="UI/Overlay/TopBand/Margin"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="BrandLabel" type="Label" parent="UI/Overlay/TopBand/Margin/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.78, 0.2, 1)
+theme_override_font_sizes/font_size = 15
+text = "ECHOES BEYOND EARTH"
+
+[node name="ArtifactTitleLabel" type="Label" parent="UI/Overlay/TopBand/Margin/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.65, 0.7, 0.8, 0.9)
+theme_override_font_sizes/font_size = 14
+text = "Artifact"
+horizontal_alignment = 1
+text_overrun_behavior = 3
+
+[node name="ChapterIndicator" type="Label" parent="UI/Overlay/TopBand/Margin/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "CHAPTER 01 / 06"
+horizontal_alignment = 2
+
+[node name="ChapterCard" type="VBoxContainer" parent="UI/Overlay"]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.07
+anchor_top = 0.34
+anchor_right = 0.65
+anchor_bottom = 0.54
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="ChapterNumberLabel" type="Label" parent="UI/Overlay/ChapterCard"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.78, 0.2, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.9)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 20
+text = "CHAPTER 01"
+
+[node name="ChapterRule" type="ColorRect" parent="UI/Overlay/ChapterCard"]
+custom_minimum_size = Vector2(140, 3)
+layout_mode = 2
+size_flags_horizontal = 0
+mouse_filter = 2
+color = Color(0.95, 0.75, 0.2, 0.9)
+
+[node name="ChapterTitleLabel" type="Label" parent="UI/Overlay/ChapterCard"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.9)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 46
+text = "The Origin"
+autowrap_mode = 3
+
+[node name="LowerThird" type="PanelContainer" parent="UI/Overlay"]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+custom_minimum_size = Vector2(470, 0)
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.05
+anchor_top = 1.0
+anchor_right = 0.05
+anchor_bottom = 1.0
+offset_top = -218.0
+offset_bottom = -218.0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("Style_LowerThird")
+
+[node name="VBox" type="VBoxContainer" parent="UI/Overlay/LowerThird"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="LowerThirdLabel" type="Label" parent="UI/Overlay/LowerThird/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.78, 0.2, 1)
+theme_override_font_sizes/font_size = 13
+text = "LOCATION · DATE"
+
+[node name="LowerThirdText" type="Label" parent="UI/Overlay/LowerThird/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Lower third text"
+autowrap_mode = 3
+
+[node name="FootageBadge" type="PanelContainer" parent="UI/Overlay"]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -24.0
+offset_top = -218.0
+offset_right = -24.0
+offset_bottom = -218.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("Style_Badge")
+
+[node name="FootageLabel" type="Label" parent="UI/Overlay/FootageBadge"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "ARCHIVAL"
+
+[node name="SubtitlePanel" type="PanelContainer" parent="UI/Overlay"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_top = -84.0
+offset_bottom = -84.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("Style_Subtitle")
+
+[node name="SubtitleLabel" type="Label" parent="UI/Overlay/SubtitlePanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(860, 0)
+layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 24
+text = "Subtitle"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="PausedLabel" type="Label" parent="UI/Overlay"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -140.0
+offset_top = -30.0
+offset_right = 140.0
+offset_bottom = 30.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.98, 0.78, 0.2, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 36
+text = "PAUSED"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ControlBar" type="PanelContainer" parent="UI/Overlay"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -64.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_styles/panel = SubResource("Style_Bar")
+
+[node name="Margin" type="MarginContainer" parent="UI/Overlay/ControlBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 12
+
+[node name="HBox" type="HBoxContainer" parent="UI/Overlay/ControlBar/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="PlayPauseButton" type="Button" parent="UI/Overlay/ControlBar/Margin/HBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+focus_mode = 0
+text = "PAUSE"
+
+[node name="TimeLabel" type="Label" parent="UI/Overlay/ControlBar/Margin/HBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.9, 1, 1)
+text = "0:00 / 0:00"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ProgressWrap" type="Control" parent="UI/Overlay/ControlBar/Margin/HBox"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="ProgressBar" type="ProgressBar" parent="UI/Overlay/ControlBar/Margin/HBox/ProgressWrap"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = -1
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_top = -4.0
+offset_bottom = 4.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_styles/background = SubResource("Style_ProgressBg")
+theme_override_styles/fill = SubResource("Style_ProgressFill")
+max_value = 1.0
+step = 0.0001
+show_percentage = false
+
+[node name="ChapterTicks" type="Control" parent="UI/Overlay/ControlBar/Margin/HBox/ProgressWrap"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="CaptionsButton" type="Button" parent="UI/Overlay/ControlBar/Margin/HBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(56, 0)
+layout_mode = 2
+focus_mode = 0
+toggle_mode = true
+button_pressed = true
+text = "CC"
+
+[node name="SkipButton" type="Button" parent="UI/Overlay/ControlBar/Margin/HBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+focus_mode = 0
+text = "SKIP"
+
+[node name="EndCard" type="Control" parent="UI"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="EndShade" type="ColorRect" parent="UI/EndCard"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.015, 0.02, 0.035, 1)
+
+[node name="TopBorder" type="ColorRect" parent="UI/EndCard"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 4.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.95, 0.75, 0.2, 0.8)
+
+[node name="BottomBorder" type="ColorRect" parent="UI/EndCard"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -4.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(0.95, 0.75, 0.2, 0.8)
+
+[node name="EndCenter" type="CenterContainer" parent="UI/EndCard"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Card" type="PanelContainer" parent="UI/EndCard/EndCenter"]
+custom_minimum_size = Vector2(760, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("Style_EndCard")
+
+[node name="VBox" type="VBoxContainer" parent="UI/EndCard/EndCenter/Card"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="EndBrand" type="Label" parent="UI/EndCard/EndCenter/Card/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.78, 0.2, 1)
+theme_override_font_sizes/font_size = 24
+text = "ECHOES BEYOND EARTH"
+
+[node name="EndTagline" type="Label" parent="UI/EndCard/EndCenter/Card/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "ARTIFACT ARCHIVE DOCUMENTARY SERIES"
+
+[node name="HSeparator" type="HSeparator" parent="UI/EndCard/EndCenter/Card/VBox"]
+layout_mode = 2
+
+[node name="EndTitle" type="Label" parent="UI/EndCard/EndCenter/Card/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Artifact"
+autowrap_mode = 3
+
+[node name="EndSubtitle" type="Label" parent="UI/EndCard/EndCenter/Card/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.7, 0.8, 0.9)
+theme_override_font_sizes/font_size = 14
+text = "Subtitle"
+autowrap_mode = 3
+
+[node name="SourcesHeader" type="Label" parent="UI/EndCard/EndCenter/Card/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.65, 0.2, 1)
+theme_override_font_sizes/font_size = 15
+text = "SOURCES"
+
+[node name="SourcesText" type="RichTextLabel" parent="UI/EndCard/EndCenter/Card/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+bbcode_enabled = true
+text = "No sources listed."
+fit_content = true
+scroll_active = false
+
+[node name="AttributionLabel" type="Label" parent="UI/EndCard/EndCenter/Card/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.7, 0.8, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "Attribution"
+autowrap_mode = 3
+
+[node name="ClosingLine" type="Label" parent="UI/EndCard/EndCenter/Card/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = ""
+autowrap_mode = 3
+
+[node name="Footer" type="HBoxContainer" parent="UI/EndCard/EndCenter/Card/VBox"]
+layout_mode = 2
+
+[node name="AutoCloseLabel" type="Label" parent="UI/EndCard/EndCenter/Card/VBox/Footer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.65, 0.7, 0.8, 0.7)
+theme_override_font_sizes/font_size = 13
+text = "Returning to exploration..."
+
+[node name="ContinueButton" type="Button" parent="UI/EndCard/EndCenter/Card/VBox/Footer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+focus_mode = 0
+text = "CONTINUE"
+
+[node name="Fade" type="ColorRect" parent="UI"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)

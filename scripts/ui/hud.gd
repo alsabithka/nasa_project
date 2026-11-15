@@ -1,39 +1,25 @@
 extends Control
 
 # Echoes Beyond Earth - In-Game HUD, Mystery Scanner Radar, Discovery & Flashback Flow
+# Phase 4: UITokens colours applied; Toast notifications on discovery
+# Phase 6: the journal is the JournalDrawer component (archive drawer); old JournalModal nodes are gone.
+# Phase 5: the discovery popup is gone — the Catalogue Entry (scientific_examination_panel.gd)
+# replaces it. WATCH STORY arrives via play_artifact_story() (group "hud").
 
 @export var current_planet: String = "Moon"
 
 # UI Nodes
-@onready var location_label: Label = $TopBar/MarginContainer/HBoxContainer/LocationLabel
-@onready var counter_label: Label = $TopBar/MarginContainer/HBoxContainer/CounterBadge/CounterLabel
-@onready var journal_button: Button = $TopBar/MarginContainer/HBoxContainer/JournalButton
-@onready var menu_button: Button = $TopBar/MarginContainer/HBoxContainer/MenuButton
+# Phase 4: the top bar and scanner now live in the WorldHud component (built in _ready).
+var world_hud: WorldHud
+var location_label: Label
+var counter_label: Label
+var journal_button: Button
+var menu_button: Button
+var radar_panel: Control   # the scanner instrument; hidden while a modal is open
+var _signal_toasted: Dictionary = {}
 
-# Radar Widget
-@onready var radar_panel: PanelContainer = $RadarWidget
-@onready var distance_label: Label = $RadarWidget/VBoxContainer/DistanceLabel
-@onready var strength_bar: ProgressBar = $RadarWidget/VBoxContainer/StrengthBar
-@onready var target_name_label: Label = $RadarWidget/VBoxContainer/TargetNameLabel
-@onready var compass_needle: Control = $RadarWidget/VBoxContainer/RadarCircle/Needle
-
-# Discovery Popup
-@onready var discovery_popup: PanelContainer = $DiscoveryPopup
-@onready var popup_title: Label = $DiscoveryPopup/MarginContainer/VBoxContainer/TitleLabel
-@onready var popup_name: Label = $DiscoveryPopup/MarginContainer/VBoxContainer/ArtifactNameLabel
-@onready var popup_mission: Label = $DiscoveryPopup/MarginContainer/VBoxContainer/MissionLabel
-@onready var popup_history: RichTextLabel = $DiscoveryPopup/MarginContainer/VBoxContainer/HistoryLabel
-@onready var popup_close_btn: Button = $DiscoveryPopup/MarginContainer/VBoxContainer/ButtonContainer/CloseButton
-@onready var popup_journal_btn: Button = $DiscoveryPopup/MarginContainer/VBoxContainer/ButtonContainer/OpenJournalButton
-
-# Journal Modal
-@onready var journal_modal: PanelContainer = $JournalModal
-@onready var journal_list: VBoxContainer = $JournalModal/MarginContainer/VBoxContainer/ContentHBox/ScrollContainer/ArtifactList
-@onready var journal_detail_name: Label = $JournalModal/MarginContainer/VBoxContainer/ContentHBox/DetailPanel/VBoxContainer/DetailName
-@onready var journal_detail_text: RichTextLabel = $JournalModal/MarginContainer/VBoxContainer/ContentHBox/DetailPanel/VBoxContainer/DetailText
-@onready var journal_close_btn: Button = $JournalModal/MarginContainer/VBoxContainer/HeaderHBox/CloseJournalBtn
-@onready var moon_tab_btn: Button = $JournalModal/MarginContainer/VBoxContainer/TabHBox/MoonTabBtn
-@onready var mars_tab_btn: Button = $JournalModal/MarginContainer/VBoxContainer/TabHBox/MarsTabBtn
+# Journal (Phase 6): archive drawer built in code, owns tabs / filters / slots / detail.
+var journal: JournalDrawer
 
 # Mission Complete Banner
 @onready var completion_modal: PanelContainer = $CompletionModal
@@ -41,37 +27,92 @@ extends Control
 @onready var travel_mars_btn: Button = $CompletionModal/MarginContainer/VBoxContainer/BtnContainer/TravelMarsBtn
 @onready var continue_btn: Button = $CompletionModal/MarginContainer/VBoxContainer/BtnContainer/ContinueBtn
 
-var selected_journal_planet: String = "Moon"
+var selected_journal_planet: String = ""
 var _last_discovered_id: String = ""
 
+# Phase 3 — pause menu + field manual instances
+var _pause_menu = null
+var _field_manual = null
+
 func _ready() -> void:
+	add_to_group("hud")
+	_build_world_hud()
 	_update_header()
 	_connect_gamestate()
 	_connect_scanner()
+	_build_journal()
 	_setup_buttons()
+	_setup_pause_menu()
+	_check_field_manual()
 	
-	discovery_popup.visible = false
-	journal_modal.visible = false
 	completion_modal.visible = false
+	selected_journal_planet = current_planet
+
+## Merge §9: dig / clean / catalogue / flashback layers join group "blocking_modal". While any is
+## visible, the journal and pause hotkeys are inert (those screens consume Esc themselves).
+func is_modal_blocking() -> bool:
+	for n in get_tree().get_nodes_in_group("blocking_modal"):
+		if not is_instance_valid(n):
+			continue
+		# CanvasLayer (dig / clean / catalogue / ModalShell) and CanvasItem both expose `visible`.
+		if "visible" in n and bool(n.get("visible")):
+			return true
+	return false
+
+## Geology inspection closes on Esc itself (it also consumes the event); never open pause on the same press.
+func _is_geology_inspecting() -> bool:
+	for n in get_tree().get_nodes_in_group("geology_system"):
+		if is_instance_valid(n) and "is_inspecting" in n and bool(n.get("is_inspecting")):
+			return true
+	return false
 
 func _unhandled_input(event: InputEvent) -> void:
+	if is_modal_blocking():
+		return
 	if event.is_action_pressed("toggle_journal"):
 		toggle_journal()
+	elif event.is_action_pressed("ui_cancel"):
+		# ESC priority: the journal consumes Esc itself (JournalDrawer._input); this branch is a
+		# fallback. Then open modals, then the pause menu.
+		if journal.is_open():
+			journal.close()
+			get_viewport().set_input_as_handled()
+		elif completion_modal.visible or _is_geology_inspecting():
+			pass  # mission complete is not dismissable; inspection closes itself
+		else:
+			_open_pause()
+			get_viewport().set_input_as_handled()
 
 func _setup_buttons() -> void:
 	journal_button.pressed.connect(toggle_journal)
 	menu_button.pressed.connect(_on_menu_pressed)
-	popup_close_btn.pressed.connect(_on_popup_closed)
-	popup_journal_btn.pressed.connect(_open_journal_to_last_discovered)
-	journal_close_btn.pressed.connect(func(): journal_modal.visible = false)
-	
-	moon_tab_btn.pressed.connect(func(): _populate_journal("Moon"))
-	mars_tab_btn.pressed.connect(func(): _populate_journal("Mars"))
-	
 	if continue_btn:
 		continue_btn.pressed.connect(func(): completion_modal.visible = false)
 	if travel_mars_btn:
 		travel_mars_btn.pressed.connect(_travel_to_mars)
+
+func _build_journal() -> void:
+	journal = JournalDrawer.new()
+	add_child(journal)
+	journal.closed.connect(_on_journal_closed)
+	journal.story_requested.connect(play_artifact_story)
+
+## Every way of closing the journal (Close, Esc, J, WATCH STORY) ends here.
+func _on_journal_closed() -> void:
+	radar_panel.visible = true
+	if not completion_modal.visible and not (_pause_menu != null and _pause_menu.is_open()):
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func _build_world_hud() -> void:
+	world_hud = WorldHud.new()
+	add_child(world_hud)
+	move_child(world_hud, 0)  # behind the modals defined in the scene
+	location_label = world_hud.location_label
+	counter_label = world_hud.counter_label
+	journal_button = world_hud.journal_button
+	menu_button = world_hud.menu_button
+	radar_panel = world_hud.scanner
+
 
 func _connect_gamestate() -> void:
 	var gs = get_node_or_null("/root/GameState")
@@ -80,6 +121,11 @@ func _connect_gamestate() -> void:
 	
 	gs.artifact_recovered.connect(_on_artifact_recovered)
 	gs.mission_completed.connect(_on_mission_completed)
+	if gs.has_signal("resources_updated"):
+		gs.resources_updated.connect(_on_resources_updated)
+	_on_resources_updated(gs.get_energy(), gs.max_energy, gs.get_minerals())
+	gs.planet_unlocked.connect(func(planet: String) -> void:
+		Toast.notify(get_tree(), "%s UNLOCKED" % planet.to_upper(), UITokens.SIGNAL_GREEN))
 	_update_header()
 
 func _connect_scanner() -> void:
@@ -88,63 +134,57 @@ func _connect_scanner() -> void:
 		if s.has_signal("scan_updated"):
 			s.scan_updated.connect(_on_scan_updated)
 
-# Mystery Scanner: Proximity and Signal Strength only, NEVER reveals artifact identity!
+# Mystery Scanner: proximity and signal strength only, NEVER reveals artifact identity.
 func _on_scan_updated(target_id: String, distance: float, signal_strength: float) -> void:
-	if target_id == "" or distance > 60.0:
-		distance_label.text = "-- m"
-		strength_bar.value = 0
-		target_name_label.text = "Searching for signals..."
-		target_name_label.modulate = Color(0.65, 0.7, 0.75)
-		distance_label.modulate = Color(0.6, 0.65, 0.7)
-		if compass_needle:
-			compass_needle.rotation = 0.0
-		return
-	
-	distance_label.text = "%.1f m" % distance
-	strength_bar.value = signal_strength * 100.0
-	
-	# Mystery-based signal categorization
-	if distance <= 4.0:
-		target_name_label.text = "● ANOMALY BENEATH SURFACE — DIG HERE"
-		target_name_label.modulate = Color(0.2, 1.0, 0.4)
-		distance_label.modulate = Color(0.2, 1.0, 0.4)
-	elif distance < 12.0:
-		target_name_label.text = "▲ STRONG SUBSURFACE ANOMALY"
-		target_name_label.modulate = Color(0.3, 0.9, 1.0)
-		distance_label.modulate = Color(0.3, 0.9, 1.0)
-	elif distance < 25.0:
-		target_name_label.text = "◆ MODERATE SIGNAL DETECTED"
-		target_name_label.modulate = Color(1.0, 0.85, 0.2)
-		distance_label.modulate = Color(1.0, 0.85, 0.2)
-	else:
-		target_name_label.text = "~ FAINT SIGNAL DETECTED"
-		target_name_label.modulate = Color(0.75, 0.8, 0.9)
-		distance_label.modulate = Color(0.75, 0.8, 0.9)
+	world_hud.scanner.update_reading(target_id, distance, signal_strength)
+	# One "signal acquired" toast per target, the first time it comes into range.
+	if target_id != "" and distance <= world_hud.scanner.MAX_RANGE and not _signal_toasted.has(target_id):
+		_signal_toasted[target_id] = true
+		Toast.notify(get_tree(), "SIGNAL ACQUIRED", UITokens.SIGNAL_CYAN)
+
+func _on_resources_updated(energy_val: float, max_energy_val: float, minerals_val: int) -> void:
+	world_hud.set_resources(energy_val, max_energy_val, minerals_val)
 
 func _on_artifact_recovered(artifact_id: String) -> void:
 	_last_discovered_id = artifact_id
 	_update_header()
-	_show_discovery_popup(artifact_id)
-	if journal_modal.visible:
-		_populate_journal(selected_journal_planet)
+	if journal.is_open():
+		journal.refresh()
+	# Phase 5: the Catalogue Entry already showed the full record; this confirms the journal store.
+	var gs = get_node_or_null("/root/GameState")
+	var art_name := artifact_id.capitalize()
+	if gs:
+		var d = gs.get_artifact_data(artifact_id)
+		if d and d.has("name"):
+			art_name = d["name"]
+	Toast.notify(get_tree(), "SPECIMEN STORED — %s" % art_name, UITokens.SIGNAL_GOLD)
 
+## Public hand-over used by artifact.gd when the player chooses WATCH STORY in the Catalogue Entry.
+func play_artifact_story(artifact_id: String) -> void:
+	_last_discovered_id = artifact_id
+	_trigger_flashback(artifact_id)
+
+## Kept for compatibility (test_artifact_video_system): "the discovery acknowledgement closed,
+## start the story for the last discovered artifact".
 func _on_popup_closed() -> void:
-	discovery_popup.visible = false
-	# Trigger cinematic historical flashback after discovery
+	radar_panel.visible = true
 	if _last_discovered_id != "":
 		_trigger_flashback(_last_discovered_id)
 
+# Starts the artifact story: the text flashback (data/flashbacks.json). Merge D5: the video
+# documentary system of the harsh project is intentionally not ported.
 func _trigger_flashback(artifact_id: String) -> void:
 	var flashback_scene = load("res://scenes/ui/flashback.tscn")
 	if flashback_scene:
 		var fb = flashback_scene.instantiate()
 		fb.artifact_id = artifact_id
+		fb.add_to_group("blocking_modal")  # flashback_system.gd itself stays untouched
 		if fb.has_signal("flashback_complete"):
 			fb.flashback_complete.connect(_on_flashback_complete)
 		add_child(fb)
 
 func _on_flashback_complete() -> void:
-	if not journal_modal.visible and not discovery_popup.visible and not completion_modal.visible:
+	if not journal.is_open() and not completion_modal.visible:
 		var player = get_tree().get_first_node_in_group("player")
 		if player and player.has_method("capture_mouse"):
 			player.capture_mouse()
@@ -152,131 +192,116 @@ func _on_flashback_complete() -> void:
 func _on_mission_completed(planet: String) -> void:
 	if completion_modal:
 		completion_modal.visible = true
+		# artifact.gd recaptures the mouse right after identifying; show it again once that has run
+		# so the buttons of this modal can be clicked.
+		call_deferred("_show_mouse")
 		if planet == "Moon":
-			completion_desc.text = "You have excavated, restored, and cataloged all historical Apollo lunar equipment! Mars exploration coordinates are now unlocked."
+			completion_desc.text = "All Apollo lunar artifacts cataloged and preserved! Deep space trajectory to Mars unlocked."
 			if travel_mars_btn:
 				travel_mars_btn.visible = true
 		else:
-			completion_desc.text = "Congratulations! You have successfully surveyed all historical Martian exploration artifacts!"
+			completion_desc.text = "Mission complete! All historical Martian survey equipment successfully cataloged."
 			if travel_mars_btn:
 				travel_mars_btn.visible = false
+
+func _show_mouse() -> void:
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _travel_to_mars() -> void:
 	completion_modal.visible = false
 	get_tree().change_scene_to_file("res://scenes/levels/mars.tscn")
 
 func _update_header() -> void:
-	location_label.text = current_planet.to_upper() + " EXPLORATION"
 	var gs = get_node_or_null("/root/GameState")
 	if gs:
 		var rec = gs.get_recovered_count(current_planet)
 		var total = gs.get_total_count(current_planet)
-		counter_label.text = "%d / %d Artifacts Found" % [rec, total]
-
-func _show_discovery_popup(artifact_id: String) -> void:
-	var gs = get_node_or_null("/root/GameState")
-	var data = {}
-	if gs:
-		data = gs.get_artifact_data(artifact_id)
-	
-	popup_title.text = "ARTIFACT IDENTIFIED & RESTORED!"
-	popup_name.text = data.get("name", artifact_id.capitalize())
-	popup_mission.text = "Mission: %s (%s) | Status: %s" % [
-		str(data.get("mission", "Unknown")),
-		str(data.get("year", "N/A")),
-		str(data.get("status", "Active"))
-	]
-	popup_history.text = "[b]Purpose:[/b] %s\n\n[b]Historical Narrative:[/b] %s" % [
-		data.get("purpose", ""),
-		data.get("history", "")
-	]
-	
-	discovery_popup.visible = true
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		world_hud.set_progress(current_planet, rec, total)
+		world_hud.set_site("TAURUS-LITTROW · EVA-1" if current_planet == "Moon" else "")
+		world_hud.set_resources(gs.get_energy(), gs.max_energy, gs.get_minerals())
+	else:
+		world_hud.set_progress(current_planet, 0, 0)
 
 func toggle_journal() -> void:
-	journal_modal.visible = not journal_modal.visible
-	if journal_modal.visible:
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-		_populate_journal(selected_journal_planet)
-	else:
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-
-func _open_journal_to_last_discovered() -> void:
-	discovery_popup.visible = false
-	journal_modal.visible = true
+	if is_modal_blocking() and not journal.is_open():
+		return
+	if journal.is_open():
+		journal.close()      # _on_journal_closed restores scanner + mouse
+		return
+	# B7: the scanner widget is hidden while the journal is open (and the drawer dims the world).
+	radar_panel.visible = false
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	_populate_journal(selected_journal_planet)
-	if _last_discovered_id != "":
-		_show_artifact_detail(_last_discovered_id)
+	journal.open(selected_journal_planet if selected_journal_planet != "" else current_planet)
 
+## Kept for compatibility: switches the open journal to `planet`.
 func _populate_journal(planet: String) -> void:
 	selected_journal_planet = planet
-	for c in journal_list.get_children():
-		c.queue_free()
-	
-	var gs = get_node_or_null("/root/GameState")
-	if not gs:
-		return
-	
-	var artifacts = gs.artifacts_data
-	var found_any = false
-	
-	for id in artifacts.keys():
-		var data = artifacts[id]
-		if data.get("location", "").to_lower() != planet.to_lower():
-			continue
-		
-		found_any = true
-		var is_rec = gs.is_artifact_recovered(id)
-		
-		var btn = Button.new()
-		btn.custom_minimum_size = Vector2(0, 48)
-		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		
-		if is_rec:
-			btn.text = " [✓] " + data.get("name", id)
-			btn.modulate = Color(0.9, 1.0, 0.9)
-		else:
-			btn.text = " [ ? ] Unidentified Subsurface Anomaly"
-			btn.modulate = Color(0.6, 0.65, 0.75)
-		
-		var target_id = id
-		btn.pressed.connect(func(): _show_artifact_detail(target_id))
-		journal_list.add_child(btn)
-	
-	# Select first item detail
-	for id in artifacts.keys():
-		if artifacts[id].get("location", "").to_lower() == planet.to_lower():
-			_show_artifact_detail(id)
-			break
-
-func _show_artifact_detail(artifact_id: String) -> void:
-	var gs = get_node_or_null("/root/GameState")
-	if not gs:
-		return
-	
-	var is_rec = gs.is_artifact_recovered(artifact_id)
-	var data = gs.get_artifact_data(artifact_id)
-	
-	if is_rec:
-		journal_detail_name.text = data.get("name", artifact_id)
-		journal_detail_name.modulate = Color(1.0, 0.9, 0.3)
-		var sources_str = ", ".join(data.get("sources", []))
-		journal_detail_text.text = "[b]Mission:[/b] %s\n[b]Year:[/b] %s\n[b]Location:[/b] %s\n[b]Status:[/b] %s\n\n[b]Purpose:[/b]\n%s\n\n[b]Historical Narrative:[/b]\n%s\n\n[b]Sources:[/b] %s" % [
-			str(data.get("mission", "")),
-			str(data.get("year", "")),
-			str(data.get("location", "")),
-			str(data.get("status", "")),
-			str(data.get("purpose", "")),
-			str(data.get("history", "")),
-			sources_str
-		]
-	else:
-		journal_detail_name.text = "Unidentified Anomaly"
-		journal_detail_name.modulate = Color(0.7, 0.7, 0.7)
-		journal_detail_text.text = "[i]This historical object remains buried beneath the lunar dust.\n\nFollow your handheld survey scanner signal to locate, excavate, and clean the artifact to uncover its identity and mission history![/i]"
+	journal.show_planet(planet)
 
 func _on_menu_pressed() -> void:
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+	if is_modal_blocking():
+		return
+	_open_pause()
+
+# ─── Pause Menu helpers ──────────────────────────────────────────────────────
+
+func _setup_pause_menu() -> void:
+	var pm_scene = load("res://scenes/ui/pause_menu.tscn")
+	if pm_scene:
+		_pause_menu = pm_scene.instantiate()
+		add_child(_pause_menu)
+		_pause_menu.resume_requested.connect(_close_pause)
+		_pause_menu.open_journal_requested.connect(func():
+			_close_pause()
+			toggle_journal()
+		)
+
+
+func _open_pause() -> void:
+	if _pause_menu:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		_pause_menu.show_pause()
+
+
+func _close_pause() -> void:
+	if _pause_menu:
+		_pause_menu.hide_pause()
+		if not journal.is_open() and not completion_modal.visible:
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+# ─── Field Manual ────────────────────────────────────────────────────────────
+
+func _check_field_manual() -> void:
+	# Load field_manual.gd static method via ResourceLoader (safe — no Autoload)
+	var fm_script = load("res://scripts/ui/field_manual.gd")
+	if fm_script and fm_script.should_show():
+		var fm_scene = load("res://scenes/ui/field_manual.tscn")
+		if fm_scene:
+			_field_manual = fm_scene.instantiate()
+			add_child(_field_manual)
+			_field_manual.manual_closed.connect(func():
+				if _field_manual:
+					Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+			)
+			# Slight delay so the HUD fully initialises before showing manual
+			await get_tree().create_timer(0.3).timeout
+			if is_inside_tree() and _field_manual:
+				_field_manual.show_manual()
+				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+# B3 HELPER: format year values cleanly regardless of float/int/string type
+func _format_year(val) -> String:
+	if val is float or val is int:
+		return str(int(val))
+	return str(val)
+
+# Phase 8: Tween-based modal open — scale + fade in using UITokens duration
+func _animate_modal_open(node: Control) -> void:
+	node.modulate.a = 0.0
+	node.scale = Vector2(0.96, 0.96)
+	node.pivot_offset = node.size * 0.5
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(node, "modulate:a", 1.0, UITokens.DURATION_BASE)
+	tw.tween_property(node, "scale", Vector2.ONE, UITokens.DURATION_BASE).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)

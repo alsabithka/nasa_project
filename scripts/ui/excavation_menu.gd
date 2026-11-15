@@ -1,139 +1,154 @@
 extends CanvasLayer
 
-# Echoes Beyond Earth - Minimalist Lunar Excavation Direction Menu
-# Appears unobtrusively near lower screen when an anomaly is verified by the detector.
-# Requirements:
-# - Minimal interface, small typography
-# - Subtle translucent dark background, crisp light-grey text
-# - Direct keyboard triggers: [E] Excavate, [Q] Inspect, [ESC] Cancel
-# - No oversized buttons or bright yellow circles
+# Echoes Beyond Earth - Excavation prompt (Phase 5)
+# Instrument register: a translucent HudPanel in the same bottom-centre "prompt zone" as the
+# WorldHud contextual prompt. 14 px minimum, key-caps read from the InputMap, ONE primary action
+# (interact), secondary (inspect_signal) and cancel (ui_cancel).
+# Contract kept: signals begin_excavation_requested / inspect_signal_requested / menu_cancelled,
+# set_anomaly_details(title, depth, sig), fields _title_label / _details_label.
 
 signal begin_excavation_requested()
 signal inspect_signal_requested()
 signal menu_cancelled()
 
+const InputSetup = preload("res://scripts/input/input_setup.gd")
+
 var site_name: String = "Unidentified Anomaly"
 var depth_cm: float = 14.0
 var signal_type: String = "Conductive Metal"
 
-var _panel: PanelContainer
+var _panel: HudPanel
 var _title_label: Label
 var _details_label: Label
 var _btn_excavate: Button
 var _btn_inspect: Button
 var _btn_cancel: Button
 
+
 func _ready() -> void:
-	layer = 110
-	_build_minimalist_menu()
+	layer = UITokens.LAYER_SYSTEM  # 40 — above pause menu, below debug
+	InputSetup.ensure()
+	_build_menu()
 
-func _build_minimalist_menu() -> void:
-	# Root container anchored near bottom center (Y offset 72% - 88%)
-	var root_box = Control.new()
-	root_box.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(root_box)
 
-	_panel = PanelContainer.new()
-	_panel.custom_minimum_size = Vector2(340, 115)
-	
-	# Translucent dark slate styling
-	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0.06, 0.08, 0.10, 0.88) # Low-profile dark background
-	sb.border_color = Color(0.35, 0.45, 0.55, 0.5)
-	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(6)
-	sb.content_margin_left = 18.0
-	sb.content_margin_right = 18.0
-	sb.content_margin_top = 10.0
-	sb.content_margin_bottom = 12.0
-	_panel.add_theme_stylebox_override("panel", sb)
+func _build_menu() -> void:
+	var root := Control.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.theme = UITokens.theme()
+	add_child(root)
 
-	# Center horizontally, position near bottom
+	_panel = HudPanel.new()
+	root.add_child(_panel)
 	_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_panel.offset_top = -140
-	_panel.offset_bottom = -25
-	_panel.offset_left = -170
-	_panel.offset_right = 170
-	root_box.add_child(_panel)
+	_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_panel.offset_bottom = -float(WorldHud.MARGIN + 96)   # same zone as WorldHud.show_prompt()
 
-	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 6)
-	_panel.add_child(vb)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", UITokens.SP_2)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_panel.add_child(col)
 
-	# Title: EXCAVATION SITE CONFIRMED
+	# Header: icon + title (left), SIM badge (right). Depth and signal are in-game survey readings.
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", UITokens.SP_2)
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(head)
+	head.add_child(UITokens.make_icon("signal_dig", UITokens.SIGNAL_CYAN, 18))
 	_title_label = Label.new()
 	_title_label.text = "EXCAVATION SITE CONFIRMED"
-	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title_label.add_theme_font_size_override("font_size", 12)
-	_title_label.modulate = Color(0.88, 0.93, 1.0)
-	vb.add_child(_title_label)
+	_title_label.theme_type_variation = &"LeadLabel"
+	_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.add_child(_title_label)
+	head.add_child(Badge.make(Badge.Kind.SIM, "FIELD READING"))
 
-	# Subtitle: Depth & Signal
 	_details_label = Label.new()
-	_details_label.text = "Estimated Depth: ~%.1f cm  •  Signal: %s" % [depth_cm, signal_type]
-	_details_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_details_label.add_theme_font_size_override("font_size", 10)
-	_details_label.modulate = Color(0.65, 0.72, 0.82)
-	vb.add_child(_details_label)
+	_details_label.theme_type_variation = &"StatLabel"   # Plex Mono — readout
+	_details_label.add_theme_font_size_override("font_size", UITokens.TEXT_BODY)
+	_details_label.add_theme_color_override("font_color", UITokens.PAPER_300)
+	_details_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(_details_label)
+	_refresh_details()
 
-	var sep = HSeparator.new()
-	sep.modulate = Color(0.3, 0.4, 0.5, 0.4)
-	vb.add_child(sep)
+	var rule := ColorRect.new()
+	rule.color = UITokens.INK_600
+	rule.custom_minimum_size = Vector2(0, 1)
+	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(rule)
 
-	# Action options row
-	var action_row = HBoxContainer.new()
-	action_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	action_row.add_theme_constant_override("separation", 14)
-	vb.add_child(action_row)
+	var actions := HBoxContainer.new()
+	actions.add_theme_constant_override("separation", UITokens.SP_4)
+	actions.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(actions)
 
-	_btn_excavate = _create_action_label(action_row, "[ E ]", "Begin Excavation", Color(0.4, 0.9, 0.5))
-	_btn_inspect = _create_action_label(action_row, "[ Q ]", "Inspect Signal", Color(0.5, 0.8, 1.0))
-	_btn_cancel = _create_action_label(action_row, "[ ESC ]", "Cancel", Color(0.7, 0.75, 0.8))
+	_btn_excavate = _make_action(actions, "interact", "BEGIN EXCAVATION", &"PrimaryButton", _on_excavate_pressed)
+	_btn_inspect = _make_action(actions, "inspect_signal", "INSPECT SIGNAL", &"GhostButton", _on_inspect_pressed)
+	_btn_cancel = _make_action(actions, "ui_cancel", "CANCEL", &"GhostButton", _on_cancel_pressed)
 
-func _create_action_label(parent: Node, key_tag: String, label_text: String, col: Color) -> Button:
-	var btn = Button.new()
-	btn.flat = true
-	btn.text = "%s %s" % [key_tag, label_text]
-	btn.add_theme_font_size_override("font_size", 11)
-	btn.modulate = col
+
+## One action = key-cap + button. Buttons never take focus: the mouse is normally captured here,
+## and Space/Enter must not trigger them by accident while walking.
+func _make_action(parent: Control, action: String, label_text: String, variation: StringName, handler: Callable) -> Button:
+	var box := HBoxContainer.new()
+	box.add_theme_constant_override("separation", UITokens.SP_2)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(box)
+	var cap := KeyCap.new()
+	cap.action_name = action
+	if action == "ui_cancel":
+		cap.label_override = "Esc"
+	box.add_child(cap)
+	var btn := Button.new()
+	btn.text = label_text
+	btn.theme_type_variation = variation
+	btn.focus_mode = Control.FOCUS_NONE
 	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	
-	if key_tag == "[ E ]":
-		btn.pressed.connect(func(): _on_excavate_pressed())
-	elif key_tag == "[ Q ]":
-		btn.pressed.connect(func(): _on_inspect_pressed())
-	elif key_tag == "[ ESC ]":
-		btn.pressed.connect(func(): _on_cancel_pressed())
-	
-	parent.add_child(btn)
+	btn.pressed.connect(handler)
+	box.add_child(btn)
 	return btn
+
+
+func _refresh_details() -> void:
+	if _details_label:
+		_details_label.text = "Est. depth ~%.1f cm  ·  Signal: %s" % [depth_cm, signal_type]
+
 
 func set_anomaly_details(title: String, depth: float, sig: String) -> void:
 	site_name = title
 	depth_cm = depth
 	signal_type = sig
-	if _details_label:
-		_details_label.text = "Estimated Depth: ~%.1f cm  •  Signal: %s" % [depth_cm, signal_type]
+	_refresh_details()
 
+
+# E / Q keep their previous (unhandled) timing so the dig hand-over to artifact.gd is unchanged.
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("interact") or (event is InputEventKey and event.pressed and event.keycode == KEY_E):
+	if event.is_action_pressed("interact"):
 		_on_excavate_pressed()
 		get_viewport().set_input_as_handled()
-	elif event is InputEventKey and event.pressed and event.keycode == KEY_Q:
+	elif event.is_action_pressed("inspect_signal"):
 		_on_inspect_pressed()
 		get_viewport().set_input_as_handled()
-	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+
+
+# Esc is taken in _input so it is consumed BEFORE the HUD (opens pause) and the player (releases
+# the mouse) see it. One key, one meaning: "cancel the topmost thing".
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
 		_on_cancel_pressed()
 		get_viewport().set_input_as_handled()
+
 
 func _on_excavate_pressed() -> void:
 	begin_excavation_requested.emit()
 	queue_free()
 
+
 func _on_inspect_pressed() -> void:
 	inspect_signal_requested.emit()
 	queue_free()
+
 
 func _on_cancel_pressed() -> void:
 	menu_cancelled.emit()

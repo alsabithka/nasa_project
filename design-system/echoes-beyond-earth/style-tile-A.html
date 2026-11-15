@@ -1,0 +1,41 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Echoes Beyond Earth — Style tile A</title>
+<style>
+@font-face{font-family:"Plex";src:url("../../assets/fonts/IBMPlexSans-Regular.ttf");font-weight:400}
+@font-face{font-family:"Plex";src:url("../../assets/fonts/IBMPlexSans-Medium.ttf");font-weight:500}
+@font-face{font-family:"Plex";src:url("../../assets/fonts/IBMPlexSans-Bold.ttf");font-weight:700}
+@font-face{font-family:"PlexMono";src:url("../../assets/fonts/IBMPlexMono-Medium.ttf");font-weight:500}
+:root{--i9:#07090D;--i8:#0D1117;--i7:#151B24;--i6:#2A3442;--p1:#E8EAED;--p3:#A3ACB9;--p5:#7C8797;--gold:#FAC733;--cyan:#80CCFF;--red:#FF5A4D;--green:#5FE08A}
+*{box-sizing:border-box}body{margin:0;background:var(--i9);color:var(--p1);font:400 14px/1.5 Plex,sans-serif;padding:32px}
+h1{font:700 40px/1 Plex;margin:0 0 4px;letter-spacing:-.02em}h2{font:700 20px/1.2 Plex;margin:0 0 12px}
+.cap{color:var(--p3);font-size:12px}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:24px;max-width:1180px}
+.c4{grid-column:span 4}.c6{grid-column:span 6}.c12{grid-column:span 12}
+@media(max-width:820px){.c4,.c6{grid-column:span 12}}
+.card{background:var(--i8);border:1px solid var(--i6);padding:16px}.hard{box-shadow:4px 4px 0 #000}
+.sw{display:flex;gap:8px;flex-wrap:wrap}.sw i{display:block;width:64px;height:44px;border:1px solid var(--i6);font:11px/44px Plex;text-align:center;font-style:normal;color:#000}
+.mono{font:500 28px/1 PlexMono,monospace;color:var(--cyan)}
+button{font:500 14px Plex;padding:8px 14px;border:2px solid var(--p5);background:transparent;color:var(--p1);border-radius:2px;margin-right:8px}
+button.p{background:var(--gold);border-color:var(--gold);color:var(--i9);font-weight:700}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.seg{display:flex;gap:2px}.seg b{flex:1;height:14px;background:var(--i7)}.seg b.on{background:var(--cyan)}
+.bdg{display:inline-flex;gap:6px;align-items:center;border:1px solid;padding:3px 8px;font-size:12px;margin-right:8px;background:var(--i9)}
+.tabs{display:flex}.tabs span{padding:10px 16px;color:var(--p3)}.tabs .on{color:var(--gold);background:var(--i7);border-bottom:3px solid var(--gold)}
+</style></head><body>
+<h1>ECHOES BEYOND EARTH</h1><div class="cap" style="margin-bottom:24px">Direction A · Declassified Archive · style tile (tokens in design-tokens.json)</div>
+<div class="grid">
+<div class="card c12"><h2>Palette</h2><div class="sw">
+<i style="background:#07090D;color:#fff">ink-900</i><i style="background:#0D1117;color:#fff">ink-800</i><i style="background:#151B24;color:#fff">ink-700</i><i style="background:#2A3442;color:#fff">ink-600</i>
+<i style="background:#E8EAED">paper-100</i><i style="background:#A3ACB9">paper-300</i><i style="background:#7C8797">paper-500</i>
+<i style="background:#FAC733">gold</i><i style="background:#80CCFF">cyan</i><i style="background:#FF5A4D">red</i><i style="background:#5FE08A">green</i></div></div>
+<div class="card c6"><h2>Type — IBM Plex</h2><div style="font:700 40px/1 Plex">Hero 40</div><div style="font:700 28px/1.2 Plex">Display 28</div>
+<div style="font:700 20px/1.3 Plex">Title 20</div><div style="font:500 16px Plex">Lead 16</div><div>Body 14 — documented facts are set in the archive style.</div><div class="cap">Caption 12 — non-essential only</div></div>
+<div class="card c6"><h2>Controls</h2><button class="p">Watch story</button><button>Continue</button><button disabled style="opacity:.4">Disabled</button>
+<p><span class="bdg" style="color:var(--gold)">▣ ARCHIVE RECORD</span><span class="bdg" style="color:var(--red)">▭ SIM</span><span class="bdg" style="color:var(--green)">✓ CATALOGUED</span></p>
+<div class="tabs"><span class="on">Moon Artifacts</span><span>Mars Artifacts</span></div></div>
+<div class="card c4"><h2>Scanner (instrument)</h2><div class="cap">PROXIMITY</div><div class="mono">22.7 m</div>
+<div class="seg" style="margin:10px 0"><b class="on"></b><b class="on"></b><b class="on"></b><b class="on"></b><b class="on"></b><b></b><b></b><b></b></div><div style="color:var(--gold)">◇ MODERATE SIGNAL</div></div>
+<div class="card c8 hard" style="grid-column:span 8"><h2 style="color:var(--gold)">Apollo Lunar Roving Vehicle</h2>
+<div class="cap">MISSION · APOLLO 15 &nbsp;·&nbsp; YEAR · 1971 &nbsp;·&nbsp; STATUS · ON SURFACE</div>
+<p>First crewed rover on another world. <span class="cap">ARCHIVE RECORD — documented.</span></p>
+<div class="cap" style="color:var(--red)">FIELD READINGS (SIM) — gameplay values, not NASA data</div></div>
+</div></body></html>

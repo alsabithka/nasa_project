@@ -1,26 +1,16 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/flashback_system.gd" id="1_flashback"]
-
-[sub_resource type="StyleBoxFlat" id="Style_FlashbackCard"]
-bg_color = Color(0.04, 0.05, 0.08, 0.96)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.95, 0.75, 0.2, 0.8)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-content_margin_left = 36.0
-content_margin_top = 28.0
-content_margin_right = 36.0
-content_margin_bottom = 28.0
+[ext_resource type="Script" path="res://scripts/ui/flashback_skin.gd" id="2_skin"]
+[ext_resource type="Script" path="res://scripts/ui/components/archive_card.gd" id="3_card"]
+[ext_resource type="Theme" path="res://ui/theme/ebe_theme.tres" id="4_theme"]
 
 [node name="FlashbackSystem" type="CanvasLayer"]
 layer = 20
 script = ExtResource("1_flashback")
+
+[node name="Skin" type="Node" parent="."]
+script = ExtResource("2_skin")
 
 [node name="Background" type="ColorRect" parent="."]
 anchors_preset = 15
@@ -28,24 +18,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.015, 0.02, 0.035, 0.95)
-
-[node name="TopBorder" type="ColorRect" parent="."]
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 4.0
-grow_horizontal = 2
-color = Color(0.95, 0.75, 0.2, 0.8)
-
-[node name="BottomBorder" type="ColorRect" parent="."]
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -4.0
-grow_horizontal = 2
-grow_vertical = 0
-color = Color(0.95, 0.75, 0.2, 0.8)
+color = Color(0.0275, 0.0353, 0.051, 0.95)
 
 [node name="CenterContainer" type="CenterContainer" parent="."]
 anchors_preset = 15
@@ -53,11 +26,14 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("4_theme")
 
 [node name="Card" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(760, 360)
+custom_minimum_size = Vector2(780, 340)
 layout_mode = 2
-theme_override_styles/panel = SubResource("Style_FlashbackCard")
+script = ExtResource("3_card")
+show_offset_shadow = true
 
 [node name="MarginContainer" type="MarginContainer" parent="CenterContainer/Card"]
 layout_mode = 2
@@ -72,31 +48,29 @@ theme_override_constants/separation = 4
 
 [node name="TitleLabel" type="Label" parent="CenterContainer/Card/MarginContainer/VBoxContainer/HeaderBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.98, 0.78, 0.2, 1)
-theme_override_font_sizes/font_size = 24
-text = "HISTORICAL ARCHIVE RECONSTRUCTION"
+theme_type_variation = &"TitleLabel"
+text = "HISTORICAL RECONSTRUCTION"
+autowrap_mode = 3
 
 [node name="SubtitleLabel" type="Label" parent="CenterContainer/Card/MarginContainer/VBoxContainer/HeaderBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.5, 0.8, 1, 1)
-theme_override_font_sizes/font_size = 14
-text = "NASA Apollo Exploration Records"
-
-[node name="HSeparator" type="HSeparator" parent="CenterContainer/Card/MarginContainer/VBoxContainer/HeaderBox"]
-layout_mode = 2
+theme_type_variation = &"CaptionLabel"
+text = "NASA Historical Archives"
+autowrap_mode = 3
 
 [node name="ContentBox" type="VBoxContainer" parent="CenterContainer/Card/MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 10
+theme_override_constants/separation = 12
 
 [node name="SceneHeader" type="Label" parent="CenterContainer/Card/MarginContainer/VBoxContainer/ContentBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.65, 0.2, 1)
-theme_override_font_sizes/font_size = 15
-text = "HISTORICAL TRANSMISSION"
+theme_type_variation = &"GoldLabel"
+text = "HISTORICAL ARCHIVE"
+autowrap_mode = 3
 
 [node name="NarrativeText" type="RichTextLabel" parent="CenterContainer/Card/MarginContainer/VBoxContainer/ContentBox"]
+custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 size_flags_vertical = 3
 bbcode_enabled = true
@@ -104,12 +78,11 @@ text = "Historical narrative loading..."
 
 [node name="FooterBox" type="HBoxContainer" parent="CenterContainer/Card/MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_constants/separation = 12
 
 [node name="ProgressDots" type="Label" parent="CenterContainer/Card/MarginContainer/VBoxContainer/FooterBox"]
+visible = false
 layout_mode = 2
-theme_override_colors/font_color = Color(0.98, 0.78, 0.2, 1)
-theme_override_font_sizes/font_size = 16
-text = " [ ◆ ]    ◇      ◇ "
 
 [node name="Spacer" type="Control" parent="CenterContainer/Card/MarginContainer/VBoxContainer/FooterBox"]
 layout_mode = 2
@@ -117,6 +90,5 @@ size_flags_horizontal = 3
 
 [node name="SkipHint" type="Label" parent="CenterContainer/Card/MarginContainer/VBoxContainer/FooterBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.65, 0.7, 0.8, 0.7)
-theme_override_font_sizes/font_size = 13
-text = "Press [SPACE] to skip"
+theme_type_variation = &"CaptionLabel"
+text = "SKIP"
