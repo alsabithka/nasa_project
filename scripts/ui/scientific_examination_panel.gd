@@ -104,6 +104,7 @@ func _build_ui_fallback() -> void:
 
 	# Scientific History
 	history_text = RichTextLabel.new()
+	history_text.bbcode_enabled = true
 	history_text.custom_minimum_size = Vector2(0, 110)
 	history_text.fit_content = false
 	history_text.scroll_active = true

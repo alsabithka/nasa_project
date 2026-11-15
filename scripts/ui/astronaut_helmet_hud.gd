@@ -51,8 +51,8 @@ func _build_hud_elements() -> void:
 	top_panel.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	top_panel.offset_left = 32
 	top_panel.offset_right = -32
-	top_panel.offset_top = 18
-	top_panel.offset_bottom = 58
+	top_panel.offset_top = 72
+	top_panel.offset_bottom = 112
 	top_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(top_panel)
 	
@@ -73,7 +73,7 @@ func _build_hud_elements() -> void:
 	bottom_hbox.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	bottom_hbox.offset_left = 36
 	bottom_hbox.offset_right = -36
-	bottom_hbox.offset_bottom = -16
+	bottom_hbox.offset_bottom = -50
 	bottom_hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(bottom_hbox)
 	
@@ -99,13 +99,15 @@ func _create_hud_item(parent: HBoxContainer, title: String, val: String, col: Co
 	
 	var t = Label.new()
 	t.text = title
-	t.add_theme_font_size_override("font_size", 10)
+	# B10 FIX: raise min font size from 10px to 12px
+	t.add_theme_font_size_override("font_size", 12)
 	t.modulate = Color(0.6, 0.65, 0.72)
 	vb.add_child(t)
 	
 	var v = Label.new()
 	v.text = val
-	v.add_theme_font_size_override("font_size", 13)
+	# B10 FIX: raise min font size from 13px to 14px
+	v.add_theme_font_size_override("font_size", 14)
 	v.modulate = col
 	vb.add_child(v)
 	return v
@@ -164,10 +166,8 @@ func _process(delta: float) -> void:
 		gravity_label.text = "%.2f m/s² (%.3f g)" % [g_val, g_ratio]
 	
 	# Update view mode label
+	# B9 FIX: removed duplicate assignment and "MINION EVA" dead string
 	var is_first_person = false
-	if "is_first_person" in _player_ref:
-		is_first_person = _player_ref.is_first_person
-	view_mode_label.text = "VIEW: 1ST-PERSON VISOR [V]" if is_first_person else "VIEW: 3RD-PERSON MINION EVA [Mouse Wheel Zoom]"
 	if "is_first_person" in _player_ref:
 		is_first_person = _player_ref.is_first_person
 	view_mode_label.text = "VIEW: 1ST-PERSON EVA VISOR [V]" if is_first_person else "VIEW: 3RD-PERSON CHASE [V]"

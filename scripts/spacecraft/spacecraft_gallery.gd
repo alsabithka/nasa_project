@@ -193,19 +193,26 @@ func _setup_ui() -> void:
 	top_vbox.add_child(stats_label)
 
 	# Bottom Spacecraft Selection Bar
+	# B4 FIX: increased height and wrapped in ScrollContainer to prevent overflow at 1280px
 	var bot_panel = PanelContainer.new()
 	bot_panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	bot_panel.offset_left = 32
 	bot_panel.offset_right = -32
 	bot_panel.offset_bottom = -20
-	bot_panel.offset_top = -80
+	bot_panel.offset_top = -88
 	root.add_child(bot_panel)
 	bot_panel.add_theme_stylebox_override("panel", style)
 
+	var bot_scroll = ScrollContainer.new()
+	bot_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	bot_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	bot_panel.add_child(bot_scroll)
+
 	var bot_hbox = HBoxContainer.new()
-	bot_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	bot_hbox.add_theme_constant_override("separation", 16)
-	bot_panel.add_child(bot_hbox)
+	bot_hbox.alignment = BoxContainer.ALIGNMENT_BEGIN
+	bot_hbox.add_theme_constant_override("separation", 12)
+	bot_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bot_scroll.add_child(bot_hbox)
 
 	var prev_btn = Button.new()
 	prev_btn.text = "< Prev Craft [Q]"

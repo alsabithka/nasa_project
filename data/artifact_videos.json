@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "_readme": "Data-driven manifest for Echoes Beyond Earth artifact documentaries. Keys under 'videos' are existing artifact ids from artifacts.json. See documentation/ARTIFACT_VIDEO_WORKFLOW.md for the full field reference. An artifact with no entry here (or an entry that is not 'ready') falls back to data/flashbacks.json.",
+  "settings": {
+    "play_placeholder_videos": false,
+    "pause_game_during_playback": true,
+    "controls_autohide_sec": 3.0,
+    "chapter_card_sec": 3.2,
+    "end_card_sec": 8.0
+  },
+  "series": {
+    "name": "ECHOES BEYOND EARTH",
+    "tagline": "ARTIFACT ARCHIVE DOCUMENTARY SERIES",
+    "closing_line": "Every object beyond Earth carries a history. Preserve it."
+  },
+  "videos": {
+    "apollo_lrv": {
+      "status": "placeholder",
+      "artifact_type": "human_made",
+      "title": "Lunar Roving Vehicle",
+      "subtitle": "TEMPLATE DEMONSTRATION — PLACEHOLDER CONTENT",
+      "video": "res://assets/videos/apollo_lrv/apollo_lrv_placeholder.ogv",
+      "duration_sec": 24.0,
+      "chapters": [
+        { "id": "origin",    "title": "The Origin",                  "start": 0.0 },
+        { "id": "purpose",   "title": "Its Purpose",                 "start": 4.0 },
+        { "id": "journey",   "title": "The Journey",                 "start": 8.0 },
+        { "id": "moments",   "title": "Its Most Important Moments",  "start": 12.0 },
+        { "id": "final",     "title": "The Final Chapter",           "start": 16.0 },
+        { "id": "legacy",    "title": "Its Legacy",                  "start": 20.0 }
+      ],
+      "subtitles": [
+        { "start": 0.6,  "end": 3.8,  "text": "[PLACEHOLDER] Chapter 1 narration: where, when and by whom this object was created." },
+        { "start": 4.6,  "end": 7.8,  "text": "[PLACEHOLDER] Chapter 2 narration: the problem it was built to solve." },
+        { "start": 8.6,  "end": 11.8, "text": "[PLACEHOLDER] Chapter 3 narration: how it reached the lunar surface." },
+        { "start": 12.6, "end": 15.8, "text": "[PLACEHOLDER] Chapter 4 narration: the documented events that define its operational life." },
+        { "start": 16.6, "end": 19.8, "text": "[PLACEHOLDER] Chapter 5 narration: what happened at the end of its mission." },
+        { "start": 20.6, "end": 23.6, "text": "[PLACEHOLDER] Chapter 6 narration: why it still matters today." }
+      ],
+      "lower_thirds": [
+        { "start": 1.0,  "end": 3.6,  "label": "LOCATION · DATE", "text": "PLACEHOLDER — filled from NASA sources" },
+        { "start": 13.0, "end": 15.6, "label": "MISSION EVENT",   "text": "PLACEHOLDER — filled from NASA sources" }
+      ],
+      "footage": [
+        { "start": 0.0, "end": 24.0, "type": "placeholder", "credit": "Generated test card — not NASA material" }
+      ],
+      "sources": [],
+      "source_status": {
+        "nasa_resources_received": false,
+        "project_context_only": ["data/artifacts.json (apollo_lrv)", "data/flashbacks.json (apollo_lrv)"],
+        "open_questions": [
+          "Which Lunar Roving Vehicle does the in-game artifact represent? artifacts.json lists Apollo 15, 16 and 17 but places it at Taurus-Littrow. Confirm against NASA sources before narration is written."
+        ]
+      },
+      "attribution": {
+        "credit_line": "Template demonstration. No NASA footage or historical claims are included in this placeholder.",
+        "disclosures": [
+          "This is a placeholder used to test the Echoes Beyond Earth documentary player.",
+          "Replace the video file, subtitles, sources and footage classification before setting status to \"ready\"."
+        ]
+      }
+    }
+  }
+}

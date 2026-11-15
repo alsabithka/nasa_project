@@ -53,6 +53,9 @@ func _ready() -> void:
 	discovery_popup.visible = false
 	journal_modal.visible = false
 	completion_modal.visible = false
+	# B6 FIX: set initial tab highlight state
+	moon_tab_btn.modulate = Color(1.0, 0.85, 0.2)
+	mars_tab_btn.modulate = Color(0.7, 0.75, 0.9)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_journal"):
@@ -130,18 +133,34 @@ func _on_artifact_recovered(artifact_id: String) -> void:
 
 func _on_popup_closed() -> void:
 	discovery_popup.visible = false
-	# Trigger cinematic historical flashback after discovery
+	# B7 FIX: restore scanner visibility when popup closes
+	radar_panel.visible = true
+	# Trigger the cinematic artifact story after discovery
 	if _last_discovered_id != "":
 		_trigger_flashback(_last_discovered_id)
 
+# Starts the artifact documentary. The player scene plays the artifact's video when
+# data/artifact_videos.json has a playable entry, and otherwise runs the original text
+# flashback (data/flashbacks.json) itself, so every artifact still gets a story.
 func _trigger_flashback(artifact_id: String) -> void:
-	var flashback_scene = load("res://scenes/ui/flashback.tscn")
-	if flashback_scene:
-		var fb = flashback_scene.instantiate()
-		fb.artifact_id = artifact_id
-		if fb.has_signal("flashback_complete"):
-			fb.flashback_complete.connect(_on_flashback_complete)
-		add_child(fb)
+	var player_scene = load("res://scenes/ui/artifact_video_player.tscn")
+	if player_scene:
+		var story = player_scene.instantiate()
+		story.artifact_id = artifact_id
+		story.playback_complete.connect(_on_artifact_story_complete)
+		add_child(story)
+	else:
+		# Safety net: the player scene is missing, use the original text flashback directly
+		var flashback_scene = load("res://scenes/ui/flashback.tscn")
+		if flashback_scene:
+			var fb = flashback_scene.instantiate()
+			fb.artifact_id = artifact_id
+			if fb.has_signal("flashback_complete"):
+				fb.flashback_complete.connect(_on_flashback_complete)
+			add_child(fb)
+
+func _on_artifact_story_complete(_artifact_id: String, _result: String) -> void:
+	_on_flashback_complete()
 
 func _on_flashback_complete() -> void:
 	if not journal_modal.visible and not discovery_popup.visible and not completion_modal.visible:
@@ -183,7 +202,7 @@ func _show_discovery_popup(artifact_id: String) -> void:
 	popup_name.text = data.get("name", artifact_id.capitalize())
 	popup_mission.text = "Mission: %s (%s) | Status: %s" % [
 		str(data.get("mission", "Unknown")),
-		str(data.get("year", "N/A")),
+		_format_year(data.get("year", "N/A")),
 		str(data.get("status", "Active"))
 	]
 	popup_history.text = "[b]Purpose:[/b] %s\n\n[b]Historical Narrative:[/b] %s" % [
@@ -196,6 +215,8 @@ func _show_discovery_popup(artifact_id: String) -> void:
 
 func toggle_journal() -> void:
 	journal_modal.visible = not journal_modal.visible
+	# B7 FIX: hide scanner widget when journal is open
+	radar_panel.visible = not journal_modal.visible
 	if journal_modal.visible:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		_populate_journal(selected_journal_planet)
@@ -212,6 +233,9 @@ func _open_journal_to_last_discovered() -> void:
 
 func _populate_journal(planet: String) -> void:
 	selected_journal_planet = planet
+	# B6 FIX: apply active-tab highlight
+	moon_tab_btn.modulate = Color(1.0, 0.85, 0.2) if planet == "Moon" else Color(0.7, 0.75, 0.9)
+	mars_tab_btn.modulate = Color(1.0, 0.85, 0.2) if planet == "Mars" else Color(0.7, 0.75, 0.9)
 	for c in journal_list.get_children():
 		c.queue_free()
 	
@@ -263,15 +287,16 @@ func _show_artifact_detail(artifact_id: String) -> void:
 		journal_detail_name.text = data.get("name", artifact_id)
 		journal_detail_name.modulate = Color(1.0, 0.9, 0.3)
 		var sources_str = ", ".join(data.get("sources", []))
-		journal_detail_text.text = "[b]Mission:[/b] %s\n[b]Year:[/b] %s\n[b]Location:[/b] %s\n[b]Status:[/b] %s\n\n[b]Purpose:[/b]\n%s\n\n[b]Historical Narrative:[/b]\n%s\n\n[b]Sources:[/b] %s" % [
+	var journal_detail_text_str = "[b]Mission:[/b] %s\n[b]Year:[/b] %s\n[b]Location:[/b] %s\n[b]Status:[/b] %s\n\n[b]Purpose:[/b]\n%s\n\n[b]Historical Narrative:[/b]\n%s\n\n[b]Sources:[/b] %s" % [
 			str(data.get("mission", "")),
-			str(data.get("year", "")),
+			_format_year(data.get("year", "")),
 			str(data.get("location", "")),
 			str(data.get("status", "")),
 			str(data.get("purpose", "")),
 			str(data.get("history", "")),
 			sources_str
 		]
+		journal_detail_text.text = journal_detail_text_str
 	else:
 		journal_detail_name.text = "Unidentified Anomaly"
 		journal_detail_name.modulate = Color(0.7, 0.7, 0.7)
@@ -279,4 +304,25 @@ func _show_artifact_detail(artifact_id: String) -> void:
 
 func _on_menu_pressed() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+	# B11 FIX: show confirm dialog before returning to menu
+	var dialog = ConfirmationDialog.new()
+	dialog.title = "Return to Menu?"
+	dialog.dialog_text = "Your current progress will be lost.\nReturn to the main menu?"
+	dialog.ok_button_text = "Return to Menu"
+	dialog.cancel_button_text = "Stay & Explore"
+	dialog.confirmed.connect(func():
+		get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+	)
+	dialog.canceled.connect(func():
+		dialog.queue_free()
+		if not journal_modal.visible and not discovery_popup.visible:
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	)
+	get_viewport().add_child(dialog)
+	dialog.popup_centered()
+
+# B3 HELPER: format year values cleanly regardless of float/int/string type
+func _format_year(val) -> String:
+	if val is float or val is int:
+		return str(int(val))
+	return str(val)

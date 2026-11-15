@@ -40,15 +40,27 @@ func _process(delta: float) -> void:
 		progress_bar.value = clean_progress * 100.0
 		percent_label.text = "%d%% Cleaned" % int(clean_progress * 100.0)
 		
-		# Fade away dust layer as cleaning progresses
+		# B5 FIX: blend dust overlay from grey-brown → warm tan as cleaning progresses
+		# This hints at warm metallic surfaces beneath, instead of a flat grey box
 		var dust_alpha = lerp(0.95, 0.0, clean_progress)
-		dust_overlay.color = Color(0.38, 0.40, 0.42, dust_alpha)
+		var r = lerp(0.38, 0.55, clean_progress)
+		var g = lerp(0.40, 0.42, clean_progress)
+		var b = lerp(0.42, 0.30, clean_progress)
+		dust_overlay.color = Color(r, g, b, dust_alpha)
+		
+		# Update label at meaningful thresholds
+		if clean_progress >= 1.0:
+			object_preview_label.text = "[ ARTIFACT RESTORED ]"
+			object_preview_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2))
+		elif clean_progress >= 0.9:
+			object_preview_label.text = "[ IDENTIFICATION IMMINENT ]"
+		elif clean_progress >= 0.6:
+			object_preview_label.text = "[ Spacecraft Structure Emerging... ]"
+		elif clean_progress >= 0.3:
+			object_preview_label.text = "Metallic Structure Detected..."
 		
 		brush_hint.text = "Brushing away lunar dust..."
 		brush_hint.modulate = Color(0.3, 1.0, 0.6)
-		
-		if clean_progress > 0.6:
-			object_preview_label.text = "[ Spacecraft Structure Emerging... ]"
 		
 		if clean_progress >= 1.0:
 			_on_cleaning_complete()

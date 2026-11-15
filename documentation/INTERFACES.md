@@ -89,3 +89,38 @@ func unlock_planet(planet: String) -> void
 Stable Artifact IDs:
 - Moon: `apollo_lrv`, `apollo_lm_descent_stage`, `alsep`
 - Mars: `sojourner`, `opportunity`, `ingenuity`
+
+---
+
+## 6. Artifact Documentary Player (`scripts/ui/artifact_video_player.gd`)
+Scene: `scenes/ui/artifact_video_player.tscn` (`CanvasLayer`, layer 20). Spawned by the HUD after the discovery popup closes.
+It plays the artifact's documentary video when one is `ready` in the manifest and otherwise runs the original
+text flashback (`scenes/ui/flashback.tscn`). Full guide: `documentation/ARTIFACT_VIDEO_WORKFLOW.md`.
+
+```gdscript
+@export var artifact_id: String = ""        # existing id from artifacts.json
+@export var allow_placeholder: bool = false # preview/tests only
+
+# Emitted exactly once. result = "completed" | "skipped" | "fallback"
+signal playback_complete(artifact_id: String, result: String)
+```
+
+The previous `flashback_complete()` signal on `flashback_system.gd` is unchanged.
+
+### Manifest helper (`scripts/ui/artifact_video_manifest.gd`)
+Static helper (not an Autoload). Use via `const Manifest = preload("res://scripts/ui/artifact_video_manifest.gd")`.
+
+```gdscript
+static func is_playable(artifact_id: String, allow_placeholder: bool = false) -> bool
+static func get_entry(artifact_id: String) -> Dictionary
+static func get_settings() -> Dictionary
+static func get_series() -> Dictionary
+static func validate_entry(artifact_id: String) -> Array   # empty = valid
+static func parse_srt(path: String) -> Array
+```
+
+### Artifact video manifest (`data/artifact_videos.json`)
+Keys under `videos` are the existing stable artifact IDs. Fields are documented in
+`documentation/ARTIFACT_VIDEO_WORKFLOW.md` §4. Video format: Ogg Theora (`.ogv`) under
+`assets/videos/<artifact_id>/`. Subtitles, chapters, lower thirds, footage credits, sources and attribution
+are data, not burned into the video. Design standard: `documentation/ARTIFACT_VIDEO_TEMPLATE.md`.
