@@ -1,0 +1,283 @@
+[gd_resource type="Theme" load_steps=16 format=3]
+
+;; Echoes Beyond Earth — Design System Theme
+;; Direction A: Declassified Archive
+;; Tokens source: scripts/ui/ui_tokens.gd
+;; Apply per scene root: $Root.theme = preload("res://ui/theme/ebe_theme.tres")
+;; Do NOT set as project default without approval (edits project.godot).
+
+;; ── INK PALETTE ──────────────────────────────────────────────
+;; ink-900 #07090D  ink-800 #0D1117  ink-700 #151B24  ink-600 #2A3442
+;; ── PAPER PALETTE ────────────────────────────────────────────
+;; paper-100 #E8EAED  paper-300 #A3ACB9  paper-500 #7C8797
+;; ── SIGNAL PALETTE ───────────────────────────────────────────
+;; gold #FAC733  cyan #80CCFF  red #FF5A4D  green #5FE08A
+
+;; ── STYLEBOXES ───────────────────────────────────────────────
+
+;; Panel / PanelContainer — archive card: ink-800 bg, ink-600 1px border, 0 radius
+[sub_resource type="StyleBoxFlat" id="SB_Panel"]
+bg_color = Color(0.051, 0.067, 0.09, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.165, 0.204, 0.259, 1)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
+;; HUD panel — more transparent, no border
+[sub_resource type="StyleBoxFlat" id="SB_HudPanel"]
+bg_color = Color(0.027, 0.035, 0.051, 0.82)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.165, 0.204, 0.259, 0.6)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+
+;; Button normal — ink-700 bg, ink-600 2px border, radius 2
+[sub_resource type="StyleBoxFlat" id="SB_ButtonNormal"]
+bg_color = Color(0.082, 0.106, 0.141, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.165, 0.204, 0.259, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+;; Button hover — ink-600 bg, cyan 2px border
+[sub_resource type="StyleBoxFlat" id="SB_ButtonHover"]
+bg_color = Color(0.165, 0.204, 0.259, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.502, 0.8, 1.0, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+;; Button pressed — gold bg, gold border (text becomes ink-900 in code)
+[sub_resource type="StyleBoxFlat" id="SB_ButtonPressed"]
+bg_color = Color(0.98, 0.78, 0.2, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.98, 0.78, 0.2, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+;; Button disabled — ink-800 at 50% opacity
+[sub_resource type="StyleBoxFlat" id="SB_ButtonDisabled"]
+bg_color = Color(0.051, 0.067, 0.09, 0.5)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.165, 0.204, 0.259, 0.4)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+;; Focus ring — hollow, cyan 2px border
+[sub_resource type="StyleBoxFlat" id="SB_Focus"]
+draw_center = false
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.502, 0.8, 1.0, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
+;; ProgressBar background
+[sub_resource type="StyleBoxFlat" id="SB_ProgressBg"]
+bg_color = Color(0.082, 0.106, 0.141, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.165, 0.204, 0.259, 1)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+;; ProgressBar fill — cyan
+[sub_resource type="StyleBoxFlat" id="SB_ProgressFill"]
+bg_color = Color(0.502, 0.8, 1.0, 1)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+;; Tab selected — gold underline effect
+[sub_resource type="StyleBoxFlat" id="SB_TabSelected"]
+bg_color = Color(0.082, 0.106, 0.141, 1)
+border_width_left = 0
+border_width_top = 0
+border_width_right = 0
+border_width_bottom = 2
+border_color = Color(0.98, 0.78, 0.2, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+;; Tab unselected — transparent
+[sub_resource type="StyleBoxFlat" id="SB_TabUnselected"]
+bg_color = Color(0.051, 0.067, 0.09, 0.0)
+border_width_left = 0
+border_width_top = 0
+border_width_right = 0
+border_width_bottom = 1
+border_color = Color(0.165, 0.204, 0.259, 0.5)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+;; HSeparator line
+[sub_resource type="StyleBoxLine" id="SB_Separator"]
+color = Color(0.165, 0.204, 0.259, 1)
+thickness = 1
+
+;; ScrollBar background (minimal, transparent)
+[sub_resource type="StyleBoxFlat" id="SB_ScrollBg"]
+bg_color = Color(0.082, 0.106, 0.141, 0.4)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+;; ScrollBar grabber
+[sub_resource type="StyleBoxFlat" id="SB_ScrollGrabber"]
+bg_color = Color(0.165, 0.204, 0.259, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+;; ScrollBar grabber hover
+[sub_resource type="StyleBoxFlat" id="SB_ScrollGrabberHover"]
+bg_color = Color(0.502, 0.8, 1.0, 0.7)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[resource]
+default_font_size = 14
+
+;; ── BUTTON ───────────────────────────────────────────────────
+Button/colors/font_color = Color(0.91, 0.918, 0.929, 1)
+Button/colors/font_hover_color = Color(0.91, 0.918, 0.929, 1)
+Button/colors/font_pressed_color = Color(0.027, 0.035, 0.051, 1)
+Button/colors/font_disabled_color = Color(0.486, 0.529, 0.592, 1)
+Button/colors/font_focus_color = Color(0.91, 0.918, 0.929, 1)
+Button/font_sizes/font_size = 14
+Button/styles/normal = SubResource("SB_ButtonNormal")
+Button/styles/hover = SubResource("SB_ButtonHover")
+Button/styles/pressed = SubResource("SB_ButtonPressed")
+Button/styles/disabled = SubResource("SB_ButtonDisabled")
+Button/styles/focus = SubResource("SB_Focus")
+
+;; ── LABEL ────────────────────────────────────────────────────
+Label/colors/font_color = Color(0.91, 0.918, 0.929, 1)
+Label/font_sizes/font_size = 14
+
+;; ── RICH TEXT LABEL ──────────────────────────────────────────
+RichTextLabel/colors/default_color = Color(0.91, 0.918, 0.929, 1)
+RichTextLabel/font_sizes/normal_font_size = 14
+RichTextLabel/font_sizes/bold_font_size = 14
+RichTextLabel/font_sizes/italics_font_size = 14
+RichTextLabel/font_sizes/bold_italics_font_size = 14
+
+;; ── PANEL / PANEL CONTAINER ───────────────────────────────────
+Panel/styles/panel = SubResource("SB_Panel")
+PanelContainer/styles/panel = SubResource("SB_Panel")
+
+;; ── PROGRESS BAR ─────────────────────────────────────────────
+ProgressBar/styles/background = SubResource("SB_ProgressBg")
+ProgressBar/styles/fill = SubResource("SB_ProgressFill")
+ProgressBar/colors/font_color = Color(0.91, 0.918, 0.929, 1)
+ProgressBar/font_sizes/font_size = 12
+
+;; ── SEPARATOR ────────────────────────────────────────────────
+HSeparator/styles/separator = SubResource("SB_Separator")
+VSeparator/styles/separator = SubResource("SB_Separator")
+
+;; ── TAB CONTAINER ────────────────────────────────────────────
+TabContainer/colors/font_selected_color = Color(0.98, 0.78, 0.2, 1)
+TabContainer/colors/font_unselected_color = Color(0.639, 0.675, 0.725, 1)
+TabContainer/colors/font_disabled_color = Color(0.486, 0.529, 0.592, 1)
+TabContainer/font_sizes/font_size = 14
+TabContainer/styles/tab_selected = SubResource("SB_TabSelected")
+TabContainer/styles/tab_unselected = SubResource("SB_TabUnselected")
+TabContainer/styles/panel = SubResource("SB_Panel")
+
+;; ── SCROLL CONTAINER ─────────────────────────────────────────
+HScrollBar/styles/scroll = SubResource("SB_ScrollBg")
+HScrollBar/styles/grabber = SubResource("SB_ScrollGrabber")
+HScrollBar/styles/grabber_hover = SubResource("SB_ScrollGrabberHover")
+VScrollBar/styles/scroll = SubResource("SB_ScrollBg")
+VScrollBar/styles/grabber = SubResource("SB_ScrollGrabber")
+VScrollBar/styles/grabber_hover = SubResource("SB_ScrollGrabberHover")
+
+;; ── LINE EDIT ────────────────────────────────────────────────
+LineEdit/colors/font_color = Color(0.91, 0.918, 0.929, 1)
+LineEdit/colors/font_placeholder_color = Color(0.486, 0.529, 0.592, 1)
+LineEdit/styles/normal = SubResource("SB_ButtonNormal")
+LineEdit/styles/focus = SubResource("SB_Focus")
