@@ -1,6 +1,10 @@
 extends Control
 
 # Echoes Beyond Earth - In-Game HUD, Mystery Scanner Radar, Discovery & Flashback Flow
+# Phase 4: UITokens colours applied; Toast notifications on discovery
+
+const UITokens = preload("res://scripts/ui/ui_tokens.gd")
+const Toast    = preload("res://scripts/ui/components/toast.gd")
 
 @export var current_planet: String = "Moon"
 
@@ -118,8 +122,8 @@ func _on_scan_updated(target_id: String, distance: float, signal_strength: float
 		distance_label.text = "-- m"
 		strength_bar.value = 0
 		target_name_label.text = "Searching for signals..."
-		target_name_label.modulate = Color(0.65, 0.7, 0.75)
-		distance_label.modulate = Color(0.6, 0.65, 0.7)
+		target_name_label.add_theme_color_override("font_color", UITokens.PAPER_500)
+		distance_label.add_theme_color_override("font_color", UITokens.PAPER_500)
 		if compass_needle:
 			compass_needle.rotation = 0.0
 		return
@@ -127,23 +131,23 @@ func _on_scan_updated(target_id: String, distance: float, signal_strength: float
 	distance_label.text = "%.1f m" % distance
 	strength_bar.value = signal_strength * 100.0
 	
-	# Mystery-based signal categorization
+	# Mystery-based signal categorization — Phase 4: use token colours
 	if distance <= 4.0:
 		target_name_label.text = "● ANOMALY BENEATH SURFACE — DIG HERE"
-		target_name_label.modulate = Color(0.2, 1.0, 0.4)
-		distance_label.modulate = Color(0.2, 1.0, 0.4)
+		target_name_label.add_theme_color_override("font_color", UITokens.SIGNAL_GREEN)
+		distance_label.add_theme_color_override("font_color", UITokens.SIGNAL_GREEN)
 	elif distance < 12.0:
 		target_name_label.text = "▲ STRONG SUBSURFACE ANOMALY"
-		target_name_label.modulate = Color(0.3, 0.9, 1.0)
-		distance_label.modulate = Color(0.3, 0.9, 1.0)
+		target_name_label.add_theme_color_override("font_color", UITokens.SIGNAL_CYAN)
+		distance_label.add_theme_color_override("font_color", UITokens.SIGNAL_CYAN)
 	elif distance < 25.0:
 		target_name_label.text = "◆ MODERATE SIGNAL DETECTED"
-		target_name_label.modulate = Color(1.0, 0.85, 0.2)
-		distance_label.modulate = Color(1.0, 0.85, 0.2)
+		target_name_label.add_theme_color_override("font_color", UITokens.SIGNAL_GOLD)
+		distance_label.add_theme_color_override("font_color", UITokens.SIGNAL_GOLD)
 	else:
 		target_name_label.text = "~ FAINT SIGNAL DETECTED"
-		target_name_label.modulate = Color(0.75, 0.8, 0.9)
-		distance_label.modulate = Color(0.75, 0.8, 0.9)
+		target_name_label.add_theme_color_override("font_color", UITokens.PAPER_300)
+		distance_label.add_theme_color_override("font_color", UITokens.PAPER_300)
 
 func _on_artifact_recovered(artifact_id: String) -> void:
 	_last_discovered_id = artifact_id
@@ -151,6 +155,14 @@ func _on_artifact_recovered(artifact_id: String) -> void:
 	_show_discovery_popup(artifact_id)
 	if journal_modal.visible:
 		_populate_journal(selected_journal_planet)
+	# Phase 4: Toast notification on discovery
+	var gs = get_node_or_null("/root/GameState")
+	var art_name := artifact_id.capitalize()
+	if gs:
+		var d = gs.get_artifact_data(artifact_id)
+		if d and d.has("name"):
+			art_name = d["name"]
+	Toast.notify(get_tree(), "ARTEFACT CATALOGUED — %s" % art_name, UITokens.SIGNAL_GOLD)
 
 func _on_popup_closed() -> void:
 	discovery_popup.visible = false
