@@ -33,10 +33,22 @@ extends CharacterBody3D
 @onready var anim_player: AnimationPlayer = get_node_or_null("AnimationPlayer")
 @onready var left_eyelid: MeshInstance3D = get_node_or_null("Visuals/Torso/Head/LeftGoggleRing/LeftEyelid")
 @onready var right_eyelid: MeshInstance3D = get_node_or_null("Visuals/Torso/Head/RightGoggleRing/RightEyelid")
+@onready var mouth: MeshInstance3D = get_node_or_null("Visuals/Torso/Head/Mouth")
 
-# Eye Blinking System (Task 1)
-const EYELID_OPEN_Z: float = -0.125
-const EYELID_CLOSED_Z: float = 0.005
+# Facial Expression System (Neutral, Happy, Calm)
+enum FacialExpression {
+	NEUTRAL,
+	HAPPY,
+	CALM
+}
+var current_expression: FacialExpression = FacialExpression.NEUTRAL
+var _expression_timer: float = 20.0 # Automatic transition every 15-30s
+var _target_smile: float = 0.0
+var _current_smile: float = 0.0
+var _target_calm: float = 0.0 # 0.0 = open, 0.5 = calm half-closed eyelids
+var _current_calm: float = 0.0
+
+# Eye Blinking System
 var _blink_timer: float = 3.2
 var _is_blinking: bool = false
 var _blink_elapsed: float = 0.0
@@ -105,17 +117,41 @@ func _ready() -> void:
 	call_deferred("_connect_subsystems")
 
 func _setup_eyelids() -> void:
-	if left_eyelid:
-		left_eyelid.visible = false
-		left_eyelid.position.z = -0.08
-		left_eyelid.scale.z = 0.001
-	if right_eyelid:
-		right_eyelid.visible = false
-		right_eyelid.position.z = -0.08
-		right_eyelid.scale.z = 0.001
+	_apply_eyelid_coverage(0.0)
 
 func _process(delta: float) -> void:
+	_update_facial_expressions(delta)
 	_update_eye_blinking(delta)
+
+func _update_facial_expressions(delta: float) -> void:
+	_expression_timer -= delta
+	if _expression_timer <= 0.0:
+		_expression_timer = randf_range(16.0, 28.0)
+		var candidates = []
+		for expr in [FacialExpression.NEUTRAL, FacialExpression.HAPPY, FacialExpression.CALM]:
+			if expr != current_expression:
+				candidates.append(expr)
+		if not candidates.is_empty():
+			set_expression(candidates[randi() % candidates.size()])
+	
+	_current_smile = lerp(_current_smile, _target_smile, 4.0 * delta)
+	_current_calm = lerp(_current_calm, _target_calm, 4.0 * delta)
+	
+	if mouth and is_instance_valid(mouth):
+		mouth.set("blend_shapes/smile", _current_smile)
+
+func set_expression(expr: FacialExpression) -> void:
+	current_expression = expr
+	match expr:
+		FacialExpression.NEUTRAL:
+			_target_smile = 0.0
+			_target_calm = 0.0
+		FacialExpression.HAPPY:
+			_target_smile = 1.0
+			_target_calm = 0.0
+		FacialExpression.CALM:
+			_target_smile = 0.0
+			_target_calm = 0.50
 
 func _update_eye_blinking(delta: float) -> void:
 	if not left_eyelid or not right_eyelid:
@@ -125,6 +161,8 @@ func _update_eye_blinking(delta: float) -> void:
 		_blink_timer -= delta
 		if _blink_timer <= 0.0:
 			_trigger_blink()
+		else:
+			_apply_eyelid_coverage(_current_calm)
 		return
 	
 	_blink_elapsed += delta
@@ -132,47 +170,40 @@ func _update_eye_blinking(delta: float) -> void:
 		# Closing phase (0 to 60ms): eyelids drop down to cover eyeball
 		var t = _blink_elapsed / BLINK_CLOSE_TIME
 		var curve = sin(t * PI * 0.5)
-		var p_z = lerp(-0.08, 0.005, curve)
-		var s_z = lerp(0.001, 1.0, curve)
-		left_eyelid.visible = true
-		right_eyelid.visible = true
-		left_eyelid.position.z = p_z
-		right_eyelid.position.z = p_z
-		left_eyelid.scale.z = s_z
-		right_eyelid.scale.z = s_z
+		var coverage = lerp(_current_calm, 1.0, curve)
+		_apply_eyelid_coverage(coverage)
 	elif _blink_elapsed <= BLINK_CLOSE_TIME + BLINK_HOLD_TIME:
 		# Eyes fully closed (20ms hold)
-		left_eyelid.visible = true
-		right_eyelid.visible = true
-		left_eyelid.position.z = 0.005
-		right_eyelid.position.z = 0.005
-		left_eyelid.scale.z = 1.0
-		right_eyelid.scale.z = 1.0
+		_apply_eyelid_coverage(1.0)
 	elif _blink_elapsed <= BLINK_TOTAL_TIME:
 		# Reopening phase (70ms reopen)
 		var t = (_blink_elapsed - BLINK_CLOSE_TIME - BLINK_HOLD_TIME) / BLINK_OPEN_TIME
 		var curve = sin(t * PI * 0.5)
-		var p_z = lerp(0.005, -0.08, curve)
-		var s_z = lerp(1.0, 0.001, curve)
-		left_eyelid.position.z = p_z
-		right_eyelid.position.z = p_z
-		left_eyelid.scale.z = s_z
-		right_eyelid.scale.z = s_z
+		var coverage = lerp(1.0, _current_calm, curve)
+		_apply_eyelid_coverage(coverage)
 	else:
-		# Blink complete: hide eyelids and reset timer (3.0 to 5.5s)
-		left_eyelid.visible = false
-		right_eyelid.visible = false
-		left_eyelid.position.z = -0.08
-		right_eyelid.position.z = -0.08
-		left_eyelid.scale.z = 0.001
-		right_eyelid.scale.z = 0.001
+		# Blink complete
 		_is_blinking = false
 		_blink_elapsed = 0.0
+		_apply_eyelid_coverage(_current_calm)
 		if randf() < 0.15:
 			# 15% chance of expressive double-blink
 			_blink_timer = 0.08
 		else:
 			_blink_timer = randf_range(3.0, 5.5)
+
+func _apply_eyelid_coverage(c: float) -> void:
+	if not left_eyelid or not right_eyelid:
+		return
+	var p_z = lerp(-0.088, 0.0, c)
+	var s_z = max(0.001, c)
+	var is_vis = (c > 0.02)
+	left_eyelid.visible = is_vis
+	right_eyelid.visible = is_vis
+	left_eyelid.position.z = p_z
+	right_eyelid.position.z = p_z
+	left_eyelid.scale.z = s_z
+	right_eyelid.scale.z = s_z
 
 func _trigger_blink() -> void:
 	if not left_eyelid or not right_eyelid:

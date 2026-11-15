@@ -1,0 +1,11 @@
+[gd_resource type="ArrayMesh" format=4]
+
+[resource]
+_surfaces = [{
+"aabb": AABB(-0.018, -0.031, -0.02, 0.036, 0.062, 0.04),
+"format": 34359738375,
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 36,
+"vertex_data": PackedByteArray("vHSTvLbz/bwK16M8vHSTPLbz/bwK16M8vHSTPLbz/TwK16M8vHSTvLbz/bwK16M8vHSTPLbz/TwK16M8vHSTvLbz/TwK16M8vHSTPLbz/bwK16O8vHSTvLbz/bwK16O8vHSTvLbz/TwK16O8vHSTPLbz/bwK16O8vHSTvLbz/TwK16O8vHSTPLbz/TwK16O8vHSTvLbz/bwK16O8vHSTvLbz/bwK16M8vHSTvLbz/TwK16M8vHSTvLbz/bwK16O8vHSTvLbz/TwK16M8vHSTvLbz/TwK16O8vHSTPLbz/bwK16M8vHSTPLbz/bwK16O8vHSTPLbz/TwK16O8vHSTPLbz/bwK16M8vHSTPLbz/TwK16O8vHSTPLbz/TwK16M8vHSTvLbz/TwK16M8vHSTPLbz/TwK16M8vHSTPLbz/TwK16O8vHSTvLbz/TwK16M8vHSTPLbz/TwK16O8vHSTvLbz/TwK16O8vHSTvLbz/bwK16O8vHSTPLbz/bwK16O8vHSTPLbz/bwK16M8vHSTvLbz/bwK16O8vHSTPLbz/bwK16M8vHSTvLbz/bwK16M8//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA/3//f/9/AID/f/9//38AgP9//3//fwCA/3//f/9/AID/f/9//38AgP9//3//fwCAAAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/////f/9//7////9//3//v////3//f/+/////f/9//7////9//3//v////3//f/+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//38AAAAA/7//fwAAAAD/v/9/AAAAAP+//38AAAAA/7//fwAAAAD/v/9/AAAAAP+/")
+}]

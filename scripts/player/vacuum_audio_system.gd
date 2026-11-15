@@ -31,13 +31,13 @@ func _setup_audio_players() -> void:
 	breathing_player = AudioStreamPlayer.new()
 	breathing_player.name = "BreathingAudio"
 	breathing_player.bus = &"Master"
-	breathing_player.volume_db = -16.0
+	breathing_player.volume_db = -80.0
 	add_child(breathing_player)
 	
 	plss_hum_player = AudioStreamPlayer.new()
 	plss_hum_player.name = "PLSSHumAudio"
 	plss_hum_player.bus = &"Master"
-	plss_hum_player.volume_db = -34.0
+	plss_hum_player.volume_db = -36.0
 	add_child(plss_hum_player)
 	
 	footstep_player = AudioStreamPlayer.new()
@@ -89,27 +89,18 @@ func _start_plss_hum() -> void:
 	wav.data = data
 	
 	plss_hum_player.stream = wav
-	plss_hum_player.volume_db = -34.0
+	plss_hum_player.volume_db = -36.0
 	plss_hum_player.play()
 
 func _start_breathing() -> void:
-	# Trigger initial inhalation
-	_play_breath_phase(true)
+	# Persistent recurring 8-bit noise breathing loop removed to eliminate harsh audio buzz
+	if breathing_player:
+		breathing_player.stop()
 
 func _process(delta: float) -> void:
-	# Update breathing cadence according to astronaut exertion
-	breathing_period = lerp(breathing_period, target_breathing_period, 1.5 * delta)
-	breathing_timer += delta
-	
-	var half_period = breathing_period * 0.5
-	if breathing_timer >= half_period:
-		breathing_timer = 0.0
-		is_inhaling = not is_inhaling
-		_play_breath_phase(is_inhaling)
-	
-	# Naturally decay exertion back to resting state
+	# Update exertion level and smoothly decay back to resting state
 	exertion = move_toward(exertion, 0.0, 0.15 * delta)
-	target_breathing_period = lerp(4.4, 2.1, exertion) # 13 breaths/min resting -> 28 breaths/min exertion
+	target_breathing_period = lerp(4.4, 2.1, exertion)
 
 func _play_breath_phase(inhale: bool) -> void:
 	var sample_rate = 22050

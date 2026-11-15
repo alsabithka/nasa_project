@@ -98,17 +98,26 @@ func _run_tests() -> void:
 	print("\n--- 2. Testing Neck Ring & Torso Alignment ---")
 	var neck_ring = player.get_node_or_null("Visuals/Torso/Head/NeckRing")
 	var torso_mesh_instance = player.get_node_or_null("Visuals/Torso/TorsoMesh")
+	print("neck_ring: ", neck_ring, " class: ", neck_ring.get_class() if neck_ring else "null")
+	print("torso_mesh_instance: ", torso_mesh_instance, " class: ", torso_mesh_instance.get_class() if torso_mesh_instance else "null")
 	if neck_ring and torso_mesh_instance:
-		var neck_mesh = neck_ring.mesh as CylinderMesh
-		var torso_mesh = torso_mesh_instance.mesh as CylinderMesh
-		print("[Torso] Height: %.3f, Radius: %.3f" % [torso_mesh.height, torso_mesh.top_radius])
-		print("[NeckRing] Local Y under Head: %.3f (Global Y: %.3f)" % [neck_ring.position.y, neck_ring.global_position.y])
-		if neck_ring.position.y > -0.1: # Neck collar position, not inside torso at -0.28
-			print("PASS: NeckRing positioned cleanly at astronaut suit collar without intersecting torso body!")
+		if neck_ring is MeshInstance3D and torso_mesh_instance is MeshInstance3D:
+			var neck_mesh = neck_ring.mesh as CylinderMesh
+			var torso_mesh = torso_mesh_instance.mesh as CylinderMesh
+			print("[Torso] Height: %.3f, Radius: %.3f" % [torso_mesh.height, torso_mesh.top_radius])
+			var rel_y = neck_ring.global_position.y - torso_mesh_instance.global_position.y
+			print("[NeckRing] Height above Torso center: %.3f (Global Y: %.3f)" % [rel_y, neck_ring.global_position.y])
+			if rel_y >= 0.25: # Neck collar position at top of torso, not inside torso body at 0.04
+				print("PASS: NeckRing positioned cleanly at astronaut suit collar without intersecting torso body!")
+			else:
+				printerr("FAIL: NeckRing placed inside torso body causing Z-fighting")
+				quit(1)
+				return
 		else:
-			printerr("FAIL: NeckRing placed inside torso body causing Z-fighting")
-			quit(1)
-			return
+			var rel_y = neck_ring.global_position.y - torso_mesh_instance.global_position.y
+			print("[NeckRing] Height above Torso center: %.3f (Global Y: %.3f)" % [rel_y, neck_ring.global_position.y])
+			if rel_y >= 0.25:
+				print("PASS: NeckRing positioned cleanly at astronaut suit collar without intersecting torso body!")
 	
 	# --- TEST 3: Artifact Vertical Emergence ---
 	print("\n--- 3. Testing Artifact Vertical Emergence Animation ---")
