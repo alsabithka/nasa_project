@@ -194,30 +194,31 @@ func _update_state_visuals() -> void:
 		
 		ArtifactState.DIG_SITE:
 			visual_model.visible = false
-			prompt_label.text = "[E] DIG HERE - Unidentified Signal Source"
-			prompt_label.modulate = Color(1.0, 0.85, 0.2, 1.0)
+			prompt_label.text = "[E] EXCAVATE SUBSURFACE ANOMALY"
+			prompt_label.modulate = AerospaceTheme.COLOR_AMBER
 			prompt_label.visible = true
 			if dig_progress_label:
 				dig_progress_label.visible = false
-			_set_beacon_color(Color(1.0, 0.65, 0.0, 0.9), Color(1.0, 0.6, 0.0))
+			_set_beacon_color(Color(1.0, 0.616, 0.196, 0.9), Color(1.0, 0.616, 0.196))
 		
 		ArtifactState.DIGGING:
 			visual_model.visible = false
 			prompt_label.visible = false
 			if dig_progress_label:
 				dig_progress_label.visible = true
-				dig_progress_label.text = "Excavating... 0%"
-			_set_beacon_color(Color(1.0, 0.65, 0.0, 0.9), Color(1.0, 0.6, 0.0))
+				dig_progress_label.text = "EXCAVATING REGOLITH: %d%%" % int(dig_progress * 100.0)
+				dig_progress_label.modulate = AerospaceTheme.COLOR_CYAN
+			_set_beacon_color(Color(1.0, 0.616, 0.196, 0.9), Color(1.0, 0.616, 0.196))
 		
 		ArtifactState.EXPOSED:
 			visual_model.visible = true
 			visual_model.scale = Vector3.ONE
-			prompt_label.text = "[E] RECOVER OBJECT"
-			prompt_label.modulate = Color(0.3, 1.0, 0.5, 1.0)
+			prompt_label.text = "[E] RECOVER & DECONTAMINATE SPECIMEN"
+			prompt_label.modulate = AerospaceTheme.COLOR_STATUS_GREEN
 			prompt_label.visible = true
 			if dig_progress_label:
 				dig_progress_label.visible = false
-			_set_beacon_color(Color(0.2, 0.9, 0.4, 0.7), Color(0.2, 0.9, 0.4))
+			_set_beacon_color(Color(0.224, 0.898, 0.549, 0.7), Color(0.224, 0.898, 0.549))
 		
 		ArtifactState.CLEANING:
 			visual_model.visible = true
@@ -228,12 +229,12 @@ func _update_state_visuals() -> void:
 		ArtifactState.IDENTIFIED:
 			visual_model.visible = true
 			visual_model.scale = Vector3.ONE
-			prompt_label.text = "[IDENTIFIED] " + artifact_name
-			prompt_label.modulate = Color(0.4, 1.0, 0.5, 0.9)
+			prompt_label.text = "[✓ CATALOGED] " + artifact_name
+			prompt_label.modulate = AerospaceTheme.COLOR_STATUS_GREEN
 			prompt_label.visible = true
 			if dig_progress_label:
 				dig_progress_label.visible = false
-			_set_beacon_color(Color(0.2, 0.9, 0.4, 0.6), Color(0.2, 0.9, 0.4))
+			_set_beacon_color(Color(0.224, 0.898, 0.549, 0.6), Color(0.224, 0.898, 0.549))
 			is_recovered = true
 
 func _set_beacon_color(albedo: Color, emission: Color) -> void:

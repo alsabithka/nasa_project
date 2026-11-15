@@ -1,7 +1,7 @@
 extends CanvasLayer
 
-# Echoes Beyond Earth - Field Specimen Conservation Mini-Game
-# Allows player to brush away lunar regolith and expose the preserved artifact.
+# Echoes Beyond Earth - Field Specimen Decontamination Chamber
+# Allows astronaut to ultrasonic-brush away lunar regolith and stabilize the preserved artifact.
 
 signal cleaning_done(artifact_id: String)
 
@@ -16,21 +16,19 @@ signal cleaning_done(artifact_id: String)
 
 var clean_progress: float = 0.0
 var is_complete: bool = false
-var brush_particle_timer: float = 0.0
 
 func _ready() -> void:
 	layer = 15 # Render above regular HUD
 	progress_bar.value = 0
 	percent_label.text = "0% DECONTAMINATED"
-	dust_overlay.color = Color(0.3, 0.32, 0.35, 0.95) # Thick regolith coat
-	object_preview_label.text = "[ SENSOR SCAN: GEOLOGICAL LAYER DETECTED ]"
+	dust_overlay.color = Color(0.25, 0.28, 0.32, 0.95)
+	object_preview_label.text = "[ SPECTRAL SENSOR SCAN: SUBSURFACE TARGET ]"
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _process(delta: float) -> void:
 	if is_complete:
 		return
 	
-	# Holding E or clicking cleans the artifact
 	var is_cleaning = Input.is_action_pressed("interact") or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 	
 	if is_cleaning:
@@ -40,30 +38,28 @@ func _process(delta: float) -> void:
 		progress_bar.value = clean_progress * 100.0
 		percent_label.text = "%d%% DECONTAMINATED" % int(clean_progress * 100.0)
 		
-		# Fade away dust layer as cleaning progresses
 		var dust_alpha = lerp(0.95, 0.0, clean_progress)
-		dust_overlay.color = Color(0.3, 0.32, 0.35, dust_alpha)
+		dust_overlay.color = Color(0.25, 0.28, 0.32, dust_alpha)
 		
-		brush_hint.text = "DISLODGING LUNAR SURFACE REGOLITH..."
-		brush_hint.modulate = Color(0.0, 0.95, 1.0)
+		brush_hint.text = "DISLODGING LUNAR SURFACE REGOLITH (ULTRASONIC SWEEP)..."
+		brush_hint.modulate = AerospaceTheme.COLOR_CYAN
 		
 		if clean_progress > 0.6:
-			object_preview_label.text = "[ SPACECRAFT STRUCTURE EMERGING... ]"
-			object_preview_label.modulate = Color(0.2, 1.0, 0.4)
+			object_preview_label.text = "[ HISTORICAL STRUCTURE STABILIZED & EMERGING... ]"
+			object_preview_label.modulate = AerospaceTheme.COLOR_STATUS_GREEN
 		
 		if clean_progress >= 1.0:
 			_on_cleaning_complete()
 	else:
 		brush_hint.text = "HOLD [E] OR LEFT CLICK TO DISLODGE REGOLITH"
-		brush_hint.modulate = Color(1.0, 0.60, 0.08)
+		brush_hint.modulate = AerospaceTheme.COLOR_AMBER
 
 func _on_cleaning_complete() -> void:
 	is_complete = true
-	brush_hint.text = "DECONTAMINATION COMPLETE — ARTIFACT STABILIZED!"
-	brush_hint.modulate = Color(0.2, 1.0, 0.4)
+	brush_hint.text = "DECONTAMINATION COMPLETE // SPECIMEN PRESERVED & STABILIZED"
+	brush_hint.modulate = AerospaceTheme.COLOR_STATUS_GREEN
 	object_preview_label.text = "[ SPECIMEN RESTORED & CATALOGED ]"
 	
-	# Slight pause to admire clean artifact then emit done
 	var timer = get_tree().create_timer(1.2)
 	timer.timeout.connect(func():
 		cleaning_done.emit(artifact_id)

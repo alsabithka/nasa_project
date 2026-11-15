@@ -233,7 +233,7 @@ func _show_inspection_ui() -> void:
 	
 	var bg = ColorRect.new()
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.color = Color(0.04, 0.05, 0.07, 0.88)
+	bg.color = AerospaceTheme.COLOR_BG_DARK
 	root_ctrl.add_child(bg)
 	
 	var center = CenterContainer.new()
@@ -241,7 +241,9 @@ func _show_inspection_ui() -> void:
 	root_ctrl.add_child(center)
 	
 	var panel = PanelContainer.new()
-	panel.custom_minimum_size = Vector2(740, 520)
+	panel.custom_minimum_size = Vector2(760, 520)
+	var sb = AerospaceTheme.create_glass_panel_style("res://textures/ui/sci_fi_glass_panel.png", 28)
+	panel.add_theme_stylebox_override("panel", sb)
 	center.add_child(panel)
 	
 	var margin = MarginContainer.new()
@@ -252,18 +254,20 @@ func _show_inspection_ui() -> void:
 	panel.add_child(margin)
 	
 	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 14)
+	vbox.add_theme_constant_override("separation", 12)
 	margin.add_child(vbox)
 	
 	# Header
 	var tag = Label.new()
-	tag.text = "NASA LUNAR SAMPLE CURATION ARCHIVE — APOLLO 17"
-	tag.modulate = Color(0.3, 0.85, 1.0)
+	tag.text = "// NASA LUNAR SAMPLE CURATION ARCHIVE — APOLLO 17 //"
+	tag.modulate = AerospaceTheme.COLOR_CYAN
+	tag.add_theme_font_size_override("font_size", 13)
 	vbox.add_child(tag)
 	
 	var title = Label.new()
 	title.text = active_sample.get("name", "Lunar Sample")
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", 22)
+	title.modulate = AerospaceTheme.COLOR_TEXT_PRIMARY
 	vbox.add_child(title)
 	
 	var sep1 = HSeparator.new()
@@ -279,7 +283,7 @@ func _show_inspection_ui() -> void:
 	_add_grid_row(grid, "Sample Identifier:", active_sample.get("id", ""))
 	_add_grid_row(grid, "Collection Site:", active_sample.get("station", ""))
 	_add_grid_row(grid, "Radiometric Age:", active_sample.get("age", ""))
-	_add_grid_row(grid, "Petrological Type:", active_sample.get("petrology", ""))
+	_add_grid_row(grid, "Petrological Classification:", active_sample.get("petrology", ""))
 	
 	var sep2 = HSeparator.new()
 	vbox.add_child(sep2)
@@ -287,24 +291,27 @@ func _show_inspection_ui() -> void:
 	# Mineral composition
 	var min_header = Label.new()
 	min_header.text = "Mineralogical & Chemical Composition:"
-	min_header.modulate = Color(0.9, 0.8, 0.3)
+	min_header.modulate = AerospaceTheme.COLOR_AMBER
+	min_header.add_theme_font_size_override("font_size", 13)
 	vbox.add_child(min_header)
 	
 	var min_text = Label.new()
 	min_text.text = active_sample.get("minerals", "")
 	min_text.autowrap_mode = TextServer.AUTOWRAP_WORD
+	min_text.modulate = AerospaceTheme.COLOR_TEXT_PRIMARY
 	vbox.add_child(min_text)
 	
 	# Geological Summary
 	var desc_header = Label.new()
 	desc_header.text = "Scientific Curation Assessment:"
-	desc_header.modulate = Color(0.9, 0.8, 0.3)
+	desc_header.modulate = AerospaceTheme.COLOR_TURQUOISE
+	desc_header.add_theme_font_size_override("font_size", 13)
 	vbox.add_child(desc_header)
 	
 	var desc = RichTextLabel.new()
 	desc.bbcode_enabled = true
 	desc.text = active_sample.get("summary", "")
-	desc.custom_minimum_size = Vector2(0, 90)
+	desc.custom_minimum_size = Vector2(0, 80)
 	vbox.add_child(desc)
 	
 	# Footer buttons
@@ -314,18 +321,18 @@ func _show_inspection_ui() -> void:
 	vbox.add_child(hbox)
 	
 	var close_btn = Button.new()
-	close_btn.text = "Close Sample [F / Esc]"
-	close_btn.custom_minimum_size = Vector2(180, 42)
+	close_btn.text = "[ CLOSE SAMPLE DOSSIER (F / ESC) ]"
+	close_btn.custom_minimum_size = Vector2(220, 42)
 	close_btn.pressed.connect(close_inspection)
 	hbox.add_child(close_btn)
 
 func _add_grid_row(grid: GridContainer, label_str: String, val_str: String) -> void:
 	var l = Label.new()
 	l.text = label_str
-	l.modulate = Color(0.65, 0.7, 0.75)
+	l.modulate = AerospaceTheme.COLOR_TEXT_SECONDARY
 	grid.add_child(l)
 	
 	var v = Label.new()
 	v.text = val_str
-	v.modulate = Color(0.95, 0.95, 0.95)
+	v.modulate = AerospaceTheme.COLOR_CYAN
 	grid.add_child(v)

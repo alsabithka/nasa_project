@@ -1,6 +1,6 @@
 extends Control
 
-# Echoes Beyond Earth - In-Game HUD, Holographic Tactical Radar, Mystery Scanner & Journal Flow
+# Echoes Beyond Earth - In-Game HUD, Aerospace Tactical Radar, Mystery Scanner & In-Game Config
 
 @export var current_planet: String = "Moon"
 
@@ -45,6 +45,18 @@ extends Control
 @onready var travel_mars_btn: Button = $CompletionModal/MarginContainer/VBoxContainer/BtnContainer/TravelMarsBtn
 @onready var continue_btn: Button = $CompletionModal/MarginContainer/VBoxContainer/BtnContainer/ContinueBtn
 
+# In-Game Settings Modal (Pause Menu)
+@onready var settings_modal: PanelContainer = get_node_or_null("SettingsModal")
+@onready var close_settings_btn: Button = get_node_or_null("SettingsModal/MarginContainer/VBox/Header/CloseSettingsBtn")
+@onready var resume_btn: Button = get_node_or_null("SettingsModal/MarginContainer/VBox/ResumeBtn")
+@onready var restart_btn: Button = get_node_or_null("SettingsModal/MarginContainer/VBox/RestartBtn")
+@onready var main_menu_btn: Button = get_node_or_null("SettingsModal/MarginContainer/VBox/MainMenuBtn")
+@onready var volume_slider: HSlider = get_node_or_null("SettingsModal/MarginContainer/VBox/VolumeHBox/VolumeSlider")
+@onready var volume_val_label: Label = get_node_or_null("SettingsModal/MarginContainer/VBox/VolumeHBox/VolumeValue")
+@onready var sens_slider: HSlider = get_node_or_null("SettingsModal/MarginContainer/VBox/SensitivityHBox/SensSlider")
+@onready var sens_val_label: Label = get_node_or_null("SettingsModal/MarginContainer/VBox/SensitivityHBox/SensValue")
+@onready var fullscreen_btn: Button = get_node_or_null("SettingsModal/MarginContainer/VBox/FullscreenBtn")
+
 var selected_journal_planet: String = "Moon"
 var _last_discovered_id: String = ""
 
@@ -53,18 +65,22 @@ func _ready() -> void:
 	_connect_gamestate()
 	_connect_scanner()
 	_setup_buttons()
+	_setup_settings_modal()
 	
-	discovery_popup.visible = false
-	journal_modal.visible = false
-	completion_modal.visible = false
+	if discovery_popup: discovery_popup.visible = false
+	if journal_modal: journal_modal.visible = false
+	if completion_modal: completion_modal.visible = false
+	if settings_modal: settings_modal.visible = false
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_journal"):
 		toggle_journal()
+	elif event.is_action_pressed("ui_cancel"):
+		toggle_settings()
 
 func _setup_buttons() -> void:
 	journal_button.pressed.connect(toggle_journal)
-	menu_button.pressed.connect(_on_menu_pressed)
+	menu_button.pressed.connect(toggle_settings)
 	popup_close_btn.pressed.connect(_on_popup_closed)
 	popup_journal_btn.pressed.connect(_open_journal_to_last_discovered)
 	journal_close_btn.pressed.connect(func(): journal_modal.visible = false)
@@ -76,6 +92,67 @@ func _setup_buttons() -> void:
 		continue_btn.pressed.connect(func(): completion_modal.visible = false)
 	if travel_mars_btn:
 		travel_mars_btn.pressed.connect(_travel_to_mars)
+
+func _setup_settings_modal() -> void:
+	if not settings_modal:
+		return
+	
+	if close_settings_btn:
+		close_settings_btn.pressed.connect(toggle_settings)
+	if resume_btn:
+		resume_btn.pressed.connect(toggle_settings)
+	if restart_btn:
+		restart_btn.pressed.connect(_on_restart_pressed)
+	if main_menu_btn:
+		main_menu_btn.pressed.connect(_on_menu_pressed)
+	
+	if volume_slider:
+		volume_slider.value_changed.connect(func(val):
+			AudioServer.set_bus_volume_db(0, linear_to_db(val))
+			if volume_val_label: volume_val_label.text = "%d%%" % int(val * 100.0)
+		)
+	
+	if sens_slider:
+		sens_slider.value_changed.connect(func(val):
+			var player = get_tree().get_first_node_in_group("player")
+			if player and "mouse_sensitivity" in player:
+				player.mouse_sensitivity = 0.002 * val
+			if sens_val_label: sens_val_label.text = "%.1fx" % val
+		)
+	
+	if fullscreen_btn:
+		fullscreen_btn.pressed.connect(func():
+			var mode = DisplayServer.window_get_mode()
+			if mode == DisplayServer.WINDOW_MODE_FULLSCREEN:
+				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+				fullscreen_btn.text = "[ FULLSCREEN: OFF ]"
+			else:
+				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+				fullscreen_btn.text = "[ FULLSCREEN: ON ]"
+		)
+
+func toggle_settings() -> void:
+	if not settings_modal:
+		_on_menu_pressed()
+		return
+	
+	settings_modal.visible = not settings_modal.visible
+	if settings_modal.visible:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		var player = get_tree().get_first_node_in_group("player")
+		if player and player.has_method("release_mouse"):
+			player.release_mouse()
+	else:
+		if not journal_modal.visible and not discovery_popup.visible and not completion_modal.visible:
+			var player = get_tree().get_first_node_in_group("player")
+			if player and player.has_method("capture_mouse"):
+				player.capture_mouse()
+
+func _on_restart_pressed() -> void:
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	var cur_scene = get_tree().current_scene
+	if cur_scene:
+		get_tree().reload_current_scene()
 
 func _connect_gamestate() -> void:
 	var gs = get_node_or_null("/root/GameState")
@@ -95,9 +172,9 @@ func _on_resources_updated(energy_val: float, max_energy_val: float, minerals_va
 		var pct = int((energy_val / max(1.0, max_energy_val)) * 100.0)
 		energy_label.text = "%d%%" % pct
 		if pct < 20:
-			energy_label.modulate = Color(1.0, 0.35, 0.35)
+			energy_label.modulate = AerospaceTheme.COLOR_CRITICAL
 		else:
-			energy_label.modulate = Color(0.0, 0.95, 1.0)
+			energy_label.modulate = AerospaceTheme.COLOR_CYAN
 	
 	if minerals_label:
 		minerals_label.text = "%s kg" % _format_number(minerals_val)
@@ -125,8 +202,8 @@ func _on_scan_updated(target_id: String, distance: float, signal_strength: float
 		distance_label.text = "-- m"
 		strength_bar.value = 0
 		target_name_label.text = "SEARCHING FOR SIGNALS..."
-		target_name_label.modulate = Color(0.0, 0.75, 0.95, 0.65)
-		distance_label.modulate = Color(0.0, 0.75, 0.95, 0.65)
+		target_name_label.modulate = AerospaceTheme.COLOR_TEXT_SECONDARY
+		distance_label.modulate = AerospaceTheme.COLOR_TEXT_SECONDARY
 		if compass_needle:
 			compass_needle.rotation = 0.0
 		return
@@ -134,23 +211,23 @@ func _on_scan_updated(target_id: String, distance: float, signal_strength: float
 	distance_label.text = "%.1f m" % distance
 	strength_bar.value = signal_strength * 100.0
 	
-	# Mystery-based signal categorization with neon cyan & orange holographic colors
+	# Mystery-based signal categorization with aerospace telemetry colors
 	if distance <= 4.0:
 		target_name_label.text = "● ANOMALY BENEATH SURFACE — DIG HERE"
-		target_name_label.modulate = Color(0.2, 1.0, 0.4)
-		distance_label.modulate = Color(0.2, 1.0, 0.4)
+		target_name_label.modulate = AerospaceTheme.COLOR_STATUS_GREEN
+		distance_label.modulate = AerospaceTheme.COLOR_STATUS_GREEN
 	elif distance < 15.0:
 		target_name_label.text = "▲ STRONG SUBSURFACE ANOMALY"
-		target_name_label.modulate = Color(1.0, 0.60, 0.08)
-		distance_label.modulate = Color(1.0, 0.60, 0.08)
+		target_name_label.modulate = AerospaceTheme.COLOR_AMBER
+		distance_label.modulate = AerospaceTheme.COLOR_AMBER
 	elif distance < 35.0:
 		target_name_label.text = "◆ MODERATE SIGNAL DETECTED"
-		target_name_label.modulate = Color(0.0, 0.95, 1.0)
-		distance_label.modulate = Color(0.0, 0.95, 1.0)
+		target_name_label.modulate = AerospaceTheme.COLOR_CYAN
+		distance_label.modulate = AerospaceTheme.COLOR_CYAN
 	else:
 		target_name_label.text = "~ FAINT SIGNAL DETECTED"
-		target_name_label.modulate = Color(0.4, 0.7, 0.9)
-		distance_label.modulate = Color(0.4, 0.7, 0.9)
+		target_name_label.modulate = AerospaceTheme.COLOR_TEXT_SECONDARY
+		distance_label.modulate = AerospaceTheme.COLOR_TEXT_SECONDARY
 
 func _on_artifact_recovered(artifact_id: String) -> void:
 	_last_discovered_id = artifact_id
@@ -161,7 +238,6 @@ func _on_artifact_recovered(artifact_id: String) -> void:
 
 func _on_popup_closed() -> void:
 	discovery_popup.visible = false
-	# Trigger cinematic historical flashback after discovery
 	if _last_discovered_id != "":
 		_trigger_flashback(_last_discovered_id)
 
@@ -175,7 +251,7 @@ func _trigger_flashback(artifact_id: String) -> void:
 		add_child(fb)
 
 func _on_flashback_complete() -> void:
-	if not journal_modal.visible and not discovery_popup.visible and not completion_modal.visible:
+	if not journal_modal.visible and not discovery_popup.visible and not completion_modal.visible and (not settings_modal or not settings_modal.visible):
 		var player = get_tree().get_first_node_in_group("player")
 		if player and player.has_method("capture_mouse"):
 			player.capture_mouse()
@@ -198,13 +274,13 @@ func _travel_to_mars() -> void:
 
 func _update_header() -> void:
 	if location_label:
-		location_label.text = "%s EXPLORATION // TACTICAL HUD" % current_planet.to_upper()
+		location_label.text = "SECTOR: %s // TAURUS-LITTROW [EVA-1]" % current_planet.to_upper()
 	var gs = get_node_or_null("/root/GameState")
 	if gs:
 		var rec = gs.get_recovered_count(current_planet)
 		var total = gs.get_total_count(current_planet)
 		if counter_label:
-			counter_label.text = "%d / %d Artifacts Found" % [rec, total]
+			counter_label.text = "RECOVERY: %d / %d ARTIFACTS" % [rec, total]
 		_on_resources_updated(gs.get_energy(), gs.max_energy, gs.get_minerals())
 
 func _show_discovery_popup(artifact_id: String) -> void:
@@ -213,14 +289,14 @@ func _show_discovery_popup(artifact_id: String) -> void:
 	if gs:
 		data = gs.get_artifact_data(artifact_id)
 	
-	popup_title.text = "// SUBSURFACE ARTIFACT RECOVERED //"
+	popup_title.text = "// NASA EXPEDITION LOG: ARTIFACT CATALOGED //"
 	popup_name.text = data.get("name", artifact_id.capitalize())
 	popup_mission.text = "Mission: %s (%s) | Status: %s" % [
 		str(data.get("mission", "Unknown")),
 		str(data.get("year", "N/A")),
 		str(data.get("status", "Active"))
 	]
-	popup_history.text = "[b]Purpose:[/b] %s\n\n[b]Historical Narrative:[/b] %s" % [
+	popup_history.text = "[b]Scientific Purpose:[/b] %s\n\n[b]Historical Narrative:[/b] %s" % [
 		data.get("purpose", ""),
 		data.get("history", "")
 	]
@@ -234,7 +310,8 @@ func toggle_journal() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		_populate_journal(selected_journal_planet)
 	else:
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		if not settings_modal or not settings_modal.visible:
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _open_journal_to_last_discovered() -> void:
 	discovery_popup.visible = false
@@ -268,16 +345,15 @@ func _populate_journal(planet: String) -> void:
 		
 		if is_rec:
 			btn.text = " [✓] " + data.get("name", id)
-			btn.modulate = Color(0.2, 1.0, 0.4)
+			btn.modulate = AerospaceTheme.COLOR_STATUS_GREEN
 		else:
 			btn.text = " [ ? ] Unidentified Subsurface Anomaly"
-			btn.modulate = Color(0.65, 0.75, 0.85)
+			btn.modulate = AerospaceTheme.COLOR_TEXT_SECONDARY
 		
 		var target_id = id
 		btn.pressed.connect(func(): _show_artifact_detail(target_id))
 		journal_list.add_child(btn)
 	
-	# Select first item detail
 	for id in artifacts.keys():
 		if artifacts[id].get("location", "").to_lower() == planet.to_lower():
 			_show_artifact_detail(id)
@@ -293,9 +369,9 @@ func _show_artifact_detail(artifact_id: String) -> void:
 	
 	if is_rec:
 		journal_detail_name.text = data.get("name", artifact_id)
-		journal_detail_name.modulate = Color(1.0, 0.60, 0.08)
+		journal_detail_name.modulate = AerospaceTheme.COLOR_AMBER
 		var sources_str = ", ".join(data.get("sources", []))
-		journal_detail_text.text = "[b]Mission:[/b] %s\n[b]Year:[/b] %s\n[b]Location:[/b] %s\n[b]Status:[/b] %s\n\n[b]Purpose:[/b]\n%s\n\n[b]Historical Narrative:[/b]\n%s\n\n[b]Sources:[/b] %s" % [
+		journal_detail_text.text = "[b]Mission:[/b] %s\n[b]Year:[/b] %s\n[b]Site Location:[/b] %s\n[b]Telemetry Status:[/b] %s\n\n[b]Scientific Purpose:[/b]\n%s\n\n[b]Historical Narrative:[/b]\n%s\n\n[b]Verified NASA Archives:[/b] %s" % [
 			str(data.get("mission", "")),
 			str(data.get("year", "")),
 			str(data.get("location", "")),
@@ -306,8 +382,8 @@ func _show_artifact_detail(artifact_id: String) -> void:
 		]
 	else:
 		journal_detail_name.text = "Unidentified Subsurface Anomaly"
-		journal_detail_name.modulate = Color(0.0, 0.85, 1.0)
-		journal_detail_text.text = "[i]This historical object remains buried beneath the lunar dust.\n\nFollow your tactical radar and proximity scanner to excavate and clean the artifact to uncover its identity and mission history![/i]"
+		journal_detail_name.modulate = AerospaceTheme.COLOR_CYAN
+		journal_detail_text.text = "[i]This historical lunar asset remains embedded beneath the regolith mantle.\n\nUse your RF Proximity Scanner & Tactical Radar to pinpoint coordinates, perform ultrasonic regolith decontamination, and preserve the artifact for the archives.[/i]"
 
 func _on_menu_pressed() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE

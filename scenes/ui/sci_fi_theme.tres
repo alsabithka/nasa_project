@@ -1,29 +1,35 @@
 [gd_resource type="Theme" format=3]
 
+[ext_resource type="Texture2D" path="res://textures/ui/aerospace_btn_disabled.png" id="1_3jki0"]
 [ext_resource type="Texture2D" path="res://textures/ui/sci_fi_btn_normal.png" id="1_8q2or"]
 [ext_resource type="Texture2D" path="res://textures/ui/sci_fi_btn_hover.png" id="2_ub5c5"]
 [ext_resource type="Texture2D" path="res://textures/ui/sci_fi_btn_pressed.png" id="3_3jki0"]
 [ext_resource type="Texture2D" path="res://textures/ui/sci_fi_glass_panel.png" id="4_bu2gq"]
+[ext_resource type="Texture2D" path="res://textures/ui/aerospace_slider_grabber.png" id="5_bu2gq"]
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_5kylk"]
 content_margin_left = 16.0
 content_margin_top = 8.0
 content_margin_right = 16.0
 content_margin_bottom = 8.0
-texture = ExtResource("1_8q2or")
+texture = ExtResource("1_3jki0")
 texture_margin_left = 10.0
 texture_margin_top = 10.0
 texture_margin_right = 10.0
 texture_margin_bottom = 10.0
-modulate_color = Color(0.5, 0.5, 0.6, 0.4)
+modulate_color = Color(0.6, 0.6, 0.6, 0.6)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5lgxj"]
 draw_center = false
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0, 1, 1, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0.898, 1, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_k35mu"]
 content_margin_left = 16.0
@@ -58,7 +64,22 @@ texture_margin_top = 10.0
 texture_margin_right = 10.0
 texture_margin_bottom = 10.0
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_13bq1"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_13bq1"]
+content_margin_top = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0, 0.898, 1, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7miqu"]
+content_margin_top = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.0196, 0.0353, 0.051, 0.86)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0.898, 1, 0.5)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_hgfpy"]
 content_margin_left = 18.0
 content_margin_top = 14.0
 content_margin_right = 18.0
@@ -69,44 +90,49 @@ texture_margin_top = 16.0
 texture_margin_right = 16.0
 texture_margin_bottom = 16.0
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7miqu"]
-bg_color = Color(0.02, 0.05, 0.09, 0.75)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1epm3"]
+bg_color = Color(0.0196, 0.0353, 0.051, 0.86)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0, 0.8, 1, 0.6)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+border_color = Color(0, 0.898, 1, 0.5)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hgfpy"]
-bg_color = Color(0, 0.95, 1, 0.95)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
-shadow_color = Color(0, 0.95, 1, 0.4)
-shadow_size = 4
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_k3rkr"]
+bg_color = Color(0, 0.898, 1, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0, 0.898, 1, 0.35)
+shadow_size = 3
 
 [resource]
-Button/colors/font_color = Color(0.15, 0.9, 1, 1)
-Button/colors/font_disabled_color = Color(0.4, 0.5, 0.6, 1)
-Button/colors/font_hover_color = Color(1, 1, 1, 1)
-Button/colors/font_pressed_color = Color(1, 0.65, 0.1, 1)
-Button/font_sizes/font_size = 15
+Button/colors/font_color = Color(0, 0.898, 1, 1)
+Button/colors/font_disabled_color = Color(0.467, 0.565, 0.616, 0.6)
+Button/colors/font_hover_color = Color(0.898, 0.949, 0.961, 1)
+Button/colors/font_pressed_color = Color(1, 0.616, 0.196, 1)
+Button/font_sizes/font_size = 14
 Button/styles/disabled = SubResource("StyleBoxTexture_5kylk")
 Button/styles/focus = SubResource("StyleBoxFlat_5lgxj")
 Button/styles/hover = SubResource("StyleBoxTexture_k35mu")
 Button/styles/normal = SubResource("StyleBoxTexture_vfiw4")
 Button/styles/pressed = SubResource("StyleBoxTexture_fu565")
-Label/colors/font_color = Color(0.85, 0.94, 1, 1)
-Label/colors/font_shadow_color = Color(0, 0.4, 0.8, 0.4)
+HSlider/icons/grabber = ExtResource("5_bu2gq")
+HSlider/icons/grabber_highlight = ExtResource("5_bu2gq")
+HSlider/styles/grabber_area = SubResource("StyleBoxFlat_13bq1")
+HSlider/styles/grabber_area_highlight = SubResource("StyleBoxFlat_13bq1")
+HSlider/styles/slider = SubResource("StyleBoxFlat_7miqu")
+Label/colors/font_color = Color(0.898, 0.949, 0.961, 1)
+Label/colors/font_shadow_color = Color(0, 0, 0, 0.75)
 Label/constants/shadow_offset_x = 1
 Label/constants/shadow_offset_y = 1
-Label/font_sizes/font_size = 15
-Panel/styles/panel = SubResource("StyleBoxTexture_13bq1")
-PanelContainer/styles/panel = SubResource("StyleBoxTexture_13bq1")
-ProgressBar/styles/background = SubResource("StyleBoxFlat_7miqu")
-ProgressBar/styles/fill = SubResource("StyleBoxFlat_hgfpy")
+Label/font_sizes/font_size = 14
+Panel/styles/panel = SubResource("StyleBoxTexture_hgfpy")
+PanelContainer/styles/panel = SubResource("StyleBoxTexture_hgfpy")
+ProgressBar/styles/background = SubResource("StyleBoxFlat_1epm3")
+ProgressBar/styles/fill = SubResource("StyleBoxFlat_k3rkr")

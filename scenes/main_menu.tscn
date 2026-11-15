@@ -1,26 +1,27 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/main_menu.gd" id="1_main_menu"]
-[ext_resource type="Texture2D" path="res://textures/ui/sci_fi_glass_panel.png" id="2_glass_panel"]
-[ext_resource type="Texture2D" path="res://textures/ui/sci_fi_orange_panel.png" id="3_orange_panel"]
+[ext_resource type="Texture2D" path="res://textures/ui/aerospace_grid_bg.png" id="2_grid_bg"]
+[ext_resource type="Texture2D" path="res://textures/ui/sci_fi_glass_panel.png" id="3_glass_panel"]
+[ext_resource type="Texture2D" path="res://textures/ui/sci_fi_orange_panel.png" id="4_orange_panel"]
 
 [sub_resource type="StyleBoxTexture" id="Style_MenuCard"]
 content_margin_left = 36.0
-content_margin_top = 32.0
+content_margin_top = 28.0
 content_margin_right = 36.0
-content_margin_bottom = 32.0
-texture = ExtResource("2_glass_panel")
+content_margin_bottom = 28.0
+texture = ExtResource("3_glass_panel")
 texture_margin_left = 16.0
 texture_margin_top = 16.0
 texture_margin_right = 16.0
 texture_margin_bottom = 16.0
 
-[sub_resource type="StyleBoxTexture" id="Style_ControlsCard"]
+[sub_resource type="StyleBoxTexture" id="Style_ModalCard"]
 content_margin_left = 32.0
-content_margin_top = 26.0
+content_margin_top = 24.0
 content_margin_right = 32.0
-content_margin_bottom = 26.0
-texture = ExtResource("3_orange_panel")
+content_margin_bottom = 24.0
+texture = ExtResource("4_orange_panel")
 texture_margin_left = 16.0
 texture_margin_top = 16.0
 texture_margin_right = 16.0
@@ -35,14 +36,53 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_main_menu")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.01, 0.02, 0.04, 1)
+texture = ExtResource("2_grid_bg")
+stretch_mode = 1
+
+[node name="TopTelemetryBar" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 44.0
+grow_horizontal = 2
+
+[node name="Margin" type="MarginContainer" parent="TopTelemetryBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_right = 24
+
+[node name="HBox" type="HBoxContainer" parent="TopTelemetryBar/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="StatusLED" type="Label" parent="TopTelemetryBar/Margin/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.224, 0.898, 0.549, 1)
+theme_override_font_sizes/font_size = 12
+text = "● MISSION COMPUTER: ONLINE"
+
+[node name="FlightMode" type="Label" parent="TopTelemetryBar/Margin/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0, 0.898, 1, 1)
+theme_override_font_sizes/font_size = 12
+text = "TRAJECTORY: TRANSLUNAR INJECTION [TLI]"
+
+[node name="Spacer" type="Control" parent="TopTelemetryBar/Margin/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MissionTime" type="Label" parent="TopTelemetryBar/Margin/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.616, 0.196, 1)
+theme_override_font_sizes/font_size = 12
+text = "MET: 072:14:38"
 
 [node name="CenterContainer" type="CenterContainer" parent="."]
 layout_mode = 1
@@ -53,54 +93,66 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="MainCard" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(500, 0)
+custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("Style_MenuCard")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/MainCard"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="CenterContainer/MainCard/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.95, 1, 1)
-theme_override_font_sizes/font_size = 34
+theme_override_colors/font_color = Color(0, 0.898, 1, 1)
+theme_override_font_sizes/font_size = 32
 text = "ECHOES BEYOND EARTH"
 horizontal_alignment = 1
 
 [node name="Subtitle" type="Label" parent="CenterContainer/MainCard/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.6, 0.08, 1)
-theme_override_font_sizes/font_size = 14
-text = "// NASA ARCHAEOLOGICAL EXPLORATION ADVENTURE"
+theme_override_colors/font_color = Color(1, 0.616, 0.196, 1)
+theme_override_font_sizes/font_size = 12
+text = "// NASA HISTORICAL ARCHAEOLOGY & LUNAR EXPLORATION"
 horizontal_alignment = 1
 
 [node name="Separator" type="HSeparator" parent="CenterContainer/MainCard/VBoxContainer"]
 layout_mode = 2
 
 [node name="PlayMoonBtn" type="Button" parent="CenterContainer/MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
-theme_override_font_sizes/font_size = 17
-text = "[ INITIATE MOON MISSION ]"
+theme_override_font_sizes/font_size = 15
+text = "[ INITIATE MOON SURVEY ]"
 
 [node name="PlayMarsBtn" type="Button" parent="CenterContainer/MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 48)
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 14
 text = "[ SURVEY MARS EXPEDITION ]"
 
 [node name="ControlsBtn" type="Button" parent="CenterContainer/MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 14
 text = "[ MISSION BRIEFING & PROTOCOLS ]"
 
-[node name="QuitBtn" type="Button" parent="CenterContainer/MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 42)
+[node name="SettingsBtn" type="Button" parent="CenterContainer/MainCard/VBoxContainer"]
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
-text = "[ ABORT / QUIT MISSION ]"
+theme_override_font_sizes/font_size = 14
+text = "[ SYSTEM CONFIGURATION & CALIBRATION ]"
+
+[node name="CreditsBtn" type="Button" parent="CenterContainer/MainCard/VBoxContainer"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "[ NASA ARCHIVAL CITATIONS & CREDITS ]"
+
+[node name="QuitBtn" type="Button" parent="CenterContainer/MainCard/VBoxContainer"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "[ TERMINATE SESSION / QUIT ]"
 
 [node name="ControlsModal" type="PanelContainer" parent="."]
 visible = false
@@ -110,47 +162,191 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -340.0
+offset_left = -350.0
 offset_top = -240.0
-offset_right = 340.0
+offset_right = 350.0
 offset_bottom = 240.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("Style_ControlsCard")
+theme_override_styles/panel = SubResource("Style_ModalCard")
 
 [node name="MarginContainer" type="MarginContainer" parent="ControlsModal"]
 layout_mode = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="ControlsModal/MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="ControlsModal/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.6, 0.08, 1)
-theme_override_font_sizes/font_size = 20
-text = "// MISSION BRIEFING & PROTOCOLS //"
+theme_override_colors/font_color = Color(1, 0.616, 0.196, 1)
+theme_override_font_sizes/font_size = 18
+text = "// MISSION BRIEFING & EVA PROTOCOLS //"
 horizontal_alignment = 1
 
 [node name="GuideText" type="RichTextLabel" parent="ControlsModal/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 270)
+custom_minimum_size = Vector2(0, 260)
 layout_mode = 2
 size_flags_vertical = 3
 bbcode_enabled = true
-text = "[b][color=#00f2ff]TACTICAL MOVEMENT & CONTROLS:[/color][/b]
-• [b]W / A / S / D[/b] or Arrow Keys — Walk / EVA Maneuvering
-• [b]Space[/b] — Jump (utilizing authentic 1.62 m/s² lunar gravity)
-• [b]Shift / C[/b] — Toggle Gait Mode (Suit Walk / Lunar Lope)
-• [b]Left Click[/b] — Lock mouse to orbit orbital survey camera
-• [b]Mouse Scroll[/b] — Optical Zoom in/out
-• [b]ESC[/b] — Release mouse / System Menu
+text = "[b][color=#00e5ff]EVA LOCOMOTION & FLIGHT DYNAMICS:[/color][/b]
+• [b]W / A / S / D[/b] — EVA Traversal across Lunar Regolith
+• [b]Space[/b] — Jump (Simulating authentic 1.62 m/s² lunar gravity)
+• [b]Shift / C[/b] — Toggle Gait Mode ([color=#39e58c]Suit Walk[/color] / [color=#00e5ff]Lunar Lope[/color])
+• [b]Left Click[/b] — Engage orbital camera tracking
+• [b]Mouse Scroll[/b] — Optical Zoom In / Out
+• [b]ESC[/b] — System Configuration / Pause Menu
 
-[b][color=#ff9914]ARCHAEOLOGICAL PROTOCOLS:[/color][/b]
-• [b]Tactical Radar & Minimap[/b] — Sweeping corner radar tracks proximity & bearings to subsurface anomalies.
-• [b][E][/b] — Recover & decontaminate historical equipment when within range.
-• [b][J][/b] — Access Archaeological Archives to review cataloged NASA missions."
+[b][color=#ff9d32]FIELD ARCHAEOLOGY & SCIENTIFIC CATION:[/color][/b]
+• [b]RF Proximity Scanner & Minimap[/b] — Tracks distance and vector to buried Apollo artifacts.
+• [b][E][/b] — Excavate subsurface anomaly and initiate ultrasonic decontamination.
+• [b][F][/b] — Inspect authentic NASA Lunar Sample Compendium geological field specimens.
+• [b][J][/b] — Access NASA Archaeological Flight Archive."
 
 [node name="CloseControlsBtn" type="Button" parent="ControlsModal/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
-text = "[ RETURN TO INTERFACE ]"
+text = "[ RETURN TO FLIGHT COMPUTER ]"
+
+[node name="SettingsModal" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -230.0
+offset_right = 280.0
+offset_bottom = 230.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("Style_ModalCard")
+
+[node name="Margin" type="MarginContainer" parent="SettingsModal"]
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="SettingsModal/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="SettingsModal/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.898, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "// SYSTEM CONFIGURATION & AUDIO //"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="SettingsModal/Margin/VBox"]
+layout_mode = 2
+
+[node name="VolHBox" type="HBoxContainer" parent="SettingsModal/Margin/VBox"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="SettingsModal/Margin/VBox/VolHBox"]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.467, 0.565, 0.616, 1)
+theme_override_font_sizes/font_size = 12
+text = "MASTER VOLUME:"
+
+[node name="VolSlider" type="HSlider" parent="SettingsModal/Margin/VBox/VolHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.05
+value = 0.8
+
+[node name="VolVal" type="Label" parent="SettingsModal/Margin/VBox/VolHBox"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.898, 1, 1)
+theme_override_font_sizes/font_size = 12
+text = "80%"
+
+[node name="SensHBox" type="HBoxContainer" parent="SettingsModal/Margin/VBox"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="SettingsModal/Margin/VBox/SensHBox"]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.467, 0.565, 0.616, 1)
+theme_override_font_sizes/font_size = 12
+text = "MOUSE SENSITIVITY:"
+
+[node name="SensSlider" type="HSlider" parent="SettingsModal/Margin/VBox/SensHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0.5
+max_value = 2.5
+step = 0.1
+value = 1.0
+
+[node name="SensVal" type="Label" parent="SettingsModal/Margin/VBox/SensHBox"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.898, 1, 1)
+theme_override_font_sizes/font_size = 12
+text = "1.0x"
+
+[node name="FullscreenBtn" type="Button" parent="SettingsModal/Margin/VBox"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+text = "[ TOGGLE FULLSCREEN DISPLAY ]"
+
+[node name="HSeparator2" type="HSeparator" parent="SettingsModal/Margin/VBox"]
+layout_mode = 2
+
+[node name="CloseSettingsBtn" type="Button" parent="SettingsModal/Margin/VBox"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "[ SAVE & RETURN ]"
+
+[node name="CreditsModal" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -340.0
+offset_top = -210.0
+offset_right = 340.0
+offset_bottom = 210.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("Style_MenuCard")
+
+[node name="Margin" type="MarginContainer" parent="CreditsModal"]
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="CreditsModal/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="CreditsModal/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.898, 1, 1)
+theme_override_font_sizes/font_size = 17
+text = "// NASA SCIENTIFIC & HISTORICAL CITATIONS //"
+horizontal_alignment = 1
+
+[node name="CreditsText" type="RichTextLabel" parent="CreditsModal/Margin/VBox"]
+custom_minimum_size = Vector2(0, 240)
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "[b][color=#00e5ff]HISTORICAL & GEOLOGICAL SOURCES:[/color][/b]
+• [b]NASA Lunar Sample Compendium[/b] — Samples 70017, 74220, 76015, and 70181 (Meyer, C., NASA JSC).
+• [b]Apollo Lunar Surface Journal (ALSJ)[/b] — Authentic mission transcripts & audio telemetry (Jones, E. M., NASA HQ).
+• [b]LROC Lunar Reconnaissance Orbiter Camera[/b] — Photometric regolith scattering & digital elevation data (ASU / NASA GSFC).
+• [b]Smithsonian 3D Heritage & NASA 3D Resources[/b] — Apollo Lunar Roving Vehicle, Lunar Module Descent Stage, ALSEP array."
+
+[node name="CloseCreditsBtn" type="Button" parent="CreditsModal/Margin/VBox"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "[ RETURN ]"

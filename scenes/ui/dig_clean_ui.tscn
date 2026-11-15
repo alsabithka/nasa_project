@@ -15,16 +15,16 @@ texture_margin_right = 16.0
 texture_margin_bottom = 16.0
 
 [sub_resource type="StyleBoxFlat" id="Style_Preview"]
-bg_color = Color(0.015, 0.03, 0.06, 0.9)
+bg_color = Color(0.0196, 0.0353, 0.051, 0.94)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0, 0.95, 1, 0.7)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
+border_color = Color(0, 0.898, 1, 0.75)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [node name="DigCleanUI" type="CanvasLayer"]
 layer = 15
@@ -36,7 +36,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.01, 0.02, 0.04, 0.92)
+color = Color(0.0196, 0.0353, 0.051, 0.92)
 
 [node name="CenterContainer" type="CenterContainer" parent="."]
 anchors_preset = 15
@@ -46,7 +46,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="PanelContainer" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(480, 0)
+custom_minimum_size = Vector2(500, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("Style_CleanCard")
 
@@ -56,17 +56,34 @@ theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.6, 0.08, 1)
-theme_override_font_sizes/font_size = 20
-text = "// FIELD SPECIMEN CONSERVATION //"
+theme_override_colors/font_color = Color(1, 0.616, 0.196, 1)
+theme_override_font_sizes/font_size = 18
+text = "// FIELD SPECIMEN DECONTAMINATION CHAMBER //"
 horizontal_alignment = 1
 
 [node name="Subtitle" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.95, 1, 0.85)
-theme_override_font_sizes/font_size = 13
-text = "TARGET: SUBSURFACE LUNAR EQUIPMENT"
+theme_override_colors/font_color = Color(0, 0.898, 1, 0.85)
+theme_override_font_sizes/font_size = 12
+text = "TARGET: SUB-SURFACE APOLLO HISTORICAL ARTIFACT"
 horizontal_alignment = 1
+
+[node name="InstrumentStatusHBox" type="HBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="StatusLed" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer/InstrumentStatusHBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.224, 0.898, 0.549, 1)
+theme_override_font_sizes/font_size = 11
+text = "● TOOL: ULTRASONIC DISLODGER"
+
+[node name="IntegrityLabel" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer/InstrumentStatusHBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.467, 0.565, 0.616, 1)
+theme_override_font_sizes/font_size = 11
+text = "SPECIMEN INTEGRITY: 100%"
 
 [node name="PreviewBox" type="PanelContainer" parent="CenterContainer/PanelContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 180)
@@ -75,15 +92,15 @@ theme_override_styles/panel = SubResource("Style_Preview")
 
 [node name="ObjectPreviewLabel" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer/PreviewBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.95, 1, 1)
-theme_override_font_sizes/font_size = 15
-text = "[ Spacecraft Structure Emerging... ]"
+theme_override_colors/font_color = Color(0, 0.898, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "[ SPECTRAL SENSOR SCAN: SUBSURFACE TARGET ]"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="DustOverlay" type="ColorRect" parent="CenterContainer/PanelContainer/VBoxContainer/PreviewBox"]
 layout_mode = 2
-color = Color(0.3, 0.32, 0.35, 0.95)
+color = Color(0.25, 0.28, 0.32, 0.95)
 
 [node name="ProgressBar" type="ProgressBar" parent="CenterContainer/PanelContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 14)
@@ -94,14 +111,14 @@ show_percentage = false
 
 [node name="PercentLabel" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.85, 0.95, 1, 1)
-theme_override_font_sizes/font_size = 14
-text = "0% Cleaned"
+theme_override_colors/font_color = Color(0.898, 0.949, 0.961, 1)
+theme_override_font_sizes/font_size = 13
+text = "0% DECONTAMINATED"
 horizontal_alignment = 1
 
 [node name="BrushHint" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.6, 0.08, 1)
-theme_override_font_sizes/font_size = 14
-text = "Hold [E] or Left Click to brush away dust"
+theme_override_colors/font_color = Color(1, 0.616, 0.196, 1)
+theme_override_font_sizes/font_size = 13
+text = "HOLD [E] OR LEFT CLICK TO DISLODGE REGOLITH"
 horizontal_alignment = 1
