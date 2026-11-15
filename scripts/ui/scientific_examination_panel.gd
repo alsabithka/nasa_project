@@ -1,11 +1,14 @@
 extends CanvasLayer
 
 # Echoes Beyond Earth - NASA Scientific Examination & Geological Documentation Panel
+# Phase 5: Restyled with UITokens — ArchiveCard look, clear data hierarchy, no raw literals.
 # Formatted according to NASA Apollo Lunar Sample Compendium standards:
 # - Clearly distinguishes measured vs estimated properties
 # - Documents stratigraphic depth, discovery coordinates, and classification
 
 signal documentation_closed(artifact_id: String)
+
+const UITokens = preload("res://scripts/ui/ui_tokens.gd")
 
 var artifact_id: String = ""
 var artifact_data: Dictionary = {}
@@ -27,41 +30,47 @@ func _ready() -> void:
 	populate_data()
 
 func _build_ui_fallback() -> void:
-	layer = 120
+	layer = UITokens.LAYER_MODALS  # 20 — above overlays, below cinema
 	var cc = CenterContainer.new()
 	cc.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(cc)
 
 	var p = PanelContainer.new()
-	p.custom_minimum_size = Vector2(680, 520)
-	
+	p.custom_minimum_size = Vector2(700, 540)
+
+	# Phase 5: ArchiveCard style — INK_800, 0px radius, SIGNAL_CYAN accent border
 	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0.08, 0.09, 0.12, 0.96)
-	sb.border_color = Color(0.3, 0.6, 0.85, 0.8)
+	sb.bg_color = UITokens.INK_800
+	sb.border_color = UITokens.SIGNAL_CYAN
 	sb.set_border_width_all(2)
-	sb.set_corner_radius_all(6)
+	sb.set_corner_radius_all(0)
+	sb.content_margin_left = 36.0
+	sb.content_margin_top = 28.0
+	sb.content_margin_right = 36.0
+	sb.content_margin_bottom = 24.0
 	p.add_theme_stylebox_override("panel", sb)
 	cc.add_child(p)
 
 	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 12)
+	vb.add_theme_constant_override("separation", 10)
 	p.add_child(vb)
 
-	# Header
+	# Header row: title + category badge
 	var hb = HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 16)
 	vb.add_child(hb)
 
 	title_label = Label.new()
 	title_label.text = "NASA LUNAR SPECIMEN DOCUMENTATION"
-	title_label.add_theme_font_size_override("font_size", 18)
-	title_label.modulate = Color(0.9, 0.95, 1.0)
+	title_label.add_theme_font_size_override("font_size", UITokens.TEXT_LEAD)
+	title_label.add_theme_color_override("font_color", UITokens.PAPER_100)
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hb.add_child(title_label)
 
 	category_badge = Label.new()
 	category_badge.text = "[GEOLOGICAL SAMPLE]"
-	category_badge.add_theme_font_size_override("font_size", 13)
-	category_badge.modulate = Color(1.0, 0.8, 0.2)
+	category_badge.add_theme_font_size_override("font_size", UITokens.TEXT_CAPTION)
+	category_badge.add_theme_color_override("font_color", UITokens.SIGNAL_GOLD)
 	hb.add_child(category_badge)
 
 	# Divider
@@ -71,8 +80,8 @@ func _build_ui_fallback() -> void:
 	# Context & Stratigraphy
 	context_label = Label.new()
 	context_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	context_label.add_theme_font_size_override("font_size", 13)
-	context_label.modulate = Color(0.75, 0.85, 0.95)
+	context_label.add_theme_font_size_override("font_size", UITokens.TEXT_BODY)
+	context_label.add_theme_color_override("font_color", UITokens.PAPER_300)
 	vb.add_child(context_label)
 
 	# Properties (Measured vs Estimated)
@@ -82,39 +91,44 @@ func _build_ui_fallback() -> void:
 
 	var m_title = Label.new()
 	m_title.text = "MEASURED PROPERTIES (In-Situ & Laboratory):"
-	m_title.add_theme_font_size_override("font_size", 12)
-	m_title.modulate = Color(0.3, 0.9, 0.5)
+	m_title.add_theme_font_size_override("font_size", UITokens.TEXT_CAPTION)
+	m_title.add_theme_color_override("font_color", UITokens.SIGNAL_GREEN)
 	prop_box.add_child(m_title)
 
 	measured_label = Label.new()
 	measured_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	measured_label.add_theme_font_size_override("font_size", 12)
+	measured_label.add_theme_font_size_override("font_size", UITokens.TEXT_BODY)
+	measured_label.add_theme_color_override("font_color", UITokens.PAPER_300)
 	prop_box.add_child(measured_label)
 
 	var e_title = Label.new()
 	e_title.text = "ESTIMATED / THEORETICAL INFERENCES:"
-	e_title.add_theme_font_size_override("font_size", 12)
-	e_title.modulate = Color(1.0, 0.75, 0.3)
+	e_title.add_theme_font_size_override("font_size", UITokens.TEXT_CAPTION)
+	e_title.add_theme_color_override("font_color", UITokens.SIGNAL_GOLD)
 	prop_box.add_child(e_title)
 
 	estimated_label = Label.new()
 	estimated_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	estimated_label.add_theme_font_size_override("font_size", 12)
+	estimated_label.add_theme_font_size_override("font_size", UITokens.TEXT_BODY)
+	estimated_label.add_theme_color_override("font_color", UITokens.PAPER_300)
 	prop_box.add_child(estimated_label)
 
 	# Scientific History
 	history_text = RichTextLabel.new()
-	history_text.bbcode_enabled = true
+	history_text.bbcode_enabled = true  # B2 FIX preserved
 	history_text.custom_minimum_size = Vector2(0, 110)
 	history_text.fit_content = false
 	history_text.scroll_active = true
-	history_text.add_theme_font_size_override("normal_font_size", 12)
+	history_text.add_theme_font_size_override("normal_font_size", UITokens.TEXT_BODY)
+	history_text.add_theme_color_override("default_color", UITokens.PAPER_300)
 	vb.add_child(history_text)
 
 	# Close button
 	close_button = Button.new()
-	close_button.text = "CATALOG & STORE SPECIMEN [E / Click]"
-	close_button.custom_minimum_size = Vector2(0, 42)
+	close_button.text = "CATALOG & STORE SPECIMEN  [ E ]"
+	close_button.custom_minimum_size = Vector2(0, 44)
+	close_button.add_theme_font_size_override("font_size", UITokens.TEXT_BODY)
+	close_button.add_theme_color_override("font_color", UITokens.SIGNAL_GOLD)
 	close_button.pressed.connect(_on_close_pressed)
 	vb.add_child(close_button)
 

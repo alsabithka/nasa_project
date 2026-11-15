@@ -1,9 +1,11 @@
 extends CanvasLayer
 
-# Echoes Beyond Earth - Artifact Surface Cleaning Mini-Game
-# Allows player to brush away lunar regolith and expose the preserved artifact.
+# Echoes Beyond Earth - Artifact Surface Cleaning Mini-Game (Phase 5 updated)
+# Phase 5: UITokens colours applied throughout.
 
 signal cleaning_done(artifact_id: String)
+
+const UITokens = preload("res://scripts/ui/ui_tokens.gd")
 
 @export var artifact_id: String = ""
 @export var clean_duration: float = 6.0
@@ -19,11 +21,12 @@ var is_complete: bool = false
 var brush_particle_timer: float = 0.0
 
 func _ready() -> void:
-	layer = 15 # Render above regular HUD
+	layer = UITokens.LAYER_OVERLAYS  # 10 — above HUD, below modals
 	progress_bar.value = 0
 	percent_label.text = "0% Cleaned"
 	dust_overlay.color = Color(0.38, 0.40, 0.42, 0.95) # Thick regolith coat
-	object_preview_label.text = "[ Unidentified Surface Coating ]"
+	object_preview_label.text = "[ UNIDENTIFIED SUBSURFACE ANOMALY ]"
+	object_preview_label.add_theme_color_override("font_color", UITokens.PAPER_500)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _process(delta: float) -> void:
@@ -50,29 +53,33 @@ func _process(delta: float) -> void:
 		
 		# Update label at meaningful thresholds
 		if clean_progress >= 1.0:
-			object_preview_label.text = "[ ARTIFACT RESTORED ]"
-			object_preview_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2))
+			object_preview_label.text = "[ ARTEFACT RESTORED — CATALOGUING ]"
+			object_preview_label.add_theme_color_override("font_color", UITokens.SIGNAL_GOLD)
 		elif clean_progress >= 0.9:
 			object_preview_label.text = "[ IDENTIFICATION IMMINENT ]"
+			object_preview_label.add_theme_color_override("font_color", UITokens.SIGNAL_CYAN)
 		elif clean_progress >= 0.6:
 			object_preview_label.text = "[ Spacecraft Structure Emerging... ]"
+			object_preview_label.add_theme_color_override("font_color", UITokens.PAPER_300)
 		elif clean_progress >= 0.3:
 			object_preview_label.text = "Metallic Structure Detected..."
+			object_preview_label.add_theme_color_override("font_color", UITokens.PAPER_300)
 		
 		brush_hint.text = "Brushing away lunar dust..."
-		brush_hint.modulate = Color(0.3, 1.0, 0.6)
+		brush_hint.add_theme_color_override("font_color", UITokens.SIGNAL_GREEN)
 		
 		if clean_progress >= 1.0:
 			_on_cleaning_complete()
 	else:
 		brush_hint.text = "Hold [E] or Left Click to brush away dust"
-		brush_hint.modulate = Color(1.0, 0.85, 0.2)
+		brush_hint.add_theme_color_override("font_color", UITokens.SIGNAL_GOLD)
 
 func _on_cleaning_complete() -> void:
 	is_complete = true
-	brush_hint.text = "CLEANING COMPLETE — ARTIFACT RESTORED!"
-	brush_hint.modulate = Color(0.2, 1.0, 0.4)
+	brush_hint.text = "CLEANING COMPLETE — ARTEFACT RESTORED!"
+	brush_hint.add_theme_color_override("font_color", UITokens.SIGNAL_GREEN)
 	object_preview_label.text = "[ Cleaned & Preserved ]"
+	object_preview_label.add_theme_color_override("font_color", UITokens.SIGNAL_GOLD)
 	
 	# Slight pause to admire clean artifact then emit done
 	var timer = get_tree().create_timer(1.2)
