@@ -8,7 +8,8 @@ signal resume_requested
 signal open_journal_requested
 signal open_settings_requested
 
-const UITokens = preload("res://scripts/ui/ui_tokens.gd")
+const UITokens  = preload("res://scripts/ui/ui_tokens.gd")
+const SceneFade = preload("res://scripts/ui/scene_fade.gd")
 
 var _overlay: ColorRect
 var _card: PanelContainer
@@ -152,7 +153,7 @@ func _on_quit() -> void:
 	dlg.ok_button_text = "Quit"
 	dlg.cancel_button_text = "Cancel"
 	dlg.confirmed.connect(func():
-		get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+		SceneFade.go(get_tree(), "res://scenes/main_menu.tscn")
 	)
 	add_child(dlg)
 	dlg.popup_centered()

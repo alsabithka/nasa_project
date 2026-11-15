@@ -2,7 +2,8 @@ extends Control
 
 # Echoes Beyond Earth - Main Menu Controller (Phase 3 updated)
 
-const UITokens = preload("res://scripts/ui/ui_tokens.gd")
+const UITokens    = preload("res://scripts/ui/ui_tokens.gd")
+const SceneFade   = preload("res://scripts/ui/scene_fade.gd")
 
 @onready var play_moon_btn: Button = $CenterContainer/MainCard/VBoxContainer/PlayMoonBtn
 @onready var play_mars_btn: Button = $CenterContainer/MainCard/VBoxContainer/PlayMarsBtn
@@ -72,16 +73,16 @@ func _update_mars_button() -> void:
 
 
 func _on_play_moon_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/levels/moon.tscn")
+	SceneFade.go(get_tree(), "res://scenes/levels/moon.tscn")
 
 
 func _on_gallery_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/spacecraft/spacecraft_gallery.tscn")
+	SceneFade.go(get_tree(), "res://scenes/spacecraft/spacecraft_gallery.tscn")
 
 
 func _on_play_mars_pressed() -> void:
 	# B8 FIX: removed auto-unlock; button is disabled until Moon survey is complete
-	get_tree().change_scene_to_file("res://scenes/levels/mars.tscn")
+	SceneFade.go(get_tree(), "res://scenes/levels/mars.tscn")
 
 
 func _unhandled_input(event: InputEvent) -> void:

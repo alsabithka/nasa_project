@@ -3,16 +3,16 @@
 [ext_resource type="Script" path="res://scripts/main_menu.gd" id="1_main_menu"]
 
 [sub_resource type="StyleBoxFlat" id="Style_MenuCard"]
-bg_color = Color(0.09, 0.11, 0.16, 0.94)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.2, 0.55, 0.95, 0.8)
-corner_radius_top_left = 18
-corner_radius_top_right = 18
-corner_radius_bottom_right = 18
-corner_radius_bottom_left = 18
+bg_color = Color(0.051, 0.067, 0.09, 0.96)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.98, 0.78, 0.2, 1.0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
 content_margin_left = 40.0
 content_margin_top = 36.0
 content_margin_right = 40.0
@@ -78,9 +78,9 @@ horizontal_alignment = 1
 
 [node name="Subtitle" type="Label" parent="CenterContainer/MainCard/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.8, 0.95, 1)
-theme_override_font_sizes/font_size = 16
-text = "A NASA Archaeological Exploration Adventure"
+theme_override_colors/font_color = Color(0.639, 0.675, 0.714, 1)
+theme_override_font_sizes/font_size = 14
+text = "NASA Archaeological Exploration — Moon & Mars"
 horizontal_alignment = 1
 
 [node name="Separator" type="HSeparator" parent="CenterContainer/MainCard/VBoxContainer"]
@@ -151,17 +151,20 @@ custom_minimum_size = Vector2(0, 260)
 layout_mode = 2
 size_flags_vertical = 3
 bbcode_enabled = true
-text = "[b]Movement (Roblox Style):[/b]
+text = "[b]Movement:[/b]
 • [b]W / A / S / D[/b] or Arrow Keys — Walk
-• [b]Space[/b] — Jump (enjoy low lunar gravity!)
-• [b]Left Click[/b] — Lock mouse to orbit camera
-• [b]Mouse Scroll[/b] — Zoom camera in/out
-• [b]ESC[/b] — Release mouse / Open menu
+• [b]Space[/b] — Jump (low lunar gravity — enjoy the arc!)
+• [b]Left Click[/b] — Lock mouse / orbit camera
+• [b]Mouse Scroll[/b] — Zoom in/out
+• [b]ESC[/b] — Release mouse or open Pause Menu
+• [b]Shift / C[/b] — Toggle lunar lope vs suit walk
+• [b]V[/b] — Toggle 1st-person / 3rd-person view
 
 [b]Archaeological Exploration:[/b]
-• [b]Proximity Scanner[/b] — Tracks distance and direction to nearest unrecovered artifact. Audio beep cadence speeds up as you get closer.
-• [b][E][/b] — Investigate & recover artifact when within range.
-• [b][J][/b] — Open your archaeological journal to view verified NASA history records."
+• [b]Proximity Scanner[/b] — Always active. Signal beep accelerates as you approach a buried artefact.
+• [b][E][/b] — Excavate when scanner reads ANOMALY BENEATH SURFACE.
+• [b][J][/b] — Open Archaeological Journal (recovered history records).
+• [b]ESC[/b] — Pause Menu (Resume, Settings, Quit)."
 
 [node name="CloseControlsBtn" type="Button" parent="ControlsModal/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(140, 42)

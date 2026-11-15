@@ -244,6 +244,8 @@ func _show_discovery_popup(artifact_id: String) -> void:
 	]
 	
 	discovery_popup.visible = true
+	# Phase 8: animate popup open
+	_animate_modal_open(discovery_popup)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func toggle_journal() -> void:
@@ -251,6 +253,7 @@ func toggle_journal() -> void:
 	# B7 FIX: hide scanner widget when journal is open
 	radar_panel.visible = not journal_modal.visible
 	if journal_modal.visible:
+		_animate_modal_open(journal_modal)
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		_populate_journal(selected_journal_planet)
 	else:
@@ -431,3 +434,13 @@ func _format_year(val) -> String:
 	if val is float or val is int:
 		return str(int(val))
 	return str(val)
+
+# Phase 8: Tween-based modal open — scale + fade in using UITokens duration
+func _animate_modal_open(node: Control) -> void:
+	node.modulate.a = 0.0
+	node.scale = Vector2(0.96, 0.96)
+	node.pivot_offset = node.size * 0.5
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(node, "modulate:a", 1.0, UITokens.DURATION_BASE)
+	tw.tween_property(node, "scale", Vector2.ONE, UITokens.DURATION_BASE).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
