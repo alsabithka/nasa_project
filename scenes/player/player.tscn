@@ -38,18 +38,6 @@ emission_enabled = true
 emission = Color(1, 1, 1, 1)
 emission_energy_multiplier = 1.2
 
-[sub_resource type="StandardMaterial3D" id="Mat_MouthInterior"]
-albedo_color = Color(0.18, 0.04, 0.08, 1)
-roughness = 0.6
-
-[sub_resource type="StandardMaterial3D" id="Mat_Teeth"]
-albedo_color = Color(0.98, 0.98, 0.98, 1)
-roughness = 0.2
-
-[sub_resource type="StandardMaterial3D" id="Mat_Tongue"]
-albedo_color = Color(0.90, 0.36, 0.48, 1)
-roughness = 0.45
-
 [sub_resource type="StandardMaterial3D" id="Mat_TransparentVisor"]
 transparency = 1
 cull_mode = 0
@@ -63,9 +51,9 @@ clearcoat = 1.0
 clearcoat_roughness = 0.03
 
 [sub_resource type="StandardMaterial3D" id="Mat_SuitWhite"]
-albedo_color = Color(0.96, 0.38, 0.64, 1)
-roughness = 0.36
-metallic = 0.08
+albedo_color = Color(0.94, 0.95, 0.96, 1)
+roughness = 0.55
+metallic = 0.02
 
 [sub_resource type="StandardMaterial3D" id="Mat_SilverMetallic"]
 albedo_color = Color(0.85, 0.88, 0.92, 1)
@@ -126,7 +114,7 @@ ring_segments = 12
 
 [sub_resource type="BoxMesh" id="Mesh_GoggleBridge"]
 material = SubResource("Mat_GoggleSilver")
-size = Vector3(0.08, 0.035, 0.025)
+size = Vector3(0.08, 0.038, 0.032)
 
 [sub_resource type="SphereMesh" id="Mesh_Sclera"]
 material = SubResource("Mat_EyeWhite")
@@ -156,27 +144,13 @@ height = 0.014
 radial_segments = 8
 rings = 4
 
-[sub_resource type="BoxMesh" id="Mesh_MouthCavity"]
-material = SubResource("Mat_MouthInterior")
-size = Vector3(0.24, 0.10, 0.06)
-
-[sub_resource type="BoxMesh" id="Mesh_UpperTeeth"]
-material = SubResource("Mat_Teeth")
-size = Vector3(0.18, 0.035, 0.04)
-
-[sub_resource type="SphereMesh" id="Mesh_Tongue"]
-material = SubResource("Mat_Tongue")
-radius = 0.045
-height = 0.04
-radial_segments = 10
-rings = 6
-
-[sub_resource type="CylinderMesh" id="Mesh_GoggleStrap"]
+[sub_resource type="BoxMesh" id="Mesh_GoggleSideStrap"]
 material = SubResource("Mat_GoggleStrap")
-top_radius = 0.375
-bottom_radius = 0.375
-height = 0.055
-radial_segments = 24
+size = Vector3(0.025, 0.055, 0.44)
+
+[sub_resource type="BoxMesh" id="Mesh_GoggleBackStrap"]
+material = SubResource("Mat_GoggleStrap")
+size = Vector3(0.56, 0.055, 0.025)
 
 [sub_resource type="SphereMesh" id="Mesh_TransparentVisor"]
 material = SubResource("Mat_TransparentVisor")
@@ -191,24 +165,6 @@ top_radius = 0.38
 bottom_radius = 0.38
 height = 0.06
 radial_segments = 24
-
-[sub_resource type="TorusMesh" id="Mesh_GruBadgeRim"]
-material = SubResource("Mat_SilverMetallic")
-inner_radius = 0.055
-outer_radius = 0.075
-rings = 16
-ring_segments = 12
-
-[sub_resource type="CylinderMesh" id="Mesh_GruBadgeBack"]
-material = SubResource("Mat_GoggleStrap")
-top_radius = 0.068
-bottom_radius = 0.068
-height = 0.01
-radial_segments = 16
-
-[sub_resource type="BoxMesh" id="Mesh_GruGBar"]
-material = SubResource("Mat_SilverMetallic")
-size = Vector3(0.04, 0.015, 0.01)
 
 [sub_resource type="BoxMesh" id="Mesh_ShoulderStrap"]
 material = SubResource("Mat_ShoulderStrap")
@@ -467,21 +423,6 @@ mesh = SubResource("Mesh_MinionTorso")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.22, 0)
 mesh = SubResource("Mesh_TorsoBottom")
 
-[node name="GruBadge" type="Node3D" parent="Visuals/Torso"]
-transform = Transform3D(1, 0, 0, 0, 0.984808, 0.173648, 0, -0.173648, 0.984808, -0.16, 0.08, 0.38)
-
-[node name="BadgeRim" type="MeshInstance3D" parent="Visuals/Torso/GruBadge"]
-transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0.005)
-mesh = SubResource("Mesh_GruBadgeRim")
-
-[node name="BadgeBack" type="MeshInstance3D" parent="Visuals/Torso/GruBadge"]
-transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0)
-mesh = SubResource("Mesh_GruBadgeBack")
-
-[node name="BadgeG" type="MeshInstance3D" parent="Visuals/Torso/GruBadge"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.015, 0, 0.008)
-mesh = SubResource("Mesh_GruGBar")
-
 [node name="LeftShoulderStrap" type="MeshInstance3D" parent="Visuals/Torso"]
 transform = Transform3D(1, 0, 0, 0, 0.965926, -0.258819, 0, 0.258819, 0.965926, -0.2, 0.24, 0.02)
 mesh = SubResource("Mesh_ShoulderStrap")
@@ -508,12 +449,23 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.32, 0)
 [node name="MinionHeadMesh" type="MeshInstance3D" parent="Visuals/Torso/Head"]
 mesh = SubResource("Mesh_MinionHead")
 
-[node name="GoggleStrap" type="MeshInstance3D" parent="Visuals/Torso/Head"]
+[node name="GoggleStrap" type="Node3D" parent="Visuals/Torso/Head"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.08, 0)
-mesh = SubResource("Mesh_GoggleStrap")
+
+[node name="BackStrap" type="MeshInstance3D" parent="Visuals/Torso/Head/GoggleStrap"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.365)
+mesh = SubResource("Mesh_GoggleBackStrap")
+
+[node name="LeftStrap" type="MeshInstance3D" parent="Visuals/Torso/Head/GoggleStrap"]
+transform = Transform3D(0.990268, 0, -0.139173, 0, 1, 0, 0.139173, 0, 0.990268, -0.345, 0, 0.05)
+mesh = SubResource("Mesh_GoggleSideStrap")
+
+[node name="RightStrap" type="MeshInstance3D" parent="Visuals/Torso/Head/GoggleStrap"]
+transform = Transform3D(0.990268, 0, 0.139173, 0, 1, 0, -0.139173, 0, 0.990268, 0.345, 0, 0.05)
+mesh = SubResource("Mesh_GoggleSideStrap")
 
 [node name="GoggleBridge" type="MeshInstance3D" parent="Visuals/Torso/Head"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.08, 0.35)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.08, 0.355)
 mesh = SubResource("Mesh_GoggleBridge")
 
 [node name="LeftGoggleRing" type="MeshInstance3D" parent="Visuals/Torso/Head"]
@@ -555,20 +507,6 @@ mesh = SubResource("Mesh_Pupil")
 [node name="RightEyeSparkle" type="MeshInstance3D" parent="Visuals/Torso/Head/RightGoggleRing"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.014, 0.044, -0.014)
 mesh = SubResource("Mesh_Sparkle")
-
-[node name="SmileMouth" type="Node3D" parent="Visuals/Torso/Head"]
-transform = Transform3D(1, 0, 0, 0, 0.984808, 0.173648, 0, -0.173648, 0.984808, 0, -0.07, 0.34)
-
-[node name="MouthCavity" type="MeshInstance3D" parent="Visuals/Torso/Head/SmileMouth"]
-mesh = SubResource("Mesh_MouthCavity")
-
-[node name="UpperTeeth" type="MeshInstance3D" parent="Visuals/Torso/Head/SmileMouth"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0.015)
-mesh = SubResource("Mesh_UpperTeeth")
-
-[node name="Tongue" type="MeshInstance3D" parent="Visuals/Torso/Head/SmileMouth"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.03, 0.01)
-mesh = SubResource("Mesh_Tongue")
 
 [node name="TransparentVisor" type="MeshInstance3D" parent="Visuals/Torso/Head"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0.02)

@@ -32,28 +32,40 @@ func _run_verification() -> void:
 	
 	print("[Setup] Settled frames: %d | On floor: %s | Y pos: %f" % [settle, str(player.is_on_floor()), player.global_position.y])
 	
-	# Test 1: Verify Visual Features matching character image
-	print("\n--- 1. Testing Visual Model Features (Pink Astronaut Minion) ---")
+	# Test 1: Verify Visual Features (NASA Astronaut White Uniform & Clean Goggles)
+	print("\n--- 1. Testing Visual Model Features (White Astronaut Minion) ---")
 	var torso = player.get_node_or_null("Visuals/Torso")
 	var torso_mesh = player.get_node_or_null("Visuals/Torso/TorsoMesh")
 	var gru_badge = player.get_node_or_null("Visuals/Torso/GruBadge")
 	var left_strap = player.get_node_or_null("Visuals/Torso/LeftShoulderStrap")
 	var right_strap = player.get_node_or_null("Visuals/Torso/RightShoulderStrap")
 	var mouth = player.get_node_or_null("Visuals/Torso/Head/SmileMouth")
-	var teeth = player.get_node_or_null("Visuals/Torso/Head/SmileMouth/UpperTeeth")
 	var visor = player.get_node_or_null("Visuals/Torso/Head/TransparentVisor")
+	var goggle_bridge = player.get_node_or_null("Visuals/Torso/Head/GoggleBridge")
 	var left_cuff = player.get_node_or_null("Visuals/Torso/LeftArm/WristCuff")
 	var right_cuff = player.get_node_or_null("Visuals/Torso/RightArm/WristCuff")
 	var left_sole = player.get_node_or_null("Visuals/Torso/LeftLeg/Boot/BootSole")
 	var right_sole = player.get_node_or_null("Visuals/Torso/RightLeg/Boot/BootSole")
 	
-	if not torso or not torso_mesh or not gru_badge or not left_strap or not right_strap:
-		printerr("FAIL: Torso structure, Gru badge, or shoulder straps missing!")
+	if not torso or not torso_mesh or not left_strap or not right_strap:
+		printerr("FAIL: Torso structure or shoulder straps missing!")
 		quit(1)
 		return
 	
-	if not mouth or not teeth or not visor:
-		printerr("FAIL: Smile mouth, teeth, or transparent bubble visor missing!")
+	if gru_badge != null:
+		printerr("FAIL: Gru badge (gray oval) still present!")
+		quit(1)
+		return
+	print("PASS: 3D gray oval under goggles removed.")
+	
+	if mouth != null:
+		printerr("FAIL: Smile mouth (two right triangles) still present!")
+		quit(1)
+		return
+	print("PASS: Two right triangles under goggles removed.")
+	
+	if not visor or not goggle_bridge:
+		printerr("FAIL: Visor or goggle bridge missing!")
 		quit(1)
 		return
 		
@@ -62,15 +74,15 @@ func _run_verification() -> void:
 		quit(1)
 		return
 	
-	# Check Suit Color is vibrant pink
+	# Check Suit Color is authentic astronaut white
 	var suit_mat = torso_mesh.mesh.material
-	var pink_color = suit_mat.albedo_color
-	print("[Suit] Albedo Color: ", pink_color)
-	if pink_color.r < 0.85 or pink_color.g > 0.60 or pink_color.b < 0.50:
-		printerr("FAIL: Suit color is not pink!")
+	var white_color = suit_mat.albedo_color
+	print("[Suit] Albedo Color: ", white_color)
+	if white_color.r < 0.90 or white_color.g < 0.90 or white_color.b < 0.90:
+		printerr("FAIL: Suit color is not astronaut white! ", white_color)
 		quit(1)
 		return
-	print("PASS: Visual model features (Pink suit, Gru badge, smile, teeth, bubble visor, cuffs) verified.")
+	print("PASS: Authentic astronaut white uniform verified.")
 	
 	# Test 2: Verify AnimationPlayer & Library Tracks
 	print("\n--- 2. Testing AnimationPlayer & Animation Library ---")
