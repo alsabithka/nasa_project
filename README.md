@@ -23,13 +23,14 @@ It is our entry for the NASA challenge **"Abandoned but not Forgotten: Storytell
 4. [The hardware you will meet](#the-hardware-you-will-meet)
 5. [Controls](#controls)
 6. [Getting started](#getting-started)
-7. [Project structure](#project-structure)
-8. [How it works](#how-it-works)
-9. [Adding a new artifact](#adding-a-new-artifact)
-10. [Testing](#testing)
-11. [Design system](#design-system)
-12. [Status and known limitations](#status-and-known-limitations)
-13. [Sources and credits](#sources-and-credits)
+7. [Release](#release)
+8. [Project structure](#project-structure)
+9. [How it works](#how-it-works)
+10. [Adding a new artifact](#adding-a-new-artifact)
+11. [Testing](#testing)
+12. [Design system](#design-system)
+13. [Status and known limitations](#status-and-known-limitations)
+14. [Sources and credits](#sources-and-credits)
 
 ---
 
@@ -135,6 +136,10 @@ Or from the command line:
 ```bash
 godot --path .
 ```
+
+## Release
+
+[Download the latest release](https://drive.google.com/file/d/10MnkF_otGZV3nlzXZFrMvYUiwp_kB_Gp/view?usp=drive_link)
 
 ### Good to know
 
